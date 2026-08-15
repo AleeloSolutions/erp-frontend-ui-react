@@ -3,9 +3,16 @@
   "outputDirectory": "apps/erp/dist",
   "installCommand": "npm install",
   "framework": "vite",
+  "redirects": [
+    {
+      "source": "/storybook",
+      "destination": "/storybook/",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
-      "source": "/((?!assets/).*)",
+      "source": "/((?!assets/|storybook/).*)",
       "destination": "/index.html"
     }
   ]

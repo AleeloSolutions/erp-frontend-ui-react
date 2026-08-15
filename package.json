@@ -9,7 +9,8 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @erp/app",
-    "build": "npm run build -w @erp/app",
+    "build": "node scripts/build-with-storybook.mjs",
+    "build:app": "npm run build -w @erp/app",
     "preview": "npm run preview -w @erp/app",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",

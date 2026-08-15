@@ -20,6 +20,8 @@ const config: StorybookConfig = {
     const { mergeConfig } = await import("vite");
     const { default: tailwindcss } = await import("@tailwindcss/vite");
     return mergeConfig(config, {
+      // Set STORYBOOK_BASE=/storybook/ for the Vercel-hosted static build.
+      base: process.env.STORYBOOK_BASE ?? config.base ?? "/",
       plugins: [tailwindcss()],
       resolve: {
         alias: {
