@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enterprise SaaS — Sidebar with Horizontal Submenus</title>
+<style>
+:root{
+  --nav:#102A43;
+  --nav-hover:#173f61;
+  --nav-active:#1E4E8C;
+  --blue:#1E4E8C;
+  --blue-50:#F1F6FB;
+  --blue-100:#E2EDF7;
+  --teal:#0D8A7C;
+  --bg:#F5F7FA;
+  --surface:#FFFFFF;
+  --surface-alt:#FAFBFC;
+  --text:#1F2937;
+  --muted:#6B7280;
+  --subtle:#8A94A6;
+  --border:#DCE2E8;
+  --border-soft:#E9EDF2;
+  --header:#F3F6F8;
+  --success:#166534;
+  --success-bg:#ECFDF3;
+  --warning:#92400E;
+  --warning-bg:#FFF8E7;
+  --error:#B42318;
+  --error-bg:#FEF2F2;
+  --info:#1D4ED8;
+  --info-bg:#EFF6FF;
+  --purple:#6D28D9;
+  --purple-bg:#F3E8FF;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:13px}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.app{min-height:100vh;display:grid;grid-template-columns:220px 1fr}
+.sidebar{background:var(--nav);color:#fff;min-height:100vh;position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
+.brand{height:58px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.brandmark{width:30px;height:30px;border-radius:8px;background:var(--teal);display:grid;place-items:center;font-weight:800;font-size:12px}
+.brand b{font-size:13px;display:block}.brand span{font-size:10px;color:#AFC1D0;display:block}
+.side-scroll{overflow:auto;padding:8px}.navlabel{padding:10px 8px 6px;color:#7F96AC;font-size:9px;text-transform:uppercase;letter-spacing:.7px}
+.side-link{width:100%;height:36px;border:0;background:transparent;color:#D7E1EA;border-radius:6px;display:flex;align-items:center;gap:9px;padding:0 10px;font-size:12px;text-align:left;margin:2px 0}
+.side-link:hover{background:var(--nav-hover)}.side-link.active{background:var(--nav-active);color:#fff}.side-link .icon{width:14px;text-align:center;opacity:.95}
+.sidebar-bottom{margin-top:auto;padding:8px;border-top:1px solid rgba(255,255,255,.08)}
+.user-box{display:flex;align-items:center;gap:8px;padding:7px;border-radius:6px}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--blue-100);color:var(--nav);display:grid;place-items:center;font-size:11px;font-weight:700}
+.user-box b{font-size:11px;display:block}.user-box span{font-size:9px;color:#AFC1D0}
+.main{min-width:0}
+.select,.input,.textarea{border:1px solid #D7E1EB;border-radius:6px;background:#fff;color:var(--text);box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}
+.select,.input{height:30px;padding:0 9px;font-size:11px}.textarea{min-height:76px;padding:8px 10px;font-size:12px;resize:vertical}
+.input:focus,.select:focus,.textarea:focus{outline:2px solid #D8E7F5;border-color:var(--blue)}
+.iconbtn,.row-action{width:28px;height:28px;border:1px solid transparent;background:transparent;border-radius:6px;color:#667085}
+.iconbtn:hover,.row-action:hover{background:#F5F8FC;border-color:#D9E2EC}
+.btn{height:30px;border:1px solid #D7E1EB;border-radius:7px;background:#fff;color:var(--text);padding:0 10px;font-size:11px;font-weight:700}.btn:hover{background:#F7F9FB}.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn-primary:hover{filter:brightness(.96)}.btn-teal{background:var(--teal);border-color:var(--teal);color:#fff}
+.avatar{width:28px;height:28px;border-radius:999px;background:linear-gradient(180deg,#E8EEF6 0%,#DDE7F1 100%);display:grid;place-items:center;color:#506176;font-size:10px;font-weight:800;border:1px solid #D7E1EB}
+.content{padding:8px 10px 26px}
+.pagehead-right{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.page-context-selects,.pagehead-tools{display:flex;align-items:center;gap:6px}
+.page-context-selects .select{height:28px;font-size:10.5px;min-width:150px}
+.page-context-selects .select:last-child{min-width:118px}
+.pagehead-tools .iconbtn{width:26px;height:26px}
+.pagehead-tools .avatar{width:27px;height:27px}
+
+.page-context{
+  background:
+    radial-gradient(circle at top right, rgba(59,130,246,.08), transparent 28%),
+    linear-gradient(180deg,#FFFFFF 0%,#F9FBFD 100%);
+  border:1px solid #D9E2EC;
+  border-radius:10px;
+  overflow:hidden;
+  margin-bottom:8px;
+  box-shadow:0 4px 14px rgba(16,42,67,.05), 0 1px 3px rgba(16,42,67,.03);
+}
+.pagehead{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(520px,auto);
+  gap:12px;
+  padding:9px 12px;
+  align-items:center;
+  min-height:68px;
+}
+.page-identity{
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+  min-width:0;
+}
+.page-icon{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(145deg,#2F6FB3 0%,#1E4E8C 100%);
+  color:#fff;display:grid;place-items:center;
+  font-size:16px;font-weight:800;
+  box-shadow:0 5px 12px rgba(30,78,140,.16);
+  position:relative;
+}
+.page-icon:after{
+  content:"";
+  position:absolute;
+  inset:4px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:7px;
+}
+.page-copy{min-width:0}
+.page-eyebrow{
+  display:flex;align-items:center;gap:7px;
+  color:#7A869A;font-size:10px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.65px;
+  margin-bottom:2px;
+}
+.page-eyebrow .dot{
+  width:4px;height:4px;border-radius:50%;
+  background:#A7B1BE;flex:0 0 auto;
+}
+.pagehead h1{
+  font-size:20px;line-height:1.1;margin:0 0 2px;
+  letter-spacing:-.35px;color:#1F2937;
+}
+.pagehead p{
+  font-size:11px;color:#667085;margin:0;
+  max-width:760px;line-height:1.35;
+}
+.page-meta{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(120px,1fr));
+  gap:10px;
+  margin-top:14px;
+  max-width:540px;
+}
+.meta-pill{
+  min-height:60px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+  border:1px solid #E3EAF2;
+  background:linear-gradient(180deg,#FFFFFF 0%,#F8FBFE 100%);
+  border-radius:12px;
+  padding:10px 12px;
+  color:#596575;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+}
+.meta-pill strong{
+  color:#1F2937;
+  font-size:18px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:-.25px;
+}
+.meta-pill span{
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.45px;
+  font-weight:700;
+  color:#7A869A;
+}
+.actions{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  justify-content:flex-end;
+}
+.actions .btn{
+  height:32px;
+  min-width:76px;
+  border-radius:7px;
+  font-weight:700;
+  padding:0 11px;
+  font-size:11px;
+}
+.actions .btn-primary{
+  box-shadow:0 4px 10px rgba(30,78,140,.14);
+}
+.submenu-wrap{
+  border-top:1px solid #E1E8F0;
+  background:
+    linear-gradient(180deg,#FFFFFF 0%,#FBFCFE 100%);
+  display:flex;
+  align-items:center;
+  min-height:44px;
+  padding:4px 10px;
+  gap:10px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.92);
+}
+.submenu-label{
+  position:relative;
+  height:30px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:0 10px 0 9px;
+  border:1px solid #D7E4F0;
+  border-radius:999px;
+  background:linear-gradient(135deg,#F5FAFF 0%,#EAF3FC 100%);
+  color:var(--blue);
+  font-size:9.5px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.62px;
+  white-space:nowrap;
+  box-shadow:
+    0 8px 18px rgba(30,78,140,.10),
+    inset 0 1px 0 rgba(255,255,255,.85);
+  flex:0 0 auto;
+}
+.submenu-label:before{
+  content:"";
+  position:absolute;
+  inset:3px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.55);
+  pointer-events:none;
+}
+.submenu-label-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:linear-gradient(145deg,#2F6FB3 0%,#1E4E8C 100%);
+  box-shadow:
+    0 0 0 4px rgba(30,78,140,.09),
+    0 1px 4px rgba(30,78,140,.16);
+  flex:0 0 auto;
+}
+.submenu-label-text{
+  line-height:1;
+  position:relative;
+  z-index:1;
+}
+.submenu-strip{
+  border:0;
+  background:rgba(248,250,252,.92);
+  border-radius:9px;
+  overflow-x:auto;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:3px;
+  margin:0;
+  min-width:0;
+  flex:1;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.88),
+    0 1px 2px rgba(16,42,67,.03);
+}
+.submenu-tab{
+  position:relative;
+  height:34px;
+  border:1px solid transparent;
+  background:transparent;
+  border-radius:7px;
+  padding:0 11px;
+  font-size:10.5px;
+  font-weight:700;
+  color:#64748B;
+  white-space:nowrap;
+  letter-spacing:-.1px;
+  transition:background .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease;
+}
+.submenu-tab:hover{
+  background:#FFFFFF;
+  color:#244E88;
+  border-color:#E2EAF2;
+  box-shadow:0 6px 14px rgba(16,42,67,.06);
+  transform:translateY(-1px);
+}
+.submenu-tab.active{
+  background:linear-gradient(180deg,#FFFFFF 0%,#F4F8FD 100%);
+  color:#1E4E8C;
+  font-weight:800;
+  border-color:#D3DFEC;
+  box-shadow:
+    0 3px 8px rgba(30,78,140,.08),
+    inset 0 -2px 0 #1E4E8C,
+    inset 0 1px 0 rgba(255,255,255,.9);
+}
+.submenu-tab.active:before{
+  content:"";
+  position:absolute;
+  left:12px;
+  right:12px;
+  top:0;
+  height:2px;
+  border-radius:0 0 2px 2px;
+  background:linear-gradient(90deg,#2F6FB3 0%,#4B8ED1 100%);
+}
+.submenu-tab.active:after{display:none}
+.view-toggle{display:flex;gap:2px;margin-bottom:8px}.view-toggle button{height:30px;border:1px solid var(--border);background:#fff;padding:0 12px;font-size:11px;color:var(--muted)}.view-toggle button:first-child{border-radius:6px 0 0 6px}.view-toggle button:last-child{border-radius:0 6px 6px 0}.view-toggle button.active{background:var(--blue-50);color:var(--blue);border-color:#C9D8E8;font-weight:700}
+.card{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+
+.toolbar{padding:10px 12px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#FCFDFE 0%,#F8FAFC 100%)}
+.toolbar-main{display:grid;grid-template-columns:minmax(320px,1.3fr) auto auto;gap:12px;align-items:end}
+.toolbar-search{min-width:0}.tool-label,.mini-label{display:block;margin:0 0 5px;font-size:9.5px;line-height:1;font-weight:800;letter-spacing:.45px;text-transform:uppercase;color:#7A869A}
+.searchbox{min-width:260px;height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid #D8E2EC;border-radius:10px;background:linear-gradient(180deg,#FFFFFF 0%,#FBFCFE 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.88),0 1px 2px rgba(16,42,67,.03)}
+.searchbox input{flex:1;border:0;outline:0;font-size:12px;background:transparent;color:var(--text)}.searchbox input::placeholder{color:#94A3B8}
+.toolbar-group{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.mini-filter{min-width:156px}.mini-filter .select{height:40px;min-width:156px;border-radius:10px;border:1px solid #D8E2EC;background:linear-gradient(180deg,#FFFFFF 0%,#FBFCFE 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.88);font-size:12px;color:#334155}
+.toolbar-actions{display:flex;align-items:end;gap:8px}.toolbar-actions .btn{height:40px;border-radius:10px;padding:0 14px;font-weight:700}
+.filterline{min-height:40px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border-soft);background:#fff}
+.filterline-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.filterline-right{margin-left:auto;display:flex;align-items:center;gap:8px}.filter-empty{color:var(--subtle);font-size:10.5px}
+.chip{height:28px;display:inline-flex;align-items:center;gap:7px;border:1px solid #D7E4F0;background:linear-gradient(180deg,#F7FAFE 0%,#EEF4FB 100%);color:#244E88;border-radius:999px;padding:0 10px;font-size:10.5px;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,.85)}
+.chip-label{color:#6B7C93;font-size:9.5px;font-weight:800;letter-spacing:.25px;text-transform:uppercase}.chip-value{color:#1E4E8C}
+.record-count{display:inline-flex;align-items:center;height:28px;padding:0 10px;border:1px solid #E1E8F0;border-radius:999px;background:#F8FAFC;color:#667085;font-size:10.5px;font-weight:700}
+.bulkbar{display:none;min-height:40px;align-items:center;gap:8px;padding:6px 12px;background:linear-gradient(180deg,#F1F7FD 0%,#E9F2FB 100%);border-bottom:1px solid #C9D8E8}.bulkbar.show{display:flex}.bulkbar strong{font-size:11px;color:var(--blue)}
+.table-group-row td{background:#F7FAFD!important;border-bottom:1px solid #DCE7F2!important;padding:0!important}.table-group-inner{min-height:38px;display:flex;align-items:center;gap:8px;padding:0 12px}.table-group-label{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;background:#EAF3FC;color:#3E5F84;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.45px}.table-group-title{color:#334155;font-size:11px;font-weight:800}.table-group-count{margin-left:auto;color:#667085;font-size:10px;font-weight:700}
+.empty-row td{padding:0!important;background:#fff!important}.empty-state{min-height:120px;display:grid;place-items:center;color:#7A869A;font-size:11px}
+@media(max-width:1100px){.toolbar-main{grid-template-columns:1fr}.toolbar-group{width:100%}.toolbar-actions{justify-content:flex-start}.mini-filter{flex:1;min-width:150px}}
+@media(max-width:720px){.toolbar{padding:10px}.toolbar-main{gap:10px}.toolbar-group{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mini-filter{min-width:0}.mini-filter .select,.toolbar-actions .btn,.searchbox{height:38px}.toolbar-actions{width:100%}.toolbar-actions .btn{width:100%}.filterline{padding:8px 10px}.record-count{height:26px}}
+
+.tablewrap{overflow:auto}.tablewrap{overflow:auto}
+table{width:100%;min-width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed}
+th{height:32px;background:#F8FAFC;border-bottom:1px solid #D9E2EC;border-right:0;padding:0 8px;text-align:left;font-size:10px;color:#556274;font-weight:700;white-space:nowrap;vertical-align:middle}
+td{height:34px;background:#fff;border-bottom:1px solid #EEF2F6;border-right:0;padding:0 8px;font-size:11px;white-space:nowrap;vertical-align:middle;color:#2F3A4A}
+th:last-child,td:last-child{border-right:0}tbody tr:hover td{background:#FAFCFE}tbody tr.selected td{background:#EEF5FC}tbody tr.selected td:first-child{box-shadow:inset 3px 0 0 var(--blue)}.num{text-align:right;font-variant-numeric:tabular-nums;letter-spacing:-.15px}.link{color:#2E5FA7;font-weight:700}
+th[data-col="__select"],td:first-child{text-align:center}
+th[data-col="__select"] .th-inner{justify-content:center}
+.odata-checkbox{-webkit-appearance:none;appearance:none;width:16px;height:16px;display:inline-grid;place-items:center;border:1px solid #C8D2DE;border-radius:4px;background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 1px 1px rgba(16,42,67,.05);cursor:pointer;position:relative;transition:border-color .14s ease,background .14s ease,box-shadow .14s ease,transform .08s ease}
+.odata-checkbox:hover{border-color:#9CB6D6;box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 0 0 3px rgba(46,95,167,.08)}
+.odata-checkbox:active{transform:scale(.96)}
+.odata-checkbox:focus-visible{outline:none;border-color:#2E5FA7;box-shadow:0 0 0 3px rgba(46,95,167,.16), inset 0 1px 0 rgba(255,255,255,.95)}
+.odata-checkbox:checked{border-color:#2E5FA7;background:linear-gradient(180deg,#3A6FB3 0%,#2E5FA7 100%);box-shadow:0 1px 2px rgba(46,95,167,.22)}
+.odata-checkbox:checked::after{content:"";width:8px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:translateY(-1px) rotate(-45deg)}
+.odata-checkbox:indeterminate{border-color:#2E5FA7;background:linear-gradient(180deg,#3A6FB3 0%,#2E5FA7 100%);box-shadow:0 1px 2px rgba(46,95,167,.22)}
+.odata-checkbox:indeterminate::after{content:"";width:8px;height:2px;border-radius:2px;background:#fff}
+.th-inner{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;position:relative}
+.col-resize-handle{position:relative;align-self:stretch;width:10px;min-width:10px;cursor:col-resize;margin-right:-6px;opacity:.65}
+.col-resize-handle:before{content:"";position:absolute;top:7px;bottom:7px;left:50%;width:1px;background:#D3DCE6;transform:translateX(-50%)}
+.col-resize-handle:hover{opacity:1}.col-resize-handle:hover:before{background:#7DA4D6;width:2px}
+body.col-resizing{cursor:col-resize;user-select:none}
+body.col-resizing *{cursor:col-resize!important;user-select:none!important}
+.status{height:18px;display:inline-flex;align-items:center;padding:0 7px;border-radius:999px;font-size:9px;font-weight:700;letter-spacing:.02em}.status.paid{background:var(--success-bg);color:var(--success)}.status.pending{background:var(--warning-bg);color:var(--warning)}.status.approved{background:var(--info-bg);color:var(--info)}.status.overdue{background:var(--error-bg);color:var(--error)}.status.draft{background:#EEF1F4;color:#5F6875}.status.partial{background:var(--purple-bg);color:var(--purple)}
+.footer{min-height:36px;padding:6px 10px;border-top:1px solid #E7EDF3;display:flex;align-items:center;color:#7A869A;font-size:10px;background:#FCFDFE}.pages{margin-left:auto;display:flex;gap:4px}.page{height:24px;min-width:26px;border:1px solid #D8E2EC;background:#fff;border-radius:6px;font-size:10px;color:#556274}.page.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.form-shell{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden}.form-head{min-height:44px;padding:0 12px;background:var(--surface-alt);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}.form-head h2{margin:0;font-size:15px}.form-head span{font-size:11px;color:var(--subtle)}.stepper{margin-left:auto;display:flex;gap:5px}.step{height:22px;padding:0 8px;border-radius:11px;background:#EEF1F4;color:var(--muted);display:flex;align-items:center;font-size:9.5px}.step.active{background:var(--blue-100);color:var(--blue);font-weight:700}
+.form-body{display:grid;grid-template-columns:minmax(0,1fr) 280px}.form-main{min-width:0}.section{padding:13px;border-bottom:1px solid var(--border)}.section h3{margin:0 0 10px;font-size:11px;color:#4E5D6C}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:10px 12px}.c12{grid-column:span 12}.c8{grid-column:span 8}.c6{grid-column:span 6}.c4{grid-column:span 4}.field{display:flex;flex-direction:column;gap:4px}.field label{font-size:10.5px;color:#4B5563;font-weight:600}
+.sidepanel{border-left:1px solid var(--border);background:#FBFCFD}.side-section{padding:12px;border-bottom:1px solid var(--border)}.side-section h4{font-size:10.5px;margin:0 0 8px}.summary-row{display:flex;justify-content:space-between;margin:7px 0;font-size:10.5px}.summary-row.total{padding-top:8px;border-top:1px solid var(--border);font-size:13px;font-weight:700}
+.form-footer{min-height:44px;padding:6px 10px;background:var(--surface-alt);border-top:1px solid var(--border);display:flex;align-items:center;gap:6px}.form-footer .right{margin-left:auto}.hidden{display:none!important}
+.mobile-nav{display:none}
+@media(max-width:980px){.app{grid-template-columns:64px 1fr}.brand div:last-child,.navlabel,.side-link span:nth-child(2),.user-box div:last-child{display:none}.brand{justify-content:center;padding:0}.side-link{justify-content:center;padding:0}.form-body{grid-template-columns:1fr}.sidepanel{border-left:0;border-top:1px solid var(--border)}}
+@media(max-width:720px){.pagehead{grid-template-columns:1fr;padding:10px 12px}.pagehead-right{width:100%;justify-content:flex-start}.page-context-selects{display:grid;grid-template-columns:1fr 1fr;width:100%}.page-context-selects .select{width:100%;min-width:0}.pagehead-tools{margin-left:auto}.actions{width:100%}.pagehead p{white-space:normal}.page-identity{grid-template-columns:36px minmax(0,1fr);gap:9px}.page-icon{width:36px;height:36px;border-radius:9px;font-size:15px}.page-meta{grid-template-columns:1fr;max-width:none;gap:8px}.meta-pill{min-height:54px;padding:9px 10px}.meta-pill strong{font-size:16px}.submenu-label{display:inline-flex;height:34px;padding:0 12px;font-size:9.25px}.submenu-label-dot{width:8px;height:8px}.submenu-wrap{padding:10px 10px 8px;gap:10px;align-items:flex-start;flex-direction:column;min-height:auto}.submenu-strip{width:100%;padding:5px;border-radius:12px}.submenu-tab{height:40px;padding:0 14px;font-size:11px}.app{display:block}.sidebar{display:none}.topbar{grid-template-columns:1fr auto}.top-left .select:nth-child(2),.search-global{display:none}.content{padding:10px 10px 70px}.actions{width:100%;display:flex}.actions .btn{flex:1;min-width:0}.searchbox{min-width:100%}.grid{grid-template-columns:1fr}.c12,.c8,.c6,.c4{grid-column:1}.mobile-nav{display:flex;position:fixed;left:0;right:0;bottom:0;height:56px;background:#fff;border-top:1px solid var(--border);z-index:50}.mobile-nav button{flex:1;border:0;background:#fff;font-size:10px;color:var(--muted)}.mobile-nav button.active{color:var(--blue);font-weight:700}}
+
+/* Oracle-style reports workspace */
+.report-workspace{display:none}
+.report-workspace.active{display:block}
+.oracle-shell{display:grid;grid-template-columns:260px minmax(0,1fr);gap:10px;align-items:start}
+.oracle-nav{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.oracle-nav-head{min-height:44px;padding:0 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:#FAFBFC}
+.oracle-nav-head h3{font-size:12px;margin:0}
+.oracle-search{padding:10px;border-bottom:1px solid var(--border-soft)}
+.oracle-search .input{width:100%}
+.oracle-folder{padding:7px 10px;border-bottom:1px solid var(--border-soft)}
+.oracle-folder b{display:block;font-size:10px;color:#475467;margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
+.oracle-report-link{width:100%;min-height:30px;border:0;background:transparent;text-align:left;border-radius:5px;padding:0 8px;font-size:11px;color:#4B5563;margin:1px 0}.oracle-report-link:hover{background:#F5F7FA}.oracle-report-link.active{background:var(--blue-50);color:var(--blue);font-weight:700}
+.oracle-main{min-width:0}.oracle-header{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px}
+.oracle-header-top{min-height:46px;padding:0 12px;display:flex;align-items:center;gap:8px;justify-content:space-between;border-bottom:1px solid var(--border)}
+.oracle-title-block h2{margin:0;font-size:16px}.oracle-title-block p{margin:2px 0 0;font-size:10px;color:var(--subtle)}.oracle-top-actions{display:flex;gap:6px;flex-wrap:wrap}
+.oracle-promptbar{padding:10px 12px;background:#FAFBFC;border-bottom:1px solid var(--border)}.oracle-prompt-grid{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:8px}
+.oracle-kpi-row{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:8px;padding:12px}.oracle-kpi{border:1px solid var(--border);border-radius:8px;background:#fff;padding:11px 12px}.oracle-kpi .label{font-size:10px;color:var(--muted);margin-bottom:5px}.oracle-kpi .value{font-size:19px;font-weight:760}.oracle-kpi .meta{font-size:9.5px;color:var(--subtle);margin-top:5px}
+.oracle-content{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden}.oracle-tabbar{min-height:42px;padding:6px 9px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:#FAFBFC}.oracle-tabs{display:flex;gap:2px}.oracle-tabs button{height:30px;border:1px solid var(--border);background:#fff;padding:0 10px;font-size:10.5px}.oracle-tabs button:first-child{border-radius:5px 0 0 5px}.oracle-tabs button:last-child{border-radius:0 5px 5px 0}.oracle-tabs button.active{background:var(--blue-50);color:var(--blue);font-weight:700}.oracle-tabbar .spacer{margin-left:auto}
+.oracle-canvas{padding:12px}.oracle-chart-card{border:1px solid var(--border);border-radius:8px;background:#fff;overflow:hidden;margin-bottom:10px}.oracle-chart-head{min-height:38px;padding:0 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-soft);font-size:11px;font-weight:700}
+.oracle-bars{height:240px;display:flex;align-items:flex-end;gap:12px;padding:14px 16px 12px;border-left:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);margin:12px;margin-top:8px}.oracle-bar-col{flex:1;min-width:50px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}.oracle-bar{width:60%;background:linear-gradient(180deg,#3B82F6,#1E4E8C);border-radius:4px 4px 0 0;min-height:18px}.oracle-bar-label{font-size:9px;color:var(--muted);text-align:center}.oracle-bar-value{font-size:9px;font-weight:700}
+.oracle-split{display:grid;grid-template-columns:1.05fr .95fr;gap:10px}.oracle-summary-box{border:1px solid var(--border);border-radius:8px;background:#fff;overflow:hidden}.oracle-summary-head{min-height:38px;padding:0 10px;display:flex;align-items:center;border-bottom:1px solid var(--border-soft);font-size:11px;font-weight:700}.oracle-summary-body{padding:10px}
+.oracle-mini-list{display:flex;flex-direction:column;gap:8px}.oracle-mini-item{display:grid;grid-template-columns:82px 1fr 50px;gap:7px;align-items:center;font-size:9.5px}.oracle-track{height:8px;background:#EDF1F5;border-radius:4px;overflow:hidden}.oracle-fill{height:100%;background:#2F6FB3;border-radius:4px}
+.oracle-table-wrap{overflow:auto}.oracle-table{width:100%;min-width:1080px;border-collapse:separate;border-spacing:0;table-layout:fixed}.oracle-table th{height:34px;background:#F3F6F8;border-bottom:1px solid var(--border);border-right:1px solid var(--border-soft);padding:0 9px;text-align:left;font-size:10.5px;font-weight:700;color:#556274}.oracle-table td{height:37px;border-bottom:1px solid var(--border-soft);border-right:1px solid #EFF2F5;padding:0 9px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.oracle-table th:last-child,.oracle-table td:last-child{border-right:0}.oracle-group td{background:#F8FAFC!important;color:#334155;font-weight:700}.oracle-total td{background:#F5F7FA!important;font-weight:760;border-top:1px solid var(--border)}
+.oracle-pivot-grid{display:grid;grid-template-columns:200px repeat(4,1fr);border:1px solid var(--border);border-radius:8px;overflow:hidden}.oracle-pivot-grid>div{min-height:34px;border-right:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);display:flex;align-items:center;padding:0 9px;font-size:10.5px}.oracle-pivot-head{background:#F3F6F8;font-weight:700;color:#556274}.oracle-pivot-rowhead{background:#FBFCFD;font-weight:700}.oracle-footer{min-height:38px;padding:6px 10px;display:flex;align-items:center;border-top:1px solid var(--border);color:var(--muted);font-size:10px}.oracle-footer .spacer{margin-left:auto}
+@media(max-width:1150px){.oracle-shell{grid-template-columns:1fr}.oracle-prompt-grid{grid-template-columns:repeat(3,minmax(120px,1fr))}.oracle-kpi-row{grid-template-columns:repeat(2,1fr)}.oracle-split{grid-template-columns:1fr}}
+@media(max-width:720px){.oracle-prompt-grid{grid-template-columns:1fr 1fr}.oracle-kpi-row{grid-template-columns:1fr}}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="brandmark">EA</div><div><b>Enterprise Africa</b><span>Business platform</span></div></div>
+    <div class="side-scroll" id="sideNav"></div>
+    <div class="sidebar-bottom"><div class="user-box"><div class="avatar">AM</div><div><b>Abdifitah Yusuf</b><span>Administrator</span></div></div></div>
+  </aside>
+  <main class="main">
+    
+    <div class="content">
+      <section class="page-context">
+        <div class="pagehead">
+          <div class="page-identity">
+            <div class="page-icon" id="pageIcon">▦</div>
+            <div class="page-copy">
+              <div class="page-eyebrow">
+                <span id="pageModuleName">Dashboard</span>
+                <span class="dot"></span>
+                <span id="pageSectionName">Tasks</span>
+              </div>
+              <h1 id="pageTitle">Tasks</h1>
+              <p id="pageDesc">Monitor key items, internal tasks, announcements, and shortcuts.</p>
+</div>
+          </div>
+          <div class="pagehead-right">
+            <div class="page-context-selects">
+              <select class="select"><option>HornRise Group</option><option>Somali Development Agency</option></select>
+              <select class="select"><option>All branches</option><option>Mogadishu</option><option>Hargeisa</option><option>Garowe</option></select>
+            </div>
+            <div class="pagehead-tools">
+              <button class="iconbtn" title="Notifications">◉</button>
+              <button class="iconbtn" title="Help">?</button>
+              <div class="avatar">AM</div>
+            </div>
+            <div class="actions">
+              <button class="btn">Import</button>
+              <button class="btn">Export</button>
+              <button class="btn btn-primary" id="headCreateBtn">Create Task</button>
+            </div>
+          </div>
+        </div>
+        <div class="submenu-wrap">
+          <div class="submenu-label" id="submenuModuleBadge">
+            <span class="submenu-label-dot"></span>
+            <span class="submenu-label-text" id="submenuModuleLabel">Dashboard</span>
+          </div>
+          <nav class="submenu-strip" id="submenuStrip"></nav>
+        </div>
+      </section>
+      <div class="view-toggle"><button class="active" id="viewListBtn">List</button><button id="viewFormBtn">Form</button></div>
+      <section id="listView">
+        <div class="card">
+          <div class="toolbar">
+            <div class="toolbar-main">
+              <div class="toolbar-search">
+                <span class="tool-label">Search</span>
+                <div class="searchbox"><span style="color:var(--subtle)">⌕</span><input id="tableSearch" placeholder="Search records, names, references, or owners"></div>
+              </div>
+              <div class="toolbar-group">
+                <div class="mini-filter"><span class="mini-label">Status</span><select class="select" id="statusFilter"><option value="">All statuses</option><option>Paid</option><option>Pending approval</option><option>Approved</option><option>Overdue</option><option>Draft</option><option>Partially paid</option><option>Active</option><option>Inactive</option><option>Open</option><option>Closed</option></select></div>
+                <div class="mini-filter"><span class="mini-label">Group by</span><select class="select" id="groupByFilter"></select></div>
+                <div class="mini-filter"><span class="mini-label">Sort</span><select class="select" id="sortByFilter"></select></div>
+              </div>
+              <div class="toolbar-actions"><button class="btn" id="clearFiltersBtn">Clear</button></div>
+            </div>
+          </div>
+          <div class="filterline" id="filterLine"><div class="filterline-left"><span class="filter-empty">Use search, filters, or grouping to refine the list.</span></div><div class="filterline-right"><span class="record-count">0 results</span></div></div>
+          <div class="bulkbar" id="bulkBar"><strong id="bulkText">0 selected</strong><button class="btn">Approve</button><button class="btn">Assign</button><button class="btn">Export</button></div>
+          <div class="tablewrap"><table id="dataTable"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div>
+          <div class="footer"><span id="tableResultText"></span><div class="pages" id="pages"></div></div>
+        </div>
+      </section>
+
+      <section id="reportView" class="report-workspace"><div class="oracle-shell"><aside class="oracle-nav"><div class="oracle-nav-head"><h3>Report catalog</h3><button class="iconbtn">⋯</button></div><div class="oracle-search"><input class="input" placeholder="Search reports"></div><div class="oracle-folder"><b>Financial</b><button class="oracle-report-link active" data-oracle-report="financial">Financial summary</button><button class="oracle-report-link" data-oracle-report="receivables">Accounts receivable aging</button><button class="oracle-report-link" data-oracle-report="payables">Accounts payable analysis</button></div><div class="oracle-folder"><b>Operations</b><button class="oracle-report-link" data-oracle-report="sales">Sales performance</button><button class="oracle-report-link" data-oracle-report="inventory">Inventory valuation</button><button class="oracle-report-link" data-oracle-report="hr">HR headcount</button><button class="oracle-report-link" data-oracle-report="projects">Project margin</button></div><div class="oracle-folder"><b>Library</b><button class="oracle-report-link">Saved layouts</button><button class="oracle-report-link">Scheduled outputs</button><button class="oracle-report-link">Recent runs</button></div></aside><div class="oracle-main"><div class="oracle-header"><div class="oracle-header-top"><div class="oracle-title-block"><h2 id="oracleReportName">Financial summary</h2><p id="oracleReportPath">Shared Folders / Finance / Executive Reports / Financial Summary</p></div><div class="oracle-top-actions"><button class="btn">Save</button><button class="btn">Save as</button><button class="btn">Schedule</button><button class="btn">Export</button><button class="btn btn-primary" id="oracleRunBtn">Run</button></div></div><div class="oracle-promptbar"><div class="oracle-prompt-grid"><select class="select" id="oraclePeriod"><option>August 2026</option><option>July 2026</option><option>Q3 2026</option><option>YTD 2026</option></select><select class="select" id="oracleLedger"><option>Primary ledger</option><option>Management ledger</option></select><select class="select" id="oracleBranch"><option>All branches</option><option>Mogadishu</option><option>Hargeisa</option><option>Garowe</option></select><select class="select" id="oracleStatus"><option>All statuses</option><option>Paid</option><option>Approved</option><option>Overdue</option></select><select class="select" id="oracleCurrency"><option>USD</option><option>SOS</option><option>KES</option></select><select class="select" id="oracleCompare"><option>Compare to previous period</option><option>Compare to budget</option></select></div></div><div class="oracle-kpi-row" id="oracleKpis"></div></div><div class="oracle-content"><div class="oracle-tabbar"><div class="oracle-tabs"><button class="active" id="oracleOverviewBtn">Overview</button><button id="oracleTableBtn">Table</button><button id="oraclePivotBtn">Pivot</button><button id="oracleChartBtn">Chart</button></div><div class="spacer"></div><button class="btn">Refresh</button><button class="btn">Personalize</button><button class="btn">More</button></div><div class="oracle-canvas" id="oracleOverviewView"><div class="oracle-split"><div><div class="oracle-chart-card"><div class="oracle-chart-head"><span>Performance chart</span><span style="font-size:10px;color:var(--subtle)">Current period</span></div><div id="oracleChartCanvas"></div></div></div><div><div class="oracle-summary-box"><div class="oracle-summary-head">Top contributors</div><div class="oracle-summary-body"><div class="oracle-mini-list" id="oracleTopContributors"></div></div></div><div style="height:10px"></div><div class="oracle-summary-box"><div class="oracle-summary-head">Variance by status</div><div class="oracle-summary-body"><div class="oracle-mini-list" id="oracleVarianceStatus"></div></div></div></div></div><div style="height:10px"></div><div class="oracle-summary-box"><div class="oracle-summary-head">Report results</div><div class="oracle-table-wrap" id="oracleOverviewTable"></div></div></div><div class="oracle-canvas hidden" id="oracleTableView"><div class="oracle-summary-box"><div class="oracle-summary-head">Detailed report output</div><div class="oracle-table-wrap" id="oracleTableOnly"></div></div></div><div class="oracle-canvas hidden" id="oraclePivotView"><div class="oracle-summary-box"><div class="oracle-summary-head">Pivot analysis</div><div class="oracle-summary-body" id="oraclePivotCanvas"></div></div></div><div class="oracle-canvas hidden" id="oracleChartView"><div class="oracle-chart-card"><div class="oracle-chart-head"><span>Standalone chart</span><span style="font-size:10px;color:var(--subtle)">Drillable visual</span></div><div id="oracleChartOnly"></div></div></div><div class="oracle-footer"><span id="oracleFooterText">Last run: 04 Aug 2026 14:48</span><span class="spacer"></span><span>Prompted report · Ready for export and scheduling</span></div></div></div></div></section>
+      <section id="formView" class="hidden">
+        <form class="form-shell">
+          <div class="form-head"><h2 id="formTitle">New invoice</h2><span id="formSubtitle">Create a new record</span><div class="stepper"><span class="step active">Draft</span><span class="step">Review</span><span class="step">Approved</span></div></div>
+          <div class="form-body"><div class="form-main"><section class="section"><h3>Primary information</h3><div class="grid" id="formFieldsPrimary"></div></section><section class="section"><h3>Additional information</h3><div class="grid" id="formFieldsSecondary"></div></section></div><aside class="sidepanel"><div class="side-section"><h4>Summary</h4><div class="summary-row"><span>Record type</span><strong id="summaryType">Invoice</strong></div><div class="summary-row"><span>Module</span><strong id="summaryModule">Finance</strong></div><div class="summary-row"><span>Status</span><strong>Draft</strong></div><div class="summary-row total"><span>Estimated total</span><span>$10,000.00</span></div></div><div class="side-section"><h4>Workflow</h4><div style="font-size:10px;line-height:1.9;color:#596575">1. Save draft<br>2. Review and submit<br>3. Approval workflow<br>4. Final confirmation</div></div></aside></div>
+          <div class="form-footer"><button type="button" class="btn" id="cancelFormBtn">Cancel</button><div class="right"><button type="button" class="btn">Save draft</button><button type="submit" class="btn btn-teal">Submit</button></div></div>
+        </form>
+      </section>
+    </div>
+  </main>
+</div>
+<div class="mobile-nav"><button class="active">Home</button><button>Tasks</button><button id="mobileCreateBtn">Create</button><button>Reports</button><button>More</button></div>
+<script>
+const mainMenus=[{key:"dashboard",label:"Dashboard",icon:"▦"},{key:"finance",label:"Finance",icon:"▤"},{key:"sales",label:"Sales",icon:"◎"},{key:"procurement",label:"Procurement",icon:"⇄"},{key:"inventory",label:"Inventory",icon:"◫"},{key:"hr",label:"Human resources",icon:"♙"},{key:"projects",label:"Projects",icon:"✓"},{key:"approvals",label:"Approvals",icon:"⌁"},{key:"reports",label:"Reports",icon:"◩"},{key:"documents",label:"Documents",icon:"▧"},{key:"favorites",label:"Favorites",icon:"★"},{key:"recent",label:"Recent",icon:"◷"},{key:"administration",label:"Administration",icon:"⚙"},{key:"help",label:"Help",icon:"?"}];
+const modules={dashboard:{title:"Dashboard",desc:"Monitor key items, internal tasks, announcements, and shortcuts.",submenus:{tasks:{label:"Tasks",preset:"task"},announcements:{label:"Announcements",preset:"announcement"},shortcuts:{label:"Shortcuts",preset:"shortcut"}}},finance:{title:"Finance",desc:"Manage invoices, payments, statements, credit notes, and chart of accounts.",submenus:{invoices:{label:"Customer invoices",preset:"invoice"},payments:{label:"Customer payments",preset:"payment"},statements:{label:"Customer statements",preset:"statement"},creditnotes:{label:"Credit notes",preset:"creditNote"},accounts:{label:"Chart of accounts",preset:"account"}}},sales:{title:"Sales",desc:"Manage customers, quotations, sales orders, invoices, and receipts.",submenus:{customers:{label:"Customers",preset:"customer"},quotations:{label:"Quotations",preset:"quotation"},orders:{label:"Sales orders",preset:"order"},invoices:{label:"Invoices",preset:"invoice"},receipts:{label:"Receipts",preset:"receipt"}}},procurement:{title:"Procurement",desc:"Manage suppliers, purchase requests, purchase orders, goods receipts, and supplier bills.",submenus:{suppliers:{label:"Suppliers",preset:"supplier"},requests:{label:"Purchase requests",preset:"purchaseRequest"},orders:{label:"Purchase orders",preset:"purchaseOrder"},receipts:{label:"Goods receipts",preset:"goodsReceipt"},bills:{label:"Supplier bills",preset:"supplierBill"}}},inventory:{title:"Inventory",desc:"Manage products, categories, stock movements, transfers, and stock counts.",submenus:{products:{label:"Products",preset:"product"},categories:{label:"Categories",preset:"category"},movements:{label:"Stock movements",preset:"movement"},transfers:{label:"Transfers",preset:"transfer"},counts:{label:"Stock counts",preset:"stockCount"}}},hr:{title:"Human resources",desc:"Manage employees, attendance, leave, payroll, and departments.",submenus:{employees:{label:"Employees",preset:"employee"},attendance:{label:"Attendance",preset:"attendance"},leave:{label:"Leave requests",preset:"leave"},payroll:{label:"Payroll",preset:"payroll"},departments:{label:"Departments",preset:"department"}}},projects:{title:"Projects",desc:"Manage projects, tasks, timesheets, milestones, and issues.",submenus:{projects:{label:"Projects",preset:"project"},tasks:{label:"Tasks",preset:"task"},timesheets:{label:"Timesheets",preset:"timesheet"},milestones:{label:"Milestones",preset:"milestone"},issues:{label:"Issues",preset:"issue"}}},approvals:{title:"Approvals",desc:"Manage pending approvals, approval rules, delegations, and approval history.",submenus:{pending:{label:"Pending approvals",preset:"approval"},rules:{label:"Approval rules",preset:"rule"},delegations:{label:"Delegations",preset:"delegation"},history:{label:"Approval history",preset:"approvalHistory"}}},reports:{title:"Reports",desc:"Access financial, sales, inventory, HR, and project reports.",submenus:{financial:{label:"Financial reports",preset:"report"},sales:{label:"Sales reports",preset:"report"},inventory:{label:"Inventory reports",preset:"report"},hr:{label:"HR reports",preset:"report"},projects:{label:"Project reports",preset:"report"}}},documents:{title:"Documents",desc:"Manage files, categories, shared documents, templates, and archive.",submenus:{files:{label:"Files",preset:"document"},categories:{label:"Categories",preset:"docCategory"},shared:{label:"Shared documents",preset:"document"},templates:{label:"Templates",preset:"template"},archive:{label:"Archive",preset:"document"}}},favorites:{title:"Favorites",desc:"Open your favorite pages, reports, and pinned records.",submenus:{pages:{label:"Favorite pages",preset:"favoritePage"},reports:{label:"Favorite reports",preset:"report"},records:{label:"Pinned records",preset:"pinnedRecord"}}},recent:{title:"Recent",desc:"Review recently opened pages, records, and reports.",submenus:{pages:{label:"Recent pages",preset:"recentPage"},records:{label:"Recent records",preset:"pinnedRecord"},reports:{label:"Recent reports",preset:"report"}}},administration:{title:"Administration",desc:"Manage organizations, branches, users, roles, permissions, and audit logs.",submenus:{organizations:{label:"Organizations",preset:"organization"},branches:{label:"Branches",preset:"branch"},users:{label:"Users",preset:"user"},roles:{label:"Roles and permissions",preset:"role"},audits:{label:"Audit logs",preset:"audit"}}},help:{title:"Help",desc:"Access the knowledge base, support tickets, FAQs, and release notes.",submenus:{knowledge:{label:"Knowledge base",preset:"knowledge"},tickets:{label:"Support tickets",preset:"ticket"},faqs:{label:"FAQs",preset:"faq"},releases:{label:"Release notes",preset:"release"}}}};
+const arrays={branches:["Mogadishu","Hargeisa","Garowe","Kismayo","Baidoa"],people:["Hodan Ali","Abdi Noor","Fadumo Warsame","Mohamed Farah","Asha Ibrahim","Sahra Ahmed","Yusuf Jama","Nimco Hassan"],companies:["HornRise Group","Somali Development Agency","East Africa Supplies Ltd","Galmudug Education Office","Jubba Logistics","Somtel Business","Mogadishu Medical Center","Puntland Agriculture Agency","Daryeel Construction","Bilan Trading"],statuses:["Paid","Pending approval","Approved","Overdue","Draft","Partially paid","Active","Inactive","Open","Closed"],departments:["Finance","Sales","Procurement","Inventory","HR","Projects","Administration"],categories:["Core","Standard","Premium","Local","Imported"],priorities:["Low","Medium","High","Urgent"]};
+function pad(num,size){return String(num).padStart(size,"0")}function sample(arr,i){return arr[i%arr.length]}function dateAt(i){const d=new Date(2026,6+(i%2),1+(i*3%27));const day=String(d.getDate()).padStart(2,"0");const month=d.toLocaleString("en-US",{month:"short"});const year=d.getFullYear();return `${day} ${month} ${year}`}function money(i,base){return `$${(base+i*213.17).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`}function randomStatus(i,allowed){return sample(allowed||arrays.statuses,i)}
+function makeFinancialRows(prefix,label,partyLabel){const out=[];for(let i=1;i<=14;i++){out.push({"Invoice":`${prefix}-2026-${pad(i,4)}`,[partyLabel]:sample(arrays.companies,i),"Status":randomStatus(i,["Paid","Pending approval","Approved","Overdue","Draft","Partially paid"]),"Subtotal":money(i,1800),"Total":money(i,2050),"Invoice date":dateAt(i),"Due date":dateAt(i+5),"Assigned officer":sample(arrays.people,i)})}return out}
+function makePaymentRows(prefix,partyLabel){const methods=["Cash","Bank","Card","Wallet"];const out=[];for(let i=1;i<=14;i++){out.push({"Payment no":`${prefix}-2026-${pad(i,4)}`,[partyLabel]:sample(arrays.companies,i),"Status":randomStatus(i,["Paid","Approved","Draft","Pending approval"]),"Amount":money(i,650),"Method":sample(methods,i),"Payment date":dateAt(i),"Reference":`REF-${pad(i,4)}`,"Assigned officer":sample(arrays.people,i)})}return out}
+function makeStatementRows(){const periods=["Jul 2026","Aug 2026","Q2 2026","Q3 2026"];const out=[];for(let i=1;i<=12;i++){out.push({"Statement no":`STM-2026-${pad(i,4)}`,"Customer":sample(arrays.companies,i),"Period":sample(periods,i),"Status":randomStatus(i,["Approved","Draft","Closed","Open"]),"Opening balance":money(i,1200),"Closing balance":money(i,2100),"Prepared by":sample(arrays.people,i),"Branch":sample(arrays.branches,i)})}return out}
+function makeCreditRows(prefix){const reasons=["Price adjustment","Return","Discount","Correction"];const out=[];for(let i=1;i<=12;i++){out.push({"Credit note":`${prefix}-2026-${pad(i,4)}`,"Customer":sample(arrays.companies,i),"Status":randomStatus(i,["Approved","Draft","Pending approval"]),"Amount":money(i,320),"Issue date":dateAt(i),"Reason":sample(reasons,i),"Approved by":sample(arrays.people,i),"Branch":sample(arrays.branches,i)})}return out}
+function makeAccountRows(){const types=["Asset","Liability","Revenue","Expense","Equity"];const out=[];for(let i=1;i<=12;i++){out.push({"Account code":`AC-${1000+i}`,"Account name":`${sample(types,i)} account ${i}`,"Type":sample(types,i),"Status":randomStatus(i,["Active","Inactive"]),"Balance":money(i,5000),"Branch":sample(arrays.branches,i),"Owner":sample(arrays.people,i),"Last updated":dateAt(i)})}return out}
+function makeMasterRows(prefix,label){const out=[];for(let i=1;i<=14;i++){out.push({[`${label} code`]:`${prefix}-${pad(i,4)}`,[`${label} name`]:`${sample(arrays.companies,i)} ${label}`,"Category":sample(arrays.categories,i),"Status":randomStatus(i,["Active","Inactive"]),"Phone":`61${pad(5100000+i*37,7)}`,"Branch":sample(arrays.branches,i),"Owner":sample(arrays.people,i),"Created on":dateAt(i)})}return out}
+function makeQuoteOrderRows(prefix,label,isSupplier){const out=[];const field=isSupplier?"Supplier":"Customer";for(let i=1;i<=14;i++){out.push({[`${label==="Quotation"?"Quotation no":label==="Purchase order"?"PO no":"Order no"}`]:`${prefix}-2026-${pad(i,4)}`,[field]:sample(arrays.companies,i),"Status":randomStatus(i,["Open","Approved","Closed","Draft","Pending approval"]),"Amount":money(i,2400),[label==="Purchase order"?"Order date":label==="Sales order"?"Order date":"Issue date"]:dateAt(i),[label==="Quotation"?"Valid until":"Delivery date"]:dateAt(i+4),"Owner":sample(arrays.people,i),"Branch":sample(arrays.branches,i)})}return out}
+function makePurchaseRequestRows(){const out=[];for(let i=1;i<=12;i++){out.push({"Request no":`PR-${pad(i,4)}`,"Requester":sample(arrays.people,i),"Status":randomStatus(i,["Pending approval","Approved","Draft","Closed"]),"Department":sample(arrays.departments,i),"Required date":dateAt(i+2),"Estimated amount":money(i,1750),"Approved by":sample(arrays.people,i+2),"Branch":sample(arrays.branches,i)})}return out}
+function makeReceiptRows(prefix){const wh=["Main Warehouse","North Store","South Store"];const out=[];for(let i=1;i<=12;i++){out.push({"Receipt no":`${prefix}-${pad(i,4)}`,"Supplier":sample(arrays.companies,i),"Status":randomStatus(i,["Open","Approved","Closed","Draft"]),"Receipt date":dateAt(i),"Items":`${2+i}`,"Warehouse":sample(wh,i),"Received by":sample(arrays.people,i),"Branch":sample(arrays.branches,i)})}return out}
+function makeProductRows(){const wh=["Main Warehouse","North Store","South Store"];const out=[];for(let i=1;i<=14;i++){out.push({"SKU":`SKU-${pad(i,4)}`,"Product name":`Product item ${i}`,"Category":sample(arrays.categories,i),"Status":randomStatus(i,["Active","Inactive"]),"Unit price":money(i,12),"Stock":`${20+i*3}`,"Warehouse":sample(wh,i),"Last updated":dateAt(i)})}return out}
+function makeCategoryRows(prefix){const p=prefix?`${prefix}-CAT`:"CAT";const out=[];for(let i=1;i<=12;i++){out.push({"Category code":`${p}-${pad(i,3)}`,"Category name":`Category ${i}`,"Status":randomStatus(i,["Active","Inactive"]),"Products":`${12+i}`,"Owner":sample(arrays.people,i),"Branch":sample(arrays.branches,i),"Created on":dateAt(i),"Updated on":dateAt(i+3)})}return out}
+function makeMovementRows(prefix){const types=["Stock in","Stock out","Adjustment","Transfer"];const wh=["Main Warehouse","North Store","South Store"];const out=[];for(let i=1;i<=12;i++){out.push({"Move no":`${prefix}-${pad(i,4)}`,"Product":`Product item ${i}`,"Status":randomStatus(i,["Open","Approved","Closed"]),"Quantity":`${4+i}`,"Movement type":sample(types,i),"Warehouse":sample(wh,i),"Recorded by":sample(arrays.people,i),"Date":dateAt(i)})}return out}
+function makeTransferRows(){const wh=["Main Warehouse","North Store","South Store"];const out=[];for(let i=1;i<=12;i++){out.push({"Transfer no":`TRF-${pad(i,4)}`,"Product":`Product item ${i}`,"Status":randomStatus(i,["Open","Approved","Closed"]),"Quantity":`${3+i}`,"From warehouse":sample(wh,i),"To warehouse":sample(wh,i+1),"Requested by":sample(arrays.people,i),"Date":dateAt(i)})}return out}
+function makeStockCountRows(){const wh=["Main Warehouse","North Store","South Store"];const out=[];for(let i=1;i<=12;i++){out.push({"Count no":`CNT-${pad(i,4)}`,"Warehouse":sample(wh,i),"Status":randomStatus(i,["Draft","Approved","Closed"]),"Products counted":`${20+i}`,"Variance":`${i%4===0?"+":"-"}${i}`,"Count date":dateAt(i),"Counted by":sample(arrays.people,i),"Branch":sample(arrays.branches,i)})}return out}
+function makeEmployeeRows(){const out=[];for(let i=1;i<=14;i++){out.push({"Employee no":`EMP-${pad(i,4)}`,"Employee name":sample(arrays.people,i),"Department":sample(arrays.departments,i),"Status":randomStatus(i,["Active","Inactive"]),"Phone":`61${pad(5100000+i*29,7)}`,"Branch":sample(arrays.branches,i),"Supervisor":sample(arrays.people,i+2),"Start date":dateAt(i)})}return out}
+function makeAttendanceRows(){const out=[];for(let i=1;i<=12;i++){out.push({"Attendance no":`ATT-${pad(i,4)}`,"Employee":sample(arrays.people,i),"Status":randomStatus(i,["Open","Closed","Approved"]),"Check in":`${8+(i%2)}:00 AM`,"Check out":`${4+(i%3)}:30 PM`,"Hours":`${8+(i%2)}h`,"Branch":sample(arrays.branches,i),"Recorded by":sample(arrays.people,i+1)})}return out}
+function makeLeaveRows(){const types=["Annual","Sick","Unpaid","Maternity"];const out=[];for(let i=1;i<=12;i++){out.push({"Leave no":`LVE-${pad(i,4)}`,"Employee":sample(arrays.people,i),"Status":randomStatus(i,["Pending approval","Approved","Draft","Closed"]),"Leave type":sample(types,i),"From":dateAt(i),"To":dateAt(i+2),"Approved by":sample(arrays.people,i+2),"Branch":sample(arrays.branches,i)})}return out}
+function makePayrollRows(){const periods=["Jul 2026","Aug 2026","Sep 2026"];const out=[];for(let i=1;i<=12;i++){out.push({"Payroll no":`PAYR-${pad(i,4)}`,"Employee":sample(arrays.people,i),"Status":randomStatus(i,["Draft","Approved","Closed"]),"Basic salary":money(i,550),"Net pay":money(i,480),"Period":sample(periods,i),"Approved by":sample(arrays.people,i+1),"Branch":sample(arrays.branches,i)})}return out}
+function makeDepartmentRows(){const out=[];for(let i=1;i<=10;i++){out.push({"Department code":`DEP-${pad(i,3)}`,"Department name":sample(arrays.departments,i),"Status":randomStatus(i,["Active","Inactive"]),"Employees":`${10+i*2}`,"Manager":sample(arrays.people,i),"Branch":sample(arrays.branches,i),"Created on":dateAt(i),"Updated on":dateAt(i+4)})}return out}
+function makeProjectRows(){const out=[];for(let i=1;i<=12;i++){out.push({"Project code":`PRJ-${pad(i,4)}`,"Project name":`Project ${i}`,"Status":randomStatus(i,["Open","Approved","Closed","Draft"]),"Manager":sample(arrays.people,i),"Start date":dateAt(i),"End date":dateAt(i+5),"Budget":money(i,4200),"Branch":sample(arrays.branches,i)})}return out}
+function makeTaskRows(){const out=[];for(let i=1;i<=14;i++){out.push({"Task no":`TSK-${pad(i,4)}`,"Task title":`Task item ${i}`,"Priority":sample(arrays.priorities,i),"Status":randomStatus(i,["Open","Approved","Closed","Draft"]),"Assignee":sample(arrays.people,i),"Due date":dateAt(i+2),"Project":`Project ${((i-1)%5)+1}`,"Branch":sample(arrays.branches,i)})}return out}
+function makeTimesheetRows(){const out=[];for(let i=1;i<=12;i++){out.push({"Timesheet no":`TIM-${pad(i,4)}`,"Employee":sample(arrays.people,i),"Project":`Project ${((i-1)%5)+1}`,"Hours":`${4+(i%5)}`,"Status":randomStatus(i,["Draft","Approved","Closed"]),"Date":dateAt(i),"Approved by":sample(arrays.people,i+1),"Branch":sample(arrays.branches,i)})}return out}
+function makeMilestoneRows(){const out=[];for(let i=1;i<=12;i++){out.push({"Milestone no":`MLS-${pad(i,4)}`,"Milestone name":`Milestone ${i}`,"Project":`Project ${((i-1)%5)+1}`,"Status":randomStatus(i,["Open","Approved","Closed"]),"Due date":dateAt(i+3),"Owner":sample(arrays.people,i),"Progress":`${(i*7)%100}%`,"Branch":sample(arrays.branches,i)})}return out}
+function makeIssueRows(){const out=[];for(let i=1;i<=12;i++){out.push({"Issue no":`ISS-${pad(i,4)}`,"Issue title":`Issue item ${i}`,"Priority":sample(arrays.priorities,i),"Status":randomStatus(i,["Open","Approved","Closed","Draft"]),"Assignee":sample(arrays.people,i),"Raised on":dateAt(i),"Project":`Project ${((i-1)%5)+1}`,"Branch":sample(arrays.branches,i)})}return out}
+function makeApprovalRows(){const types=["Invoice","Purchase request","Leave request","Payroll"];const out=[];for(let i=1;i<=12;i++){out.push({"Approval no":`APR-${pad(i,4)}`,"Request type":sample(types,i),"Status":randomStatus(i,["Pending approval","Approved","Closed"]),"Requester":sample(arrays.people,i),"Approver":sample(arrays.people,i+1),"Requested on":dateAt(i),"Amount":money(i,900),"Branch":sample(arrays.branches,i)})}return out}
+function makeRuleRows(){const modulesArr=["Finance","Sales","Procurement","HR"];const out=[];for(let i=1;i<=10;i++){out.push({"Rule code":`RUL-${pad(i,3)}`,"Rule name":`Approval rule ${i}`,"Status":randomStatus(i,["Active","Inactive"]),"Module":sample(modulesArr,i),"Approver":sample(arrays.people,i),"Limit":money(i,1000),"Branch":sample(arrays.branches,i),"Updated on":dateAt(i)})}return out}
+function makeDelegationRows(){const scopes=["Finance","Sales","HR","All"];const out=[];for(let i=1;i<=10;i++){out.push({"Delegation no":`DLG-${pad(i,4)}`,"From user":sample(arrays.people,i),"To user":sample(arrays.people,i+1),"Status":randomStatus(i,["Active","Inactive"]),"Start date":dateAt(i),"End date":dateAt(i+5),"Scope":sample(scopes,i),"Branch":sample(arrays.branches,i)})}return out}
+function makeApprovalHistoryRows(){const types=["Invoice","Purchase request","Leave request","Payroll"];const out=[];for(let i=1;i<=10;i++){out.push({"History no":`HIS-${pad(i,4)}`,"Request type":sample(types,i),"Status":randomStatus(i,["Approved","Closed","Rejected"]),"Requester":sample(arrays.people,i),"Approver":sample(arrays.people,i+1),"Decision date":dateAt(i),"Amount":money(i,700),"Branch":sample(arrays.branches,i)})}return out}
+function makeReportRows(){const cats=["Financial","Sales","Inventory","HR","Project"];const periods=["Jul 2026","Aug 2026","Q3 2026","YTD 2026"];const out=[];for(let i=1;i<=12;i++){out.push({"Report code":`RPT-${pad(i,4)}`,"Report name":`${sample(cats,i)} report ${i}`,"Category":sample(cats,i),"Status":randomStatus(i,["Active","Draft","Closed"]),"Period":sample(periods,i),"Owner":sample(arrays.people,i),"Generated on":dateAt(i),"Branch":sample(arrays.branches,i)})}return out}
+function makeDocumentRows(prefix){const sizes=["1.2 MB","840 KB","2.4 MB","300 KB"];const out=[];for(let i=1;i<=12;i++){out.push({"Document no":`${prefix}-${pad(i,4)}`,"Document name":`Document ${i}`,"Category":sample(arrays.categories,i),"Status":randomStatus(i,["Active","Draft","Archived"]),"Owner":sample(arrays.people,i),"Updated on":dateAt(i),"Size":sample(sizes,i),"Branch":sample(arrays.branches,i)})}return out}
+function makeTemplateRows(){const versions=["v1.0","v1.1","v2.0","v2.1"];const out=[];for(let i=1;i<=10;i++){out.push({"Template code":`TMP-${pad(i,4)}`,"Template name":`Template ${i}`,"Category":sample(arrays.categories,i),"Status":randomStatus(i,["Active","Draft","Archived"]),"Owner":sample(arrays.people,i),"Updated on":dateAt(i),"Version":sample(versions,i),"Branch":sample(arrays.branches,i)})}return out}
+function makeFavoriteRows(prefix){const mods=["Finance","Sales","Inventory","HR","Projects"];const out=[];for(let i=1;i<=10;i++){out.push({[`${prefix==="PAGE"?"Favorite no":"Pin no"}`]:`${prefix}-${pad(i,4)}`,[`${prefix==="PAGE"?"Page name":"Record name"}`]:`${prefix==="PAGE"?"Page":"Record"} ${i}`,"Module":sample(mods,i),"Status":randomStatus(i,["Active","Pinned"]),"Owner":sample(arrays.people,i),"Last opened":dateAt(i),"Pinned on":dateAt(i-1),"Branch":sample(arrays.branches,i)})}return out}
+function makeRecentRows(prefix){const mods=["Finance","Sales","Inventory","HR","Projects"];const out=[];for(let i=1;i<=10;i++){out.push({"Recent no":`${prefix}-${pad(i,4)}`,"Page name":`Recent page ${i}`,"Module":sample(mods,i),"Status":randomStatus(i,["Active","Open"]),"Owner":sample(arrays.people,i),"Last opened":dateAt(i),"Opened on":dateAt(i-1),"Branch":sample(arrays.branches,i)})}return out}
+function makeOrganizationRows(){const countries=["Somalia","Kenya","Djibouti","Ethiopia"];const out=[];for(let i=1;i<=8;i++){out.push({"Org code":`ORG-${pad(i,3)}`,"Organization name":sample(arrays.companies,i),"Status":randomStatus(i,["Active","Inactive"]),"Phone":`61${pad(5100000+i*31,7)}`,"Country":sample(countries,i),"Owner":sample(arrays.people,i),"Created on":dateAt(i),"Updated on":dateAt(i+2)})}return out}
+function makeBranchRows(){const cities=["Mogadishu","Hargeisa","Garowe","Kismayo"];const out=[];for(let i=1;i<=8;i++){out.push({"Branch code":`BR-${pad(i,3)}`,"Branch name":`${sample(cities,i)} Branch`,"Status":randomStatus(i,["Active","Inactive"]),"Manager":sample(arrays.people,i),"City":sample(cities,i),"Phone":`61${pad(5100000+i*19,7)}`,"Created on":dateAt(i),"Updated on":dateAt(i+1)})}return out}
+function makeUserRows(){const roles=["Administrator","Manager","Officer","Reviewer"];const out=[];for(let i=1;i<=10;i++){out.push({"User no":`USR-${pad(i,4)}`,"Full name":sample(arrays.people,i),"Role":sample(roles,i),"Status":randomStatus(i,["Active","Inactive"]),"Email":`user${i}@example.com`,"Branch":sample(arrays.branches,i),"Last login":dateAt(i),"Created on":dateAt(i-1)})}return out}
+function makeRoleRows(){const scopes=["Organization","Branch","Department"];const out=[];for(let i=1;i<=8;i++){out.push({"Role code":`ROL-${pad(i,3)}`,"Role name":`Role ${i}`,"Status":randomStatus(i,["Active","Inactive"]),"Users":`${3+i}`,"Scope":sample(scopes,i),"Owner":sample(arrays.people,i),"Created on":dateAt(i),"Updated on":dateAt(i+2)})}return out}
+function makeAuditRows(){const actions=["Create","Update","Delete","Approve","Login"];const mods=["Finance","Sales","Inventory","HR"];const ips=["10.0.0.1","10.0.0.2","10.0.0.3","10.0.0.4"];const out=[];for(let i=1;i<=12;i++){out.push({"Audit no":`AUD-${pad(i,4)}`,"Action":sample(actions,i),"Module":sample(mods,i),"User":sample(arrays.people,i),"Status":randomStatus(i,["Closed","Approved","Active"]),"Action date":dateAt(i),"IP address":sample(ips,i),"Branch":sample(arrays.branches,i)})}return out}
+function makeKnowledgeRows(){const cats=["Getting started","Finance","Sales","Inventory"];const out=[];for(let i=1;i<=10;i++){out.push({"Article no":`ART-${pad(i,4)}`,"Article title":`Knowledge article ${i}`,"Category":sample(cats,i),"Status":randomStatus(i,["Active","Draft"]),"Owner":sample(arrays.people,i),"Updated on":dateAt(i),"Views":`${10+i*7}`,"Branch":sample(arrays.branches,i)})}return out}
+function makeTicketRows(){const out=[];for(let i=1;i<=12;i++){out.push({"Ticket no":`TKT-${pad(i,4)}`,"Subject":`Support issue ${i}`,"Priority":sample(arrays.priorities,i),"Status":randomStatus(i,["Open","Closed","Pending approval"]),"Requester":sample(arrays.people,i),"Assigned to":sample(arrays.people,i+1),"Opened on":dateAt(i),"Branch":sample(arrays.branches,i)})}return out}
+function makeFaqRows(){const cats=["Accounts","Login","Payments","Reports"];const out=[];for(let i=1;i<=8;i++){out.push({"FAQ no":`FAQ-${pad(i,4)}`,"Question":`How do I do action ${i}?`,"Category":sample(cats,i),"Status":randomStatus(i,["Active","Draft"]),"Owner":sample(arrays.people,i),"Updated on":dateAt(i),"Views":`${20+i*5}`,"Branch":sample(arrays.branches,i)})}return out}
+function makeReleaseRows(){const highlights=["UI improvements","Bug fixes","Performance","New feature"];const out=[];for(let i=1;i<=8;i++){out.push({"Release no":`REL-${pad(i,4)}`,"Version":`v2.${i}`,"Category":"Platform","Status":randomStatus(i,["Active","Closed"]),"Owner":sample(arrays.people,i),"Release date":dateAt(i),"Highlights":sample(highlights,i),"Branch":sample(arrays.branches,i)})}return out}
+function makeAnnouncementRows(){const audience=["All staff","Finance team","Managers","Branch users"];const out=[];for(let i=1;i<=10;i++){out.push({"Announcement no":`ANN-${pad(i,4)}`,"Title":`Announcement ${i}`,"Priority":sample(arrays.priorities,i),"Status":randomStatus(i,["Active","Draft","Closed"]),"Audience":sample(audience,i),"Publish date":dateAt(i),"Owner":sample(arrays.people,i),"Branch":sample(arrays.branches,i)})}return out}
+function makeShortcutRows(){const cats=["Operations","Management","Reports","Favorites"];const out=[];for(let i=1;i<=8;i++){out.push({"Shortcut no":`SH-${pad(i,4)}`,"Name":`Shortcut ${i}`,"Category":sample(cats,i),"Status":randomStatus(i,["Active","Inactive"]),"Route":`/page/${i}`,"Owner":sample(arrays.people,i),"Created on":dateAt(i),"Branch":sample(arrays.branches,i)})}return out}
+const presets={invoice:{singular:"Invoice",columns:["Invoice","Customer","Status","Subtotal","Total","Invoice date","Due date","Assigned officer"],primary:["Customer","Invoice date","Due date","Currency","Branch","Assigned officer"],secondary:["Payment terms","Reference","Internal notes","Attachment"],rows:()=>makeFinancialRows("INV","Invoice","Customer")},payment:{singular:"Payment",columns:["Payment no","Customer","Status","Amount","Method","Payment date","Reference","Assigned officer"],primary:["Customer","Payment date","Amount","Payment method","Branch","Assigned officer"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makePaymentRows("PAY","Customer")},statement:{singular:"Statement",columns:["Statement no","Customer","Period","Status","Opening balance","Closing balance","Prepared by","Branch"],primary:["Customer","Statement period","Opening balance","Closing balance","Branch","Prepared by"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeStatementRows()},creditNote:{singular:"Credit note",columns:["Credit note","Customer","Status","Amount","Issue date","Reason","Approved by","Branch"],primary:["Customer","Issue date","Amount","Reason","Branch","Approved by"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeCreditRows("CN")},account:{singular:"Account",columns:["Account code","Account name","Type","Status","Balance","Branch","Owner","Last updated"],primary:["Account code","Account name","Account type","Status","Branch","Owner"],secondary:["Opening balance","Description","Reference","Notes"],rows:()=>makeAccountRows()},customer:{singular:"Customer",columns:["Customer code","Customer name","Category","Status","Phone","Branch","Owner","Created on"],primary:["Customer name","Phone","Email","Category","Branch","Owner"],secondary:["Address","Tax ID","Reference","Notes"],rows:()=>makeMasterRows("CUS","Customer")},quotation:{singular:"Quotation",columns:["Quotation no","Customer","Status","Amount","Issue date","Valid until","Owner","Branch"],primary:["Customer","Issue date","Valid until","Amount","Branch","Owner"],secondary:["Reference","Terms","Notes","Attachment"],rows:()=>makeQuoteOrderRows("QTN","Quotation")},order:{singular:"Sales order",columns:["Order no","Customer","Status","Amount","Order date","Delivery date","Owner","Branch"],primary:["Customer","Order date","Delivery date","Amount","Branch","Owner"],secondary:["Reference","Terms","Notes","Attachment"],rows:()=>makeQuoteOrderRows("SO","Sales order")},receipt:{singular:"Receipt",columns:["Receipt no","Customer","Status","Amount","Receipt date","Method","Owner","Branch"],primary:["Customer","Receipt date","Amount","Receipt method","Branch","Owner"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makePaymentRows("RCT","Customer")},supplier:{singular:"Supplier",columns:["Supplier code","Supplier name","Category","Status","Phone","Branch","Owner","Created on"],primary:["Supplier name","Phone","Email","Category","Branch","Owner"],secondary:["Address","Tax ID","Reference","Notes"],rows:()=>makeMasterRows("SUP","Supplier")},purchaseRequest:{singular:"Purchase request",columns:["Request no","Requester","Status","Department","Required date","Estimated amount","Approved by","Branch"],primary:["Requester","Department","Required date","Estimated amount","Branch","Approved by"],secondary:["Reference","Justification","Notes","Attachment"],rows:()=>makePurchaseRequestRows()},purchaseOrder:{singular:"Purchase order",columns:["PO no","Supplier","Status","Amount","Order date","Delivery date","Owner","Branch"],primary:["Supplier","Order date","Delivery date","Amount","Branch","Owner"],secondary:["Reference","Terms","Notes","Attachment"],rows:()=>makeQuoteOrderRows("PO","Purchase order",true)},goodsReceipt:{singular:"Goods receipt",columns:["Receipt no","Supplier","Status","Receipt date","Items","Warehouse","Received by","Branch"],primary:["Supplier","Receipt date","Warehouse","Received by","Branch","Reference"],secondary:["Notes","Attachment","Inspection","Approval comments"],rows:()=>makeReceiptRows("GRN")},supplierBill:{singular:"Supplier bill",columns:["Bill no","Supplier","Status","Amount","Bill date","Due date","Owner","Branch"],primary:["Supplier","Bill date","Due date","Amount","Branch","Owner"],secondary:["Reference","Terms","Notes","Attachment"],rows:()=>makeFinancialRows("BILL","Bill","Supplier")},product:{singular:"Product",columns:["SKU","Product name","Category","Status","Unit price","Stock","Warehouse","Last updated"],primary:["Product name","SKU","Category","Unit price","Warehouse","Status"],secondary:["Description","Reorder level","Reference","Notes"],rows:()=>makeProductRows()},category:{singular:"Category",columns:["Category code","Category name","Status","Products","Owner","Branch","Created on","Updated on"],primary:["Category name","Category code","Status","Branch","Owner","Description"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeCategoryRows()},movement:{singular:"Stock movement",columns:["Move no","Product","Status","Quantity","Movement type","Warehouse","Recorded by","Date"],primary:["Product","Quantity","Movement type","Warehouse","Recorded by","Date"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeMovementRows("MOVE")},transfer:{singular:"Transfer",columns:["Transfer no","Product","Status","Quantity","From warehouse","To warehouse","Requested by","Date"],primary:["Product","Quantity","From warehouse","To warehouse","Requested by","Date"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeTransferRows()},stockCount:{singular:"Stock count",columns:["Count no","Warehouse","Status","Products counted","Variance","Count date","Counted by","Branch"],primary:["Warehouse","Count date","Counted by","Branch","Reference","Status"],secondary:["Notes","Attachment","Variance notes","Approval comments"],rows:()=>makeStockCountRows()},employee:{singular:"Employee",columns:["Employee no","Employee name","Department","Status","Phone","Branch","Supervisor","Start date"],primary:["Employee name","Phone","Email","Department","Branch","Supervisor"],secondary:["Address","Job title","Reference","Notes"],rows:()=>makeEmployeeRows()},attendance:{singular:"Attendance",columns:["Attendance no","Employee","Status","Check in","Check out","Hours","Branch","Recorded by"],primary:["Employee","Check in","Check out","Hours","Branch","Recorded by"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeAttendanceRows()},leave:{singular:"Leave request",columns:["Leave no","Employee","Status","Leave type","From","To","Approved by","Branch"],primary:["Employee","Leave type","From date","To date","Branch","Approved by"],secondary:["Reason","Notes","Attachment","Approval comments"],rows:()=>makeLeaveRows()},payroll:{singular:"Payroll",columns:["Payroll no","Employee","Status","Basic salary","Net pay","Period","Approved by","Branch"],primary:["Employee","Period","Basic salary","Net pay","Branch","Approved by"],secondary:["Deductions","Notes","Attachment","Approval comments"],rows:()=>makePayrollRows()},department:{singular:"Department",columns:["Department code","Department name","Status","Employees","Manager","Branch","Created on","Updated on"],primary:["Department name","Department code","Manager","Branch","Status","Description"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeDepartmentRows()},project:{singular:"Project",columns:["Project code","Project name","Status","Manager","Start date","End date","Budget","Branch"],primary:["Project name","Project code","Manager","Start date","End date","Budget"],secondary:["Branch","Description","Reference","Notes"],rows:()=>makeProjectRows()},task:{singular:"Task",columns:["Task no","Task title","Priority","Status","Assignee","Due date","Project","Branch"],primary:["Task title","Priority","Assignee","Due date","Project","Branch"],secondary:["Description","Reference","Notes","Attachment"],rows:()=>makeTaskRows()},timesheet:{singular:"Timesheet",columns:["Timesheet no","Employee","Project","Hours","Status","Date","Approved by","Branch"],primary:["Employee","Project","Hours","Date","Branch","Approved by"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeTimesheetRows()},milestone:{singular:"Milestone",columns:["Milestone no","Milestone name","Project","Status","Due date","Owner","Progress","Branch"],primary:["Milestone name","Project","Due date","Owner","Progress","Branch"],secondary:["Reference","Description","Notes","Attachment"],rows:()=>makeMilestoneRows()},issue:{singular:"Issue",columns:["Issue no","Issue title","Priority","Status","Assignee","Raised on","Project","Branch"],primary:["Issue title","Priority","Assignee","Raised date","Project","Branch"],secondary:["Description","Reference","Notes","Attachment"],rows:()=>makeIssueRows()},approval:{singular:"Approval",columns:["Approval no","Request type","Status","Requester","Approver","Requested on","Amount","Branch"],primary:["Request type","Requester","Approver","Requested on","Amount","Branch"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeApprovalRows()},rule:{singular:"Approval rule",columns:["Rule code","Rule name","Status","Module","Approver","Limit","Branch","Updated on"],primary:["Rule name","Rule code","Module","Approver","Limit","Branch"],secondary:["Reference","Description","Notes","Attachment"],rows:()=>makeRuleRows()},delegation:{singular:"Delegation",columns:["Delegation no","From user","To user","Status","Start date","End date","Scope","Branch"],primary:["From user","To user","Start date","End date","Scope","Branch"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeDelegationRows()},approvalHistory:{singular:"Approval history",columns:["History no","Request type","Status","Requester","Approver","Decision date","Amount","Branch"],primary:["Request type","Requester","Approver","Decision date","Amount","Branch"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeApprovalHistoryRows()},report:{singular:"Report",columns:["Report code","Report name","Category","Status","Period","Owner","Generated on","Branch"],primary:["Report name","Category","Period","Owner","Branch","Status"],secondary:["Description","Reference","Notes","Attachment"],rows:()=>makeReportRows()},document:{singular:"Document",columns:["Document no","Document name","Category","Status","Owner","Updated on","Size","Branch"],primary:["Document name","Category","Owner","Branch","Status","Updated on"],secondary:["Reference","Description","Notes","Attachment"],rows:()=>makeDocumentRows("DOC")},docCategory:{singular:"Document category",columns:["Category code","Category name","Status","Products","Owner","Branch","Created on","Updated on"],primary:["Category name","Category code","Status","Branch","Owner","Description"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeCategoryRows("DOC")},template:{singular:"Template",columns:["Template code","Template name","Category","Status","Owner","Updated on","Version","Branch"],primary:["Template name","Template code","Category","Owner","Branch","Status"],secondary:["Reference","Description","Notes","Attachment"],rows:()=>makeTemplateRows()},favoritePage:{singular:"Favorite page",columns:["Favorite no","Page name","Module","Status","Owner","Last opened","Pinned on","Branch"],primary:["Page name","Module","Owner","Pinned on","Branch","Status"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeFavoriteRows("PAGE")},pinnedRecord:{singular:"Pinned record",columns:["Pin no","Record name","Module","Status","Owner","Last opened","Pinned on","Branch"],primary:["Record name","Module","Owner","Pinned on","Branch","Status"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeFavoriteRows("REC")},recentPage:{singular:"Recent page",columns:["Recent no","Page name","Module","Status","Owner","Last opened","Opened on","Branch"],primary:["Page name","Module","Owner","Opened on","Branch","Status"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeRecentRows("PG")},organization:{singular:"Organization",columns:["Org code","Organization name","Status","Phone","Country","Owner","Created on","Updated on"],primary:["Organization name","Org code","Phone","Country","Owner","Status"],secondary:["Address","Reference","Notes","Attachment"],rows:()=>makeOrganizationRows()},branch:{singular:"Branch",columns:["Branch code","Branch name","Status","Manager","City","Phone","Created on","Updated on"],primary:["Branch name","Branch code","Manager","City","Phone","Status"],secondary:["Address","Reference","Notes","Attachment"],rows:()=>makeBranchRows()},user:{singular:"User",columns:["User no","Full name","Role","Status","Email","Branch","Last login","Created on"],primary:["Full name","Email","Role","Branch","Status","Phone"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeUserRows()},role:{singular:"Role",columns:["Role code","Role name","Status","Users","Scope","Owner","Created on","Updated on"],primary:["Role name","Role code","Scope","Owner","Status","Description"],secondary:["Reference","Notes","Attachment","Approval comments"],rows:()=>makeRoleRows()},audit:{singular:"Audit log",columns:["Audit no","Action","Module","User","Status","Action date","IP address","Branch"],primary:["Action","Module","User","Action date","IP address","Branch"],secondary:["Reference","Description","Notes","Attachment"],rows:()=>makeAuditRows()},knowledge:{singular:"Knowledge article",columns:["Article no","Article title","Category","Status","Owner","Updated on","Views","Branch"],primary:["Article title","Category","Owner","Updated on","Branch","Status"],secondary:["Reference","Description","Notes","Attachment"],rows:()=>makeKnowledgeRows()},ticket:{singular:"Support ticket",columns:["Ticket no","Subject","Priority","Status","Requester","Assigned to","Opened on","Branch"],primary:["Subject","Priority","Requester","Assigned to","Opened on","Branch"],secondary:["Reference","Description","Notes","Attachment"],rows:()=>makeTicketRows()},faq:{singular:"FAQ",columns:["FAQ no","Question","Category","Status","Owner","Updated on","Views","Branch"],primary:["Question","Category","Owner","Updated on","Branch","Status"],secondary:["Answer","Reference","Notes","Attachment"],rows:()=>makeFaqRows()},release:{singular:"Release note",columns:["Release no","Version","Category","Status","Owner","Release date","Highlights","Branch"],primary:["Version","Category","Owner","Release date","Highlights","Branch"],secondary:["Reference","Description","Notes","Attachment"],rows:()=>makeReleaseRows()},announcement:{singular:"Announcement",columns:["Announcement no","Title","Priority","Status","Audience","Publish date","Owner","Branch"],primary:["Title","Priority","Audience","Publish date","Owner","Branch"],secondary:["Reference","Description","Notes","Attachment"],rows:()=>makeAnnouncementRows()},shortcut:{singular:"Shortcut",columns:["Shortcut no","Name","Category","Status","Route","Owner","Created on","Branch"],primary:["Name","Category","Route","Owner","Created on","Branch"],secondary:["Reference","Description","Notes","Attachment"],rows:()=>makeShortcutRows()}};
+
+const oracleReports={financial:{name:"Financial summary",path:"Shared Folders / Finance / Executive Reports / Financial Summary",kpis:[["Revenue","$364,800","+6.4% vs prior"],["Collections","$318,200","+4.1% vs prior"],["Outstanding","$46,600","-3.2% vs prior"],["Gross margin","38.7%","+1.8 pts"]],labels:["Mogadishu","Hargeisa","Garowe","Kismayo","Baidoa"],values:[124500,88400,67900,51200,32800],rows:[["Branch total","Mogadishu","$124,500","$118,200","$6,300","34.1%","On track"],["Branch total","Hargeisa","$88,400","$82,000","$6,400","24.2%","On track"],["Branch total","Garowe","$67,900","$64,100","$3,800","18.6%","Stable"],["Branch total","Kismayo","$51,200","$49,500","$1,700","14.0%","Stable"],["Branch total","Baidoa","$32,800","$30,700","$2,100","9.0%","Improving"]]},receivables:{name:"Accounts receivable aging",path:"Shared Folders / Finance / Operational Reports / AR Aging",kpis:[["Current","$28,400","58.3% of total"],["31–60 days","$10,900","23.4% of total"],["61–90 days","$5,200","11.2% of total"],["> 90 days","$2,100","4.5% of total"]],labels:["Current","31–60","61–90",">90","Disputes"],values:[28400,10900,5200,2100,800],rows:[["Age bucket","Current","$28,400","$26,900","$1,500","60.9%","Healthy"],["Age bucket","31–60","$10,900","$11,400","-$500","23.4%","Watch"],["Age bucket","61–90","$5,200","$6,000","-$800","11.2%","Reducing"],["Age bucket","> 90 days","$2,100","$2,800","-$700","4.5%","Reducing"],["Age bucket","Disputes","$800","$1,000","-$200","1.7%","Review"]]},payables:{name:"Accounts payable analysis",path:"Shared Folders / Finance / Operational Reports / AP Analysis",kpis:[["Open payables","$82,600","+2.3% vs prior"],["Due this month","$31,400","38.0% of total"],["Early payment","$18,200","22.0% of total"],["Suppliers","146","Active suppliers"]],labels:["Due now","8–30","31–60","61+","Early"],values:[31400,22600,14500,5900,18200],rows:[["Payable type","Due this month","$31,400","$29,100","$2,300","38.0%","Manage"],["Payable type","8–30 days","$22,600","$21,900","$700","27.4%","Stable"],["Payable type","31–60 days","$14,500","$16,100","-$1,600","17.6%","Improving"],["Payable type","61+ days","$5,900","$7,300","-$1,400","7.1%","Improving"],["Payable type","Early payment","$18,200","$17,400","$800","22.0%","Good"]]},sales:{name:"Sales performance",path:"Shared Folders / Sales / Executive Reports / Sales Performance",kpis:[["Booked sales","$298,900","+7.1% vs prior"],["Average order","$2,940","+3.0% vs prior"],["Conversion","27.8%","+2.2 pts"],["Top branch","Mogadishu","Leading branch"]],labels:["Hodan","Abdi","Fadumo","Mohamed","Asha"],values:[74200,68100,59400,52600,43800],rows:[["Salesperson","Hodan Ali","$74,200","$69,100","$5,100","24.8%","Top"],["Salesperson","Abdi Noor","$68,100","$65,200","$2,900","22.8%","Strong"],["Salesperson","Fadumo Warsame","$59,400","$57,100","$2,300","19.9%","Strong"],["Salesperson","Mohamed Farah","$52,600","$51,800","$800","17.6%","Stable"],["Salesperson","Asha Ibrahim","$43,800","$41,300","$2,500","14.7%","Improving"]]},inventory:{name:"Inventory valuation",path:"Shared Folders / Inventory / Executive Reports / Inventory Valuation",kpis:[["Inventory value","$64,100","+1.9% vs prior"],["Fast moving","$29,200","45.6% of total"],["Slow moving","$12,400","19.3% of total"],["Low stock SKUs","37","Requires action"]],labels:["Main WH","North","South","Transit","Damaged"],values:[28400,16100,12300,5400,1900],rows:[["Warehouse","Main Warehouse","$28,400","$27,100","$1,300","44.3%","Healthy"],["Warehouse","North Store","$16,100","$15,900","$200","25.1%","Stable"],["Warehouse","South Store","$12,300","$12,500","-$200","19.2%","Stable"],["Warehouse","Transit","$5,400","$4,900","$500","8.4%","Monitor"],["Warehouse","Damaged","$1,900","$2,300","-$400","3.0%","Improving"]]},hr:{name:"HR headcount",path:"Shared Folders / HR / Workforce Reports / Headcount Summary",kpis:[["Headcount","162","+5 vs prior month"],["Attendance rate","94.8%","+1.3 pts"],["Open leave","17","Pending leave requests"],["Turnover","2.1%","Rolling 30 days"]],labels:["Finance","Sales","Inventory","HR","Projects"],values:[42,38,34,27,21],rows:[["Department","Finance","42","40","+2","25.9%","Stable"],["Department","Sales","38","36","+2","23.5%","Stable"],["Department","Inventory","34","33","+1","21.0%","Stable"],["Department","HR","27","27","0","16.7%","Stable"],["Department","Projects","21","21","0","13.0%","Stable"]]},projects:{name:"Project margin",path:"Shared Folders / Projects / Executive Reports / Project Margin",kpis:[["Recognized revenue","$186,200","+8.0% vs prior"],["Project cost","$114,100","+4.8% vs prior"],["Gross margin","$72,100","+13.4% vs prior"],["Margin rate","38.7%","+1.9 pts"]],labels:["Project 1","Project 2","Project 3","Project 4","Project 5"],values:[92,78,66,54,43],rows:[["Project","Project 1","92","85","+7","27.7%","Strong"],["Project","Project 2","78","76","+2","23.5%","Stable"],["Project","Project 3","66","61","+5","19.8%","Improving"],["Project","Project 4","54","53","+1","16.2%","Stable"],["Project","Project 5","43","39","+4","12.9%","Improving"]]}};let oracleReportKey="financial";let oracleView="overview";function renderOracleLinks(){document.querySelectorAll("[data-oracle-report]").forEach(btn=>{btn.classList.toggle("active",btn.dataset.oracleReport===oracleReportKey);btn.onclick=()=>{oracleReportKey=btn.dataset.oracleReport;renderOracleReport();renderOracleLinks();};});}function renderOracleKpis(data){document.getElementById("oracleKpis").innerHTML=data.kpis.map(item=>`<div class="oracle-kpi"><div class="label">${item[0]}</div><div class="value">${item[1]}</div><div class="meta">${item[2]}</div></div>`).join("");}function oracleBarMarkup(labels,values){const max=Math.max(...values);return `<div class="oracle-bars">${labels.map((label,i)=>`<div class="oracle-bar-col"><span class="oracle-bar-value">${values[i].toLocaleString()}</span><div class="oracle-bar" style="height:${Math.max(18,Math.round(values[i]/max*185))}px"></div><span class="oracle-bar-label">${label}</span></div>`).join("")}</div>`;}function renderOracleMini(targetId,rows){document.getElementById(targetId).innerHTML=rows.map(r=>`<div class="oracle-mini-item"><span>${r[0]}</span><div class="oracle-track"><div class="oracle-fill" style="width:${r[1]}%"></div></div><strong>${r[1]}%</strong></div>`).join("");}function oracleTableMarkup(data){const total1=data.rows.reduce((sum,row)=>sum+(parseFloat(String(row[2]).replace(/[$,% ,]/g,""))||0),0);const total2=data.rows.reduce((sum,row)=>sum+(parseFloat(String(row[3]).replace(/[$,% ,]/g,""))||0),0);return `<table class="oracle-table"><thead><tr><th>Type</th><th>Name</th><th>Current</th><th>Previous</th><th>Variance</th><th>Share</th><th>Status</th></tr></thead><tbody><tr class="oracle-group"><td colspan="7">Summary output</td></tr>${data.rows.map(row=>`<tr><td>${row[0]}</td><td><span class="link">${row[1]}</span></td><td class="num">${row[2]}</td><td class="num">${row[3]}</td><td class="num">${row[4]}</td><td class="num">${row[5]}</td><td><span class="status approved">${row[6]}</span></td></tr>`).join("")}<tr class="oracle-total"><td colspan="2">Total</td><td class="num">${total1.toLocaleString()}</td><td class="num">${total2.toLocaleString()}</td><td class="num">—</td><td class="num">100%</td><td></td></tr></tbody></table>`;}function oraclePivotMarkup(data){const headers=["Mogadishu","Hargeisa","Garowe","Kismayo"];const rows=data.rows.slice(0,4);let html=`<div class="oracle-pivot-grid">`;html+=`<div class="oracle-pivot-head">Metric</div>${headers.map(h=>`<div class="oracle-pivot-head">${h}</div>`).join("")}`;rows.forEach((row,i)=>{html+=`<div class="oracle-pivot-rowhead">${row[1]}</div>`;headers.forEach((h,j)=>{html+=`<div>${(20+i*7+j*3).toLocaleString()}</div>`;});});html+=`</div>`;return html;}function setOracleView(view){oracleView=view;document.getElementById("oracleOverviewBtn").classList.toggle("active",view==="overview");document.getElementById("oracleTableBtn").classList.toggle("active",view==="table");document.getElementById("oraclePivotBtn").classList.toggle("active",view==="pivot");document.getElementById("oracleChartBtn").classList.toggle("active",view==="chart");document.getElementById("oracleOverviewView").classList.toggle("hidden",view!=="overview");document.getElementById("oracleTableView").classList.toggle("hidden",view!=="table");document.getElementById("oraclePivotView").classList.toggle("hidden",view!=="pivot");document.getElementById("oracleChartView").classList.toggle("hidden",view!=="chart");}function renderOracleReport(){const data=oracleReports[oracleReportKey]||oracleReports.financial;document.getElementById("oracleReportName").textContent=data.name;document.getElementById("oracleReportPath").textContent=data.path;document.getElementById("oracleFooterText").textContent="Last run: 04 Aug 2026 14:48";renderOracleKpis(data);document.getElementById("oracleChartCanvas").innerHTML=oracleBarMarkup(data.labels,data.values);document.getElementById("oracleChartOnly").innerHTML=oracleBarMarkup(data.labels,data.values);renderOracleMini("oracleTopContributors",[[data.labels[0],92],[data.labels[1],76],[data.labels[2],61],[data.labels[3],48]]);renderOracleMini("oracleVarianceStatus",[["Approved",84],["Pending",46],["Overdue",23],["Draft",14]]);document.getElementById("oracleOverviewTable").innerHTML=oracleTableMarkup(data);document.getElementById("oracleTableOnly").innerHTML=oracleTableMarkup(data);document.getElementById("oraclePivotCanvas").innerHTML=oraclePivotMarkup(data);renderOracleLinks();setOracleView(oracleView);}
+let currentModule="finance";let currentSubmenu="invoices";let currentView="list";let page=1;const pageSize=8;let selected=new Set();let columnWidths={};
+function getPreset(){const module=modules[currentModule];const submenu=module.submenus[currentSubmenu];return presets[submenu.preset]}
+function renderSidebar(){const sideNav=document.getElementById("sideNav");sideNav.innerHTML=`<div class="navlabel">Main menus</div>${mainMenus.map(menu=>`<button class="side-link ${menu.key===currentModule?'active':''}" data-module="${menu.key}"><span class="icon">${menu.icon}</span><span>${menu.label}</span></button>`).join("")}`;sideNav.querySelectorAll("[data-module]").forEach(btn=>{btn.addEventListener("click",()=>{currentModule=btn.dataset.module;currentSubmenu=Object.keys(modules[currentModule].submenus)[0];currentView=btn.dataset.module==="reports"?"report":"list";page=1;selected=new Set();renderAll()})})}
+function renderSubmenus(){const strip=document.getElementById("submenuStrip");const mod=modules[currentModule];strip.innerHTML=Object.entries(mod.submenus).map(([key,value])=>`<button class="submenu-tab ${key===currentSubmenu?'active':''}" data-submenu="${key}">${value.label}</button>`).join("");strip.querySelectorAll("[data-submenu]").forEach(btn=>{btn.addEventListener("click",()=>{currentSubmenu=btn.dataset.submenu;currentView=currentModule==="reports"?"report":"list";page=1;selected=new Set();renderAll()})})}
+function renderPageHead(){
+  const mod=modules[currentModule];
+  const submenu=mod.submenus[currentSubmenu];
+  const iconMap={dashboard:"▦",finance:"▤",sales:"◎",procurement:"⇄",inventory:"◫",hr:"♙",projects:"✓",approvals:"⌁",reports:"◩",documents:"▧",favorites:"★",recent:"◷",administration:"⚙",help:"?"};
+  document.getElementById("pageTitle").textContent=submenu.label;
+  document.getElementById("pageDesc").textContent=mod.desc;
+  document.getElementById("headCreateBtn").textContent=`Create ${getPreset().singular}`;
+  document.getElementById("pageIcon").textContent=iconMap[currentModule]||"▦";
+  document.getElementById("pageModuleName").textContent=mod.title;
+  document.getElementById("submenuModuleLabel").textContent=mod.title;
+  document.getElementById("pageSectionName").textContent=submenu.label;
+  
+  
+  
+}
+function setView(view){currentView=view;const reportActive=view==="report";document.getElementById("viewListBtn").classList.toggle("active",view==="list");document.getElementById("viewFormBtn").classList.toggle("active",view==="form");document.getElementById("listView").classList.toggle("hidden",view!=="list");document.getElementById("formView").classList.toggle("hidden",view!=="form");document.getElementById("reportView").classList.toggle("active",reportActive);document.querySelector(".view-toggle").classList.toggle("hidden",reportActive)}
+function statusClass(value){const v=String(value).toLowerCase();if(v.includes("paid")&&!v.includes("partially"))return "paid";if(v.includes("pending"))return "pending";if(v.includes("approved"))return "approved";if(v.includes("overdue"))return "overdue";if(v.includes("draft"))return "draft";if(v.includes("partial"))return "partial";if(v.includes("active"))return "approved";if(v.includes("closed"))return "paid";return "draft"}
+function getGroupableColumns(){const columns=getPreset().columns;const excluded=["amount","balance","date","updated","phone","hours","progress","salary","budget","price","subtotal","total","opening","closing","valid until","delivery"];return columns.filter((col,idx)=>{const lower=col.toLowerCase();if(idx===0&&(lower.includes("no")||lower.includes("code")))return false;return !excluded.some(word=>lower.includes(word))}).slice(0,6)}
+function populateTableControls(){const groupSelect=document.getElementById("groupByFilter");const sortSelect=document.getElementById("sortByFilter");const currentGroup=groupSelect?.value||"";const currentSort=sortSelect?.value||"default";const columns=getPreset().columns;const groupable=getGroupableColumns();if(groupSelect){groupSelect.innerHTML=`<option value="">No grouping</option>`+groupable.map(col=>`<option value="${col}">${col}</option>`).join("");groupSelect.value=groupable.includes(currentGroup)?currentGroup:""}if(sortSelect){const sortOptions=[["default","Default order"]];columns.forEach(col=>sortOptions.push([`asc:${col}`,`${col} · A–Z`]));columns.forEach(col=>sortOptions.push([`desc:${col}`,`${col} · Z–A`]));sortSelect.innerHTML=sortOptions.map(([value,label])=>`<option value="${value}">${label}</option>`).join("");sortSelect.value=sortOptions.some(item=>item[0]===currentSort)?currentSort:"default"}}
+function sortableValue(value){const raw=String(value??"").trim();const numeric=Number(raw.replace(/[$,% ,]/g,""));if(raw&&!Number.isNaN(numeric)&&/[$0-9]/.test(raw))return numeric;return raw.toLowerCase()}
+function isNumericColumn(col){const lower=col.toLowerCase();return lower.includes('amount')||lower.includes('balance')||lower.includes('budget')||lower.includes('salary')||lower.includes('price')||lower.includes('total')||lower.includes('subtotal')||lower.includes('net pay')||lower.includes('opening balance')||lower.includes('closing balance')||lower.includes('limit')}
+function getDefaultColumnWidth(col){
+  const lower=String(col||"").toLowerCase();
+  if(lower==="__select") return 40;
+  if(lower==="__actions") return 52;
+  if(isNumericColumn(lower)) return 88;
+  if(lower.includes("date")) return 118;
+  if(lower.includes("status")) return 118;
+  if(lower.includes("follow-up")) return 96;
+  if(lower.includes("invoice")) return 138;
+  if(lower.includes("number")) return 132;
+  if(lower.includes("code")) return 124;
+  if(lower.includes("customer")) return 220;
+  if(lower.includes("account name")) return 230;
+  if(lower.includes("branch")) return 118;
+  if(lower.includes("assigned")) return 150;
+  if(lower.includes("officer")) return 150;
+  if(lower.includes("owner")) return 148;
+  if(lower.includes("user")) return 140;
+  if(lower.includes("reference")) return 138;
+  if(lower.includes("type")) return 118;
+  if(lower.includes("name")) return 170;
+  return 124;
+}
+function estimateColumnWidth(col, rows){
+  const lower=String(col||"").toLowerCase();
+  const sampleRows=rows.slice(0,40);
+  const longestValue=Math.max(
+    String(col).length,
+    ...sampleRows.map(row => String(row[col] ?? "").length)
+  );
+  let width;
+  if(isNumericColumn(lower)){
+    width=Math.min(102, Math.max(84, longestValue * 7 + 14));
+  }else if(lower.includes("date")){
+    width=Math.min(136, Math.max(114, longestValue * 7.4 + 18));
+  }else if(lower.includes("status")){
+    width=Math.min(146, Math.max(114, longestValue * 7.5 + 28));
+  }else if(lower.includes("customer")){
+    width=Math.min(320, Math.max(220, longestValue * 8.6 + 34));
+  }else if(lower.includes("account name")){
+    width=Math.min(320, Math.max(230, longestValue * 8.5 + 34));
+  }else if(lower.includes("assigned")||lower.includes("officer")||lower.includes("owner")||lower.includes("user")){
+    width=Math.min(240, Math.max(145, longestValue * 8.2 + 28));
+  }else if(lower.includes("name")){
+    width=Math.min(250, Math.max(160, longestValue * 8.3 + 28));
+  }else{
+    width=Math.min(320, Math.max(getDefaultColumnWidth(col), longestValue * 8 + 24));
+  }
+  return Math.round(width);
+}
+function isCompactColumn(col){
+  const lower=String(col||"").toLowerCase();
+  return isNumericColumn(lower) || lower.includes("date") || lower.includes("status") || lower.includes("follow-up");
+}
+function isExpandableColumn(col){
+  const lower=String(col||"").toLowerCase();
+  if(lower==="__select" || lower==="__actions") return false;
+  return !isCompactColumn(lower);
+}
+function getExpandWeight(col){
+  const lower=String(col||"").toLowerCase();
+  if(lower.includes("customer") || lower.includes("account name")) return 4;
+  if(lower.includes("assigned") || lower.includes("officer") || lower.includes("owner") || lower.includes("user")) return 3;
+  if(lower.includes("invoice") || lower.includes("number") || lower.includes("name") || lower.includes("reference")) return 2.5;
+  if(lower.includes("branch") || lower.includes("type")) return 1.5;
+  return 1;
+}
+function getMinResizeWidth(col){
+  const lower=String(col||"").toLowerCase();
+  if(isNumericColumn(lower)) return 76;
+  if(lower.includes("date")) return 104;
+  if(lower.includes("status")) return 108;
+  if(lower.includes("follow-up")) return 84;
+  return 96;
+}
+function filteredRows(){const preset=getPreset();const q=document.getElementById("tableSearch").value.trim().toLowerCase();const status=document.getElementById("statusFilter").value;const sortBy=document.getElementById("sortByFilter")?.value||"default";let rows=[...preset.rows()].filter(row=>{const search=!q||Object.values(row).join(" ").toLowerCase().includes(q);const st=!status||String(row["Status"]||"")===status;return search&&st});if(sortBy!=="default"){const [dir,col]=sortBy.split(":");rows.sort((a,b)=>{const av=sortableValue(a[col]);const bv=sortableValue(b[col]);if(av===bv)return 0;const base=av>bv?1:-1;return dir==="desc"?base*-1:base})}return rows}
+function rowMarkup(row,absoluteIndex,columns){return `<tr class="${selected.has(absoluteIndex)?'selected':''}"><td><input type="checkbox" class="odata-checkbox rowcheck" data-id="${absoluteIndex}" ${selected.has(absoluteIndex)?'checked':''}></td>${columns.map((col,cidx)=>{const value=row[col]??"";const cls=col==="Status"?`status ${statusClass(value)}`:"";const wrap=col==="Status"?`<span class="${cls}">${value}</span>`:(cidx===0?`<span class="link">${value}</span>`:`${value}`);const align=String(value).startsWith("$")?"num":"";return `<td class="${align}">${wrap}</td>`}).join("")}<td><button class="row-action">⋯</button></td></tr>`}
+function ensureTableColgroup(columns, rows){
+  const table=document.getElementById("dataTable");
+  const wrap=table.closest(".tablewrap");
+  let colgroup=document.getElementById("tableCols");
+  if(!colgroup){
+    colgroup=document.createElement("colgroup");
+    colgroup.id="tableCols";
+    table.insertBefore(colgroup,table.firstChild);
+  }
+  const defs=["__select",...columns,"__actions"];
+  const widths={};
+  defs.forEach((key)=>{
+    if(key==="__select") widths[key]=40;
+    else if(key==="__actions") widths[key]=52;
+    else widths[key]=columnWidths[key] || estimateColumnWidth(key, rows);
+  });
+
+  const wrapWidth=wrap ? wrap.clientWidth : 0;
+  let totalWidth=defs.reduce((sum,key)=>sum + widths[key], 0);
+  const flexKeys=defs.filter(key => isExpandableColumn(key) && !columnWidths[key]);
+
+  if(wrapWidth && totalWidth < wrapWidth && flexKeys.length){
+    const extra=wrapWidth - totalWidth;
+    const totalWeight=flexKeys.reduce((sum,key)=>sum + getExpandWeight(key), 0);
+    let used=0;
+    flexKeys.forEach((key,index)=>{
+      const weight=getExpandWeight(key);
+      const add=index===flexKeys.length-1 ? extra - used : Math.round(extra * weight / totalWeight);
+      widths[key]+=add;
+      used+=add;
+    });
+    totalWidth=wrapWidth;
+  }
+
+  colgroup.innerHTML=defs.map((key)=>`<col data-col="${key}" style="width:${widths[key]}px">`).join("");
+  table.style.width=`${Math.max(totalWidth, wrapWidth || 0)}px`;
+}
+function bindColumnResizers(){document.querySelectorAll("th.resizable[data-col]").forEach(th=>{const handle=th.querySelector(".col-resize-handle");if(!handle)return;handle.onmousedown=(event)=>{event.preventDefault();event.stopPropagation();const key=th.dataset.col;const startX=event.clientX;const startWidth=th.getBoundingClientRect().width;document.body.classList.add("col-resizing");const onMove=(e)=>{const nextWidth=Math.max(getMinResizeWidth(key),Math.round(startWidth+(e.clientX-startX)));columnWidths[key]=nextWidth;const col=[...document.querySelectorAll('#tableCols col')].find(item=>item.dataset.col===key);if(col)col.style.width=`${nextWidth}px`};const onUp=()=>{document.body.classList.remove("col-resizing");window.removeEventListener("mousemove",onMove);window.removeEventListener("mouseup",onUp)};window.addEventListener("mousemove",onMove);window.addEventListener("mouseup",onUp)};})}
+function renderTable(){populateTableControls();const preset=getPreset();const columns=preset.columns;const rows=filteredRows();const groupBy=document.getElementById("groupByFilter")?.value||"";const start=(page-1)*pageSize;const pageRows=rows.slice(start,start+pageSize);ensureTableColgroup(columns, rows);document.getElementById("tableHead").innerHTML=`<tr><th data-col="__select"><div class="th-inner"><input type="checkbox" class="odata-checkbox" id="selectAll"></div></th>${columns.map(col=>`<th data-col="${col}" class="${isNumericColumn(col)?'num ' : ''}resizable"><div class="th-inner"><span>${col}</span><span class="col-resize-handle" title="Drag to resize"></span></div></th>`).join("")}<th data-col="__actions"><div class="th-inner"></div></th></tr>`;let bodyHTML="";if(!pageRows.length){bodyHTML=`<tr class="empty-row"><td colspan="${columns.length+2}"><div class="empty-state">No records match the current filters.</div></td></tr>`}else if(groupBy){const groups=new Map();pageRows.forEach((row,idx)=>{const absoluteIndex=start+idx;const key=String(row[groupBy]||"Unspecified");if(!groups.has(key))groups.set(key,[]);groups.get(key).push({row,absoluteIndex})});bodyHTML=[...groups.entries()].map(([groupName,items])=>`<tr class="table-group-row"><td colspan="${columns.length+2}"><div class="table-group-inner"><span class="table-group-label">${groupBy}</span><span class="table-group-title">${groupName}</span><span class="table-group-count">${items.length} item${items.length>1?'s':''}</span></div></td></tr>${items.map(item=>rowMarkup(item.row,item.absoluteIndex,columns)).join("")}`).join("")}else{bodyHTML=pageRows.map((row,idx)=>rowMarkup(row,start+idx,columns)).join("")}document.getElementById("tableBody").innerHTML=bodyHTML;document.querySelectorAll(".rowcheck").forEach(chk=>{chk.addEventListener("change",()=>{const id=Number(chk.dataset.id);if(chk.checked)selected.add(id);else selected.delete(id);renderTable();renderBulkBar()})});const selectAll=document.getElementById("selectAll");if(selectAll){const selectedOnPage=pageRows.filter((_,idx)=>selected.has(start+idx)).length;selectAll.checked=pageRows.length>0&&selectedOnPage===pageRows.length;selectAll.indeterminate=selectedOnPage>0&&selectedOnPage<pageRows.length;selectAll.addEventListener("change",()=>{pageRows.forEach((_,idx)=>{const id=start+idx;if(selectAll.checked)selected.add(id);else selected.delete(id)});renderTable();renderBulkBar()})}bindColumnResizers();renderFilterLine(rows.length);renderPagination(rows.length);renderBulkBar()}
+function renderFilterLine(totalCount){const q=document.getElementById("tableSearch").value.trim();const status=document.getElementById("statusFilter").value;const groupBy=document.getElementById("groupByFilter")?.value||"";const sortText=document.getElementById("sortByFilter")?.selectedOptions?.[0]?.text||"";const chips=[];if(q)chips.push(`<span class="chip"><span class="chip-label">Search</span><span class="chip-value">${q}</span></span>`);if(status)chips.push(`<span class="chip"><span class="chip-label">Status</span><span class="chip-value">${status}</span></span>`);if(groupBy)chips.push(`<span class="chip"><span class="chip-label">Group</span><span class="chip-value">${groupBy}</span></span>`);if(sortText&&!sortText.toLowerCase().includes('default'))chips.push(`<span class="chip"><span class="chip-label">Sort</span><span class="chip-value">${sortText}</span></span>`);document.getElementById("filterLine").innerHTML=`<div class="filterline-left">${chips.length?chips.join(""):`<span class="filter-empty">Use search, filters, or grouping to refine the list.</span>`}</div><div class="filterline-right"><span class="record-count">${totalCount} result${totalCount===1?'':'s'}</span></div>`}
+function renderBulkBar(){const bulk=document.getElementById("bulkBar");bulk.classList.toggle("show",selected.size>0);document.getElementById("bulkText").textContent=`${selected.size} selected`}
+function renderPagination(total){const pages=Math.max(1,Math.ceil(total/pageSize));if(page>pages)page=pages;const start=total?((page-1)*pageSize)+1:0;const end=Math.min(page*pageSize,total);document.getElementById("tableResultText").textContent=`Showing ${start}–${end} of ${total} records`;document.getElementById("pages").innerHTML=Array.from({length:pages},(_,i)=>`<button class="page ${page===i+1?'active':''}" data-page="${i+1}">${i+1}</button>`).join("");document.querySelectorAll("[data-page]").forEach(btn=>{btn.addEventListener("click",()=>{page=Number(btn.dataset.page);renderTable()})})}
+function fieldInput(label){const lower=label.toLowerCase();if(lower.includes("notes")||lower.includes("description")||lower.includes("answer")||lower.includes("justification")){return `<div class="field c12"><label>${label}</label><textarea class="textarea" placeholder="${label}"></textarea></div>`}if(lower.includes("date")||lower.includes("from")||lower.includes("to")||lower.includes("period")||lower.includes("updated")){return `<div class="field c4"><label>${label}</label><input class="input" value="02 Aug 2026"></div>`}if(lower.includes("amount")||lower.includes("salary")||lower.includes("price")||lower.includes("budget")||lower.includes("balance")||lower.includes("hours")||lower.includes("limit")||lower.includes("progress")){return `<div class="field c4"><label>${label}</label><input class="input" value=""></div>`}if(lower.includes("branch")||lower.includes("currency")||lower.includes("status")||lower.includes("category")||lower.includes("priority")||lower.includes("method")||lower.includes("type")||lower.includes("department")||lower.includes("scope")||lower.includes("country")||lower.includes("role")||lower.includes("warehouse")){return `<div class="field c4"><label>${label}</label><select class="select"><option>Select ${label}</option><option>Option 1</option><option>Option 2</option></select></div>`}if(lower.includes("attachment")||lower.includes("file")){return `<div class="field c12"><label>${label}</label><div style="height:64px;border:1px dashed var(--border);border-radius:5px;display:grid;place-items:center;color:var(--subtle);font-size:10px">Drop or choose file</div></div>`}return `<div class="field c6"><label>${label}</label><input class="input" placeholder="${label}"></div>`}
+function renderForm(){const preset=getPreset();document.getElementById("formTitle").textContent=`New ${preset.singular}`;document.getElementById("formSubtitle").textContent=`Create a new ${preset.singular.toLowerCase()} record`;document.getElementById("summaryType").textContent=preset.singular;document.getElementById("summaryModule").textContent=modules[currentModule].title;document.getElementById("formFieldsPrimary").innerHTML=preset.primary.map(fieldInput).join("");document.getElementById("formFieldsSecondary").innerHTML=preset.secondary.map(fieldInput).join("")}
+function renderAll(){renderSidebar();renderPageHead();renderSubmenus();setView(currentView);if(currentView==="report"){renderOracleReport()}else{renderTable();renderForm()}}
+document.getElementById("viewListBtn").addEventListener("click",()=>{setView("list")});document.getElementById("viewFormBtn").addEventListener("click",()=>{setView("form");renderForm()});document.getElementById("headCreateBtn").addEventListener("click",()=>{setView("form");renderForm()});document.getElementById("mobileCreateBtn").addEventListener("click",()=>{setView("form");renderForm()});document.getElementById("cancelFormBtn").addEventListener("click",()=>{setView("list")});document.getElementById("tableSearch").addEventListener("input",()=>{page=1;renderTable()});document.getElementById("statusFilter").addEventListener("change",()=>{page=1;renderTable()});document.getElementById("groupByFilter").addEventListener("change",()=>{page=1;renderTable()});document.getElementById("sortByFilter").addEventListener("change",()=>{page=1;renderTable()});document.getElementById("oracleOverviewBtn")?.addEventListener("click",()=>{oracleView="overview";setOracleView(oracleView)});document.getElementById("oracleTableBtn")?.addEventListener("click",()=>{oracleView="table";setOracleView(oracleView)});document.getElementById("oraclePivotBtn")?.addEventListener("click",()=>{oracleView="pivot";setOracleView(oracleView)});document.getElementById("oracleChartBtn")?.addEventListener("click",()=>{oracleView="chart";setOracleView(oracleView)});document.getElementById("oracleRunBtn")?.addEventListener("click",()=>{renderOracleReport()});document.getElementById("clearFiltersBtn").addEventListener("click",()=>{document.getElementById("tableSearch").value="";document.getElementById("statusFilter").value="";document.getElementById("groupByFilter").value="";document.getElementById("sortByFilter").value="default";page=1;renderTable()});window.addEventListener("resize",()=>{if(currentView==="list"){renderTable()}});renderAll();
+</script>
+</body>
+</html>

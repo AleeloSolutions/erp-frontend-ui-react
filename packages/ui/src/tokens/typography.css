@@ -1,0 +1,6 @@
+:root {
+  --font-inter: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --text-body: 13px;
+  --text-control: 11px;
+  --leading-body: 1.4;
+}

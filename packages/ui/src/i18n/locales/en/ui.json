@@ -1,0 +1,33 @@
+{
+  "datatable": {
+    "searchPlaceholder": "Search…",
+    "columns": "Columns",
+    "filters": "Filters",
+    "clearAll": "Clear all",
+    "group": "Group",
+    "sort": "Sort",
+    "selectAll": "Select all rows",
+    "selectRow": "Select row",
+    "rowActions": "Row actions",
+    "empty": "No records match the current filters.",
+    "showing": "Showing {{start}}–{{end}} of {{total}} records",
+    "prevPage": "Previous page",
+    "nextPage": "Next page",
+    "selectedCount": "{{count}} selected"
+  },
+  "confirm": {
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "modal": {
+    "close": "Close",
+    "closeOverlay": "Close dialog overlay"
+  },
+  "drawer": {
+    "close": "Close",
+    "closeOverlay": "Close drawer overlay"
+  },
+  "toast": {
+    "dismiss": "Dismiss notification"
+  }
+}

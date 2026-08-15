@@ -1,0 +1,33 @@
+{
+  "name": "erp-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @erp/app",
+    "build": "npm run build -w @erp/app",
+    "preview": "npm run preview -w @erp/app",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test -w @erp/ui",
+    "storybook": "npm run storybook -w @erp/ui",
+    "build-storybook": "npm run build-storybook -w @erp/ui",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "node -e \"try{require('fs').statSync('.git');require('child_process').execSync('husky',{stdio:'inherit'})}catch(e){process.exit(0)}\""
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.6.2"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs,json,md,css,yml,yaml}": [
+      "prettier --write"
+    ]
+  }
+}
