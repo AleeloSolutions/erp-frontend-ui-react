@@ -61,14 +61,14 @@ export function DataTableToolbar({
             <span className="mb-1.5 block text-[9.5px] font-extrabold uppercase tracking-[0.45px] text-[#7A869A]">
               Search
             </span>
-            <div className="flex h-10 min-w-[260px] items-center gap-2 rounded-[10px] border border-[#D8E2EC] bg-gradient-to-b from-white to-[#FBFCFE] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.88),0_1px_2px_rgba(16,42,67,0.03)] max-[720px]:min-w-full">
+            <div className="flex h-10 min-w-[260px] items-center gap-2.5 rounded-[10px] border border-[#D8E2EC] bg-gradient-to-b from-white to-[#FBFCFE] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.88),0_1px_2px_rgba(16,42,67,0.03)] focus-within:border-erp-blue max-[720px]:min-w-full">
               <Search className="h-3.5 w-3.5 shrink-0 text-erp-subtle" aria-hidden />
               <Input
                 value={search}
                 onChange={(event) => onSearchChange?.(event.target.value)}
                 placeholder={searchPlaceholder}
                 aria-label="Search table"
-                className="h-auto flex-1 border-0 bg-transparent p-0 text-xs shadow-none focus:outline-none focus:ring-0"
+                className="h-auto min-w-0 flex-1 border-0 bg-transparent py-1.5 pl-1.5 pr-1 text-xs shadow-none focus:border-transparent focus:outline-none focus:ring-0"
               />
             </div>
           </div>

@@ -13,7 +13,7 @@ import {
   FormTextarea,
 } from "@erp/ui";
 import { useToast } from "@erp/ui";
-import { salesSubmenu } from "@/app/navigation";
+import { salesSubmenu } from "@/modules/sales/manifest";
 import { useCreateCustomerMutation } from "@/modules/sales/api";
 import {
   customerFormSchema,

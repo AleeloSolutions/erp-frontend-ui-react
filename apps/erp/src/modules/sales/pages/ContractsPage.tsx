@@ -1,7 +1,7 @@
 import { FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AppShell, PageHeader } from "@/app";
-import { salesSubmenu } from "@/app/navigation";
+import { salesSubmenu } from "@/modules/sales/manifest";
 import { Button } from "@erp/ui";
 
 export default function ContractsPage() {

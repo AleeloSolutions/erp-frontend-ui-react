@@ -11,7 +11,7 @@ import {
   StatusBadge,
   useToast,
 } from "@erp/ui";
-import { salesSubmenu } from "@/app/navigation";
+import { salesSubmenu } from "@/modules/sales/manifest";
 import {
   useDeleteQuotationMutation,
   useQuotationsQuery,

@@ -93,7 +93,10 @@ packages/ui/src/
 
 apps/erp/src/
   main.tsx              # Vite entry
-  routes.tsx            # React Router route table
+  routes.tsx            # App shell routes; mounts module route trees
+  modules/
+    sales/routes.tsx    # Sales routes under /sales/*
+    inventory/routes.tsx
   app/                  # providers, ERP AppShell defaults, navigation, home/demo
   lib/                  # api-client, query-client, mock delay
   modules/
@@ -120,7 +123,7 @@ apps/erp/src/
 | i18next | Translation keys (`common.*`, `ui.*`) |
 | Vitest + RTL | `@erp/ui` unit/component tests |
 
-Providers are wired in `apps/erp/src/main.tsx` via `AppProviders` (Query + Toast + i18n). Routes live in `apps/erp/src/routes.tsx`.
+Providers are wired in `apps/erp/src/main.tsx` via `AppProviders` (Query + Toast + i18n). App-level routes live in `apps/erp/src/routes.tsx`; each module registers its own routes in `modules/<name>/routes.tsx` and is mounted under a path prefix (e.g. `/sales/*`).
 
 ### Naming (new APIs)
 
@@ -509,7 +512,8 @@ Example: **Suppliers** list + create.
 1. **Route**
    - `apps/erp/src/modules/procurement/pages/SuppliersPage.tsx`
    - `apps/erp/src/modules/procurement/pages/SupplierCreatePage.tsx`
-   - Register routes in `apps/erp/src/routes.tsx`
+   - Register routes in `apps/erp/src/modules/procurement/routes.tsx`
+   - Mount the module in `apps/erp/src/routes.tsx` as `<Route path="/procurement/*" element={<ProcurementRoutes />} />` (once)
 
 2. **Nav** — update `apps/erp/src/app/navigation.ts` (`href` + submenu)
 

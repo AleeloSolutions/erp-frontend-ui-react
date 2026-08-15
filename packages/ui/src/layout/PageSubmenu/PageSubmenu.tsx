@@ -47,7 +47,7 @@ export function PageSubmenu({
               to={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative h-[34px] shrink-0 rounded-[7px] border border-transparent px-2.5 text-[10.5px] font-bold tracking-[-0.1px] text-[#64748B] whitespace-nowrap transition-all",
+                "relative inline-flex h-[34px] shrink-0 items-center justify-center rounded-[7px] border border-transparent px-2.5 text-[10.5px] font-bold leading-none tracking-[-0.1px] text-[#64748B] whitespace-nowrap transition-all",
                 "hover:-translate-y-px hover:border-[#E2EAF2] hover:bg-white hover:text-[#244E88] hover:shadow-[0_6px_14px_rgba(16,42,67,0.06)]",
                 "max-[720px]:h-10 max-[720px]:px-3.5 max-[720px]:text-[11px]",
                 active &&

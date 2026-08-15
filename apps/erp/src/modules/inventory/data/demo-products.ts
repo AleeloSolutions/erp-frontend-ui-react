@@ -1,0 +1,256 @@
+export type ProductCategory =
+  | "Office"
+  | "Electronics"
+  | "Consumables"
+  | "Services"
+  | "Raw materials";
+
+export type ProductUnit = "ea" | "box" | "kg" | "liter" | "hour" | "set";
+
+export type ProductStatus = "Active" | "Inactive" | "Discontinued";
+
+export interface DemoProduct {
+  id: string;
+  sku: string;
+  name: string;
+  category: ProductCategory;
+  unit: ProductUnit;
+  unitPrice: number;
+  costPrice: number;
+  stockQty: number;
+  reorderLevel: number;
+  status: ProductStatus;
+  barcode?: string;
+  description?: string;
+  created: string;
+  updated: string;
+}
+
+export const PRODUCT_CATEGORIES: ProductCategory[] = [
+  "Office",
+  "Electronics",
+  "Consumables",
+  "Services",
+  "Raw materials",
+];
+
+export const PRODUCT_UNITS: ProductUnit[] = [
+  "ea",
+  "box",
+  "kg",
+  "liter",
+  "hour",
+  "set",
+];
+
+export const mockProducts: DemoProduct[] = [
+  {
+    id: "1",
+    sku: "PRD-1001",
+    name: "A4 Copy Paper (500 sheets)",
+    category: "Office",
+    unit: "box",
+    unitPrice: 12.5,
+    costPrice: 8.2,
+    stockQty: 240,
+    reorderLevel: 40,
+    status: "Active",
+    barcode: "8901001001001",
+    description: "Standard 80gsm white copy paper, 5-ream carton.",
+    created: "02 Jul 2026",
+    updated: "10 Aug 2026",
+  },
+  {
+    id: "2",
+    sku: "PRD-1002",
+    name: "Wireless Mouse",
+    category: "Electronics",
+    unit: "ea",
+    unitPrice: 18.0,
+    costPrice: 11.5,
+    stockQty: 86,
+    reorderLevel: 20,
+    status: "Active",
+    barcode: "8901001001002",
+    description: "2.4GHz optical mouse with USB receiver.",
+    created: "04 Jul 2026",
+    updated: "08 Aug 2026",
+  },
+  {
+    id: "3",
+    sku: "PRD-1003",
+    name: "USB-C Hub 7-in-1",
+    category: "Electronics",
+    unit: "ea",
+    unitPrice: 45.0,
+    costPrice: 29.0,
+    stockQty: 34,
+    reorderLevel: 10,
+    status: "Active",
+    barcode: "8901001001003",
+    created: "06 Jul 2026",
+    updated: "06 Aug 2026",
+  },
+  {
+    id: "4",
+    sku: "PRD-1004",
+    name: "Ballpoint Pen Blue",
+    category: "Consumables",
+    unit: "box",
+    unitPrice: 4.75,
+    costPrice: 2.1,
+    stockQty: 520,
+    reorderLevel: 80,
+    status: "Active",
+    barcode: "8901001001004",
+    created: "08 Jul 2026",
+    updated: "12 Aug 2026",
+  },
+  {
+    id: "5",
+    sku: "PRD-1005",
+    name: "Laptop Stand Aluminum",
+    category: "Electronics",
+    unit: "ea",
+    unitPrice: 32.0,
+    costPrice: 19.5,
+    stockQty: 18,
+    reorderLevel: 8,
+    status: "Active",
+    created: "10 Jul 2026",
+    updated: "01 Aug 2026",
+  },
+  {
+    id: "6",
+    sku: "PRD-1006",
+    name: "Hand Sanitizer 500ml",
+    category: "Consumables",
+    unit: "ea",
+    unitPrice: 3.2,
+    costPrice: 1.6,
+    stockQty: 0,
+    reorderLevel: 50,
+    status: "Inactive",
+    barcode: "8901001001006",
+    description: "Temporarily inactive pending supplier change.",
+    created: "12 Jul 2026",
+    updated: "05 Aug 2026",
+  },
+  {
+    id: "7",
+    sku: "PRD-1007",
+    name: "Consulting Hour",
+    category: "Services",
+    unit: "hour",
+    unitPrice: 75.0,
+    costPrice: 0,
+    stockQty: 0,
+    reorderLevel: 0,
+    status: "Active",
+    description: "Billable professional consulting time.",
+    created: "14 Jul 2026",
+    updated: "14 Jul 2026",
+  },
+  {
+    id: "8",
+    sku: "PRD-1008",
+    name: "Printer Toner Black",
+    category: "Consumables",
+    unit: "ea",
+    unitPrice: 68.0,
+    costPrice: 42.0,
+    stockQty: 22,
+    reorderLevel: 6,
+    status: "Active",
+    barcode: "8901001001008",
+    created: "16 Jul 2026",
+    updated: "09 Aug 2026",
+  },
+  {
+    id: "9",
+    sku: "PRD-1009",
+    name: "Steel Fasteners M6",
+    category: "Raw materials",
+    unit: "kg",
+    unitPrice: 9.4,
+    costPrice: 5.8,
+    stockQty: 150,
+    reorderLevel: 30,
+    status: "Active",
+    created: "18 Jul 2026",
+    updated: "07 Aug 2026",
+  },
+  {
+    id: "10",
+    sku: "PRD-1010",
+    name: "Desk Organizer Set",
+    category: "Office",
+    unit: "set",
+    unitPrice: 22.0,
+    costPrice: 13.0,
+    stockQty: 41,
+    reorderLevel: 12,
+    status: "Active",
+    barcode: "8901001001010",
+    created: "20 Jul 2026",
+    updated: "11 Aug 2026",
+  },
+  {
+    id: "11",
+    sku: "PRD-1011",
+    name: "Legacy Dot-Matrix Ribbon",
+    category: "Consumables",
+    unit: "ea",
+    unitPrice: 6.0,
+    costPrice: 3.5,
+    stockQty: 4,
+    reorderLevel: 0,
+    status: "Discontinued",
+    description: "Kept for historical orders only.",
+    created: "22 Jul 2026",
+    updated: "03 Aug 2026",
+  },
+  {
+    id: "12",
+    sku: "PRD-1012",
+    name: "Industrial Cleaning Fluid",
+    category: "Raw materials",
+    unit: "liter",
+    unitPrice: 7.25,
+    costPrice: 4.1,
+    stockQty: 95,
+    reorderLevel: 25,
+    status: "Active",
+    barcode: "8901001001012",
+    created: "24 Jul 2026",
+    updated: "13 Aug 2026",
+  },
+  {
+    id: "13",
+    sku: "PRD-1013",
+    name: "Ergonomic Keyboard",
+    category: "Electronics",
+    unit: "ea",
+    unitPrice: 54.0,
+    costPrice: 33.0,
+    stockQty: 27,
+    reorderLevel: 10,
+    status: "Active",
+    created: "26 Jul 2026",
+    updated: "04 Aug 2026",
+  },
+  {
+    id: "14",
+    sku: "PRD-1014",
+    name: "Sticky Notes Assorted",
+    category: "Office",
+    unit: "box",
+    unitPrice: 5.5,
+    costPrice: 2.8,
+    stockQty: 180,
+    reorderLevel: 35,
+    status: "Active",
+    created: "28 Jul 2026",
+    updated: "28 Jul 2026",
+  },
+];

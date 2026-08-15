@@ -1,14 +1,23 @@
+import { useMemo } from "react";
 import { AppShell as UiAppShell, type AppShellProps } from "@erp/ui";
-import { mobileNavigation, navigation } from "./navigation";
+import { coreNavigation, mobileNavigation } from "./navigation";
+import { useModuleRegistry } from "@/modules/ModuleRegistryProvider";
 
 export function AppShell({
-  navigationItems = navigation,
+  navigationItems,
   mobileNavItems = mobileNavigation,
   ...props
 }: AppShellProps) {
+  const { installedModules } = useModuleRegistry();
+
+  const resolvedNav = useMemo(() => {
+    if (navigationItems) return navigationItems;
+    return [...coreNavigation, ...installedModules.map((m) => m.nav)];
+  }, [navigationItems, installedModules]);
+
   return (
     <UiAppShell
-      navigationItems={navigationItems}
+      navigationItems={resolvedNav}
       mobileNavItems={mobileNavItems}
       {...props}
     />

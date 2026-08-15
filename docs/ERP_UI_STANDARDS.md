@@ -13,7 +13,7 @@ This document is the target contract for `@erp/ui`. Where it differs from the or
 | Topic | Decision |
 |-------|----------|
 | Styling | **Tailwind CSS v4 + CSS design tokens** (locked). CSS Modules are not used. |
-| Routes | App routes live in central `apps/erp/src/routes.tsx`. Per-module `routes.tsx` is optional later. |
+| Routes | Feature routes live in each module (`modules/<name>/routes.tsx`). `apps/erp/src/routes.tsx` only mounts app pages and module prefixes (`/sales/*`, `/inventory/*`, …). |
 | Boolean props | **New** public APIs use `isOpen`, `isDisabled`, `isLoading`, `isRequired`, `hasError`. Existing APIs are grandfathered; migrate only on substantial change or approved breaking release. |
 | Review surface | **Storybook** is the official management review/approval surface. `/components-demo` may remain temporarily. |
 | Component status | Until the registry workflow is live, existing exports are **pre-Approved / in progress** — usable by modules, not frozen. |

@@ -14,14 +14,14 @@ export default function HomePage() {
         icon={<LayoutDashboard className="h-4 w-4" aria-hidden />}
         actions={
           <Link
-            to="/sales/customers"
+            to="/inventory/products"
             className="inline-flex h-8 items-center justify-center rounded-[7px] border border-erp-blue bg-erp-blue px-3 text-[11px] font-bold text-white shadow-[0_4px_10px_rgba(30,78,140,0.14)] hover:brightness-95"
           >
-            Open Customers module
+            Open Products module
           </Link>
         }
       />
-      <div className="grid gap-3 min-[721px]:grid-cols-2">
+      <div className="grid gap-3 min-[721px]:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Component demos</CardTitle>
@@ -40,17 +40,33 @@ export default function HomePage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Composed module (mock)</CardTitle>
+            <CardTitle>Sales (mock)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-[12px] text-erp-muted">
             <p className="m-0">
-              Sales → Customers list + create page using Query mutations and feedback UI.
+              Customers and quotations with Query mutations and feedback UI.
             </p>
             <Link
               to="/sales/customers"
               className="inline-flex font-bold text-erp-blue hover:underline"
             >
               Go to customers →
+            </Link>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Inventory (mock)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-[12px] text-erp-muted">
+            <p className="m-0">
+              Products catalog with list, create, edit, delete, and stock levels.
+            </p>
+            <Link
+              to="/inventory/products"
+              className="inline-flex font-bold text-erp-blue hover:underline"
+            >
+              Go to products →
             </Link>
           </CardContent>
         </Card>

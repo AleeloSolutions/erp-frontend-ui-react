@@ -1,22 +1,26 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import HomePage from "@/app/HomePage";
 import ComponentsDemoPage from "@/app/components-demo/ComponentsDemoPage";
-import CustomersPage from "@/modules/sales/pages/CustomersPage";
-import CustomerCreatePage from "@/modules/sales/pages/CustomerCreatePage";
-import QuotationsPage from "@/modules/sales/pages/QuotationsPage";
-import QuotationCreatePage from "@/modules/sales/pages/QuotationCreatePage";
-import ContractsPage from "@/modules/sales/pages/ContractsPage";
+import AppsPage from "@/app/AppsPage";
+import { useModuleRegistry } from "@/modules/ModuleRegistryProvider";
 
+/**
+ * App-level route table.
+ * Feature routes come from installed module manifests.
+ */
 export function AppRoutes() {
+  const { installedModules } = useModuleRegistry();
+
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/apps" element={<AppsPage />} />
       <Route path="/components-demo" element={<ComponentsDemoPage />} />
-      <Route path="/sales/customers" element={<CustomersPage />} />
-      <Route path="/sales/customers/new" element={<CustomerCreatePage />} />
-      <Route path="/sales/quotations" element={<QuotationsPage />} />
-      <Route path="/sales/quotations/new" element={<QuotationCreatePage />} />
-      <Route path="/sales/contracts" element={<ContractsPage />} />
+      {installedModules.map((mod) => {
+        const ModuleRoutes = mod.Routes;
+        const path = `${mod.path.replace(/\/$/, "")}/*`;
+        return <Route key={mod.id} path={path} element={<ModuleRoutes />} />;
+      })}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

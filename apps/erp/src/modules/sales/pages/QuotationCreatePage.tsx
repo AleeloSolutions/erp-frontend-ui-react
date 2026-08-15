@@ -15,7 +15,7 @@ import {
   FormTextarea,
 } from "@erp/ui";
 import { useToast } from "@erp/ui";
-import { salesSubmenu } from "@/app/navigation";
+import { salesSubmenu } from "@/modules/sales/manifest";
 import { useCreateQuotationMutation } from "@/modules/sales/api";
 import { mockCustomers } from "@/modules/sales/data/demo-table";
 import {
