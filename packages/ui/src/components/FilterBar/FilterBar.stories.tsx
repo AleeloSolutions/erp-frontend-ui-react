@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { useState } from "react";
 import { FilterBar } from "../FilterBar";
+import type { DataTableChip } from "../../types/table";
 
 const meta = {
   title: "Composites/FilterBar",
@@ -9,30 +11,39 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const initialChips: DataTableChip[] = [
+  { key: "search", label: "Search", value: "acme", onRemove: () => undefined },
+  { key: "status", label: "Status", value: "Active", onRemove: () => undefined },
+];
+
 export const WithChips: Story = {
-  args: {
-    resultCount: 24,
-    chips: [
-      {
-        key: "search",
-        label: "Search",
-        value: "acme",
-        onRemove: () => undefined,
-      },
-      {
-        key: "status",
-        label: "Status",
-        value: "Active",
-        onRemove: () => undefined,
-      },
-    ],
-    onClearAll: () => undefined,
+  render: function WithChipsStory() {
+    const [chips, setChips] = useState(initialChips);
+
+    const boundChips = chips.map((chip) => ({
+      ...chip,
+      onRemove: () =>
+        setChips((current) => current.filter((item) => item.key !== chip.key)),
+    }));
+
+    return (
+      <FilterBar
+        chips={boundChips}
+        onClearAll={boundChips.length ? () => setChips([]) : undefined}
+      />
+    );
   },
 };
 
 export const Empty: Story = {
   args: {
-    resultCount: 0,
     chips: [],
+  },
+};
+
+export const CustomEmptyHint: Story = {
+  args: {
+    chips: [],
+    emptyHint: "No filters applied — showing all records.",
   },
 };
