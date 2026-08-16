@@ -5,4 +5,5 @@ export * from "./Dropdown";
 export * from "./FilterBar";
 export * from "./Form";
 export * from "./Modal";
+export * from "./SearchFilter";
 export * from "./Toast";

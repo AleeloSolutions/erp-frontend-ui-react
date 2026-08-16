@@ -9,28 +9,62 @@
   --color-erp-blue: var(--blue);
   --color-erp-blue-50: var(--blue-50);
   --color-erp-blue-100: var(--blue-100);
+  --color-erp-blue-soft: var(--blue-soft);
+  --color-erp-blue-mid: var(--blue-mid);
+  --color-erp-blue-bright: var(--blue-bright);
+  --color-erp-blue-light: var(--blue-light);
   --color-erp-teal: var(--teal);
+  --color-erp-teal-50: var(--teal-50);
   --color-erp-bg: var(--bg);
   --color-erp-surface: var(--surface);
   --color-erp-surface-alt: var(--surface-alt);
+  --color-erp-surface-hover: var(--surface-hover);
+  --color-erp-surface-muted: var(--surface-muted);
+  --color-erp-surface-tint: var(--surface-tint);
+  --color-erp-surface-tint-strong: var(--surface-tint-strong);
   --color-erp-text: var(--text);
   --color-erp-muted: var(--muted);
   --color-erp-subtle: var(--subtle);
+  --color-erp-label: var(--label);
+  --color-erp-placeholder: var(--placeholder);
   --color-erp-border: var(--border);
   --color-erp-border-soft: var(--border-soft);
+  --color-erp-border-strong: var(--border-strong);
+  --color-erp-border-control: var(--border-control);
+  --color-erp-border-chip: var(--border-chip);
   --color-erp-header: var(--header);
   --color-erp-success: var(--success);
   --color-erp-success-bg: var(--success-bg);
+  --color-erp-success-border: var(--success-border);
   --color-erp-warning: var(--warning);
   --color-erp-warning-bg: var(--warning-bg);
+  --color-erp-warning-border: var(--warning-border);
   --color-erp-error: var(--error);
   --color-erp-error-bg: var(--error-bg);
+  --color-erp-error-border: var(--error-border);
   --color-erp-info: var(--info);
   --color-erp-info-bg: var(--info-bg);
+  --color-erp-info-border: var(--info-border);
   --color-erp-purple: var(--purple);
   --color-erp-purple-bg: var(--purple-bg);
   --color-erp-input-border: var(--input-border);
   --color-erp-focus: var(--focus-ring);
+  --color-erp-overlay: var(--overlay);
+  --color-erp-primary: var(--primary);
+  --color-erp-primary-hover: var(--primary-hover);
+  --color-erp-primary-active: var(--primary-active);
+  --color-erp-primary-50: var(--primary-50);
+  --color-erp-primary-100: var(--primary-100);
+  --color-erp-primary-soft: var(--primary-soft);
+  --color-erp-primary-foreground: var(--primary-foreground);
+  --color-erp-secondary: var(--secondary);
+  --color-erp-secondary-hover: var(--secondary-hover);
+  --color-erp-secondary-border: var(--secondary-border);
+  --color-erp-secondary-foreground: var(--secondary-foreground);
+  --color-erp-danger: var(--danger);
+  --color-erp-danger-bg: var(--danger-bg);
+  --color-erp-danger-border: var(--danger-border);
+  --color-erp-danger-foreground: var(--danger-foreground);
   --font-sans: var(--font-inter);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
@@ -53,7 +87,12 @@ body {
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family:
+    var(--font-inter),
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: var(--text-body);
   line-height: var(--leading-body);
   -webkit-font-smoothing: antialiased;
@@ -63,14 +102,38 @@ button,
 input,
 select,
 textarea {
-  font: inherit;
+  font-family: inherit;
+}
+
+/* Writable footprint: fixed height, vertically centered text (sm baseline). */
+input[data-size="sm"],
+input[data-size="md"],
+input[data-size="default"],
+textarea[data-size="sm"],
+textarea[data-size="md"],
+textarea[data-size="default"],
+select[data-size="sm"],
+select[data-size="md"],
+select[data-size="default"] {
+  height: 2.25rem;
+  min-height: 2.25rem;
+  font-size: 0.75rem;
+  line-height: 2.25rem;
+  padding-block: 0;
+}
+
+select[data-size="sm"],
+select[data-size="md"],
+select[data-size="default"] {
+  padding-inline-start: 0.75rem;
+  padding-inline-end: 1.75rem;
 }
 
 button {
   cursor: pointer;
 }
 
-:focus-visible {
-  outline: 2px solid var(--blue);
+:focus-visible:not(input):not(textarea):not(select) {
+  outline: 2px solid var(--primary);
   outline-offset: 1px;
 }

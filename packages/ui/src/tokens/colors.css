@@ -1,30 +1,76 @@
 :root {
-  --nav: #102a43;
-  --nav-hover: #173f61;
-  --nav-active: #1e4e8c;
-  --blue: #1e4e8c;
-  --blue-50: #f1f6fb;
-  --blue-100: #e2edf7;
+  /* Brand primitives */
+  --brand-primary: #0e2e54;
+  --brand-primary-hover: #032349;
+  --brand-secondary: #e7e9ed;
+  --brand-secondary-hover: #d8dadd;
+
+  /* Primitive palette — aligned to brand */
+  --nav: var(--brand-primary);
+  --nav-hover: var(--brand-primary-hover);
+  --nav-active: var(--brand-primary-hover);
+  --blue: var(--brand-primary);
+  --blue-50: #e8eef4;
+  --blue-100: #d2dce8;
+  --blue-soft: #1a4570;
+  --blue-mid: #0e2e54;
+  --blue-bright: #184a7a;
+  --blue-light: #2a5f8f;
   --teal: #0d8a7c;
+  --teal-50: #e6f7f5;
   --bg: #f5f7fa;
   --surface: #ffffff;
   --surface-alt: #fafbfc;
+  --surface-hover: #f7f9fb;
+  --surface-muted: #f5f8fc;
+  --surface-tint: #f8fafc;
+  --surface-tint-strong: #fbfcfe;
   --text: #1f2937;
   --muted: #6b7280;
   --subtle: #8a94a6;
+  --label: #7a869a;
+  --placeholder: #94a3b8;
   --border: #dce2e8;
   --border-soft: #e9edf2;
+  --border-strong: #d9e2ec;
+  --border-control: #c8d2de;
+  --border-chip: #d7e4f0;
   --header: #f3f6f8;
   --success: #166534;
   --success-bg: #ecfdf3;
+  --success-border: #bbf7d0;
   --warning: #92400e;
   --warning-bg: #fff8e7;
+  --warning-border: #fde68a;
   --error: #b42318;
   --error-bg: #fef2f2;
-  --info: #1d4ed8;
-  --info-bg: #eff6ff;
+  --error-border: #fecaca;
+  --info: var(--brand-primary);
+  --info-bg: #e8eef4;
+  --info-border: #d2dce8;
   --purple: #6d28d9;
   --purple-bg: #f3e8ff;
   --input-border: #d7e1eb;
-  --focus-ring: #d8e7f5;
+  --focus-ring: #c5d3e3;
+  --overlay: rgba(14, 46, 84, 0.45);
+  --shadow-color: 14, 46, 84;
+
+  /* Semantic roles — change these to retheme the product */
+  --primary: var(--brand-primary);
+  --primary-hover: var(--brand-primary-hover);
+  --primary-active: var(--brand-primary-hover);
+  --primary-50: var(--blue-50);
+  --primary-100: var(--blue-100);
+  --primary-soft: var(--blue-soft);
+  --primary-foreground: #ffffff;
+  --secondary: var(--brand-secondary);
+  --secondary-hover: var(--brand-secondary-hover);
+  --secondary-border: var(--brand-secondary-hover);
+  --secondary-foreground: var(--text);
+  --danger: var(--error);
+  --danger-bg: var(--error-bg);
+  --danger-border: var(--error-border);
+  --danger-foreground: #ffffff;
+  --accent-teal: var(--teal);
+  --accent-teal-bg: var(--teal-50);
 }
