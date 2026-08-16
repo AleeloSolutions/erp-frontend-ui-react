@@ -5,8 +5,10 @@ declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData, TValue> {
     align?: "left" | "right" | "center";
-    /** When true, column absorbs leftover table width (no fixed pixel width). */
+    /** When true, column is preferred to absorb leftover / remainder width. */
     fill?: boolean;
+    /** Tooltip shown on column header hover (defaults to header label). */
+    tooltip?: string;
   }
 }
 
@@ -32,6 +34,15 @@ export interface DataTableBulkAction<TData> {
   label: string;
   onClick: (rows: TData[]) => void;
   variant?: ButtonVariant;
+}
+
+/** Contextual per-row menu items for the MoreHorizontal actions pattern. */
+export interface DataTableRowAction {
+  key: string;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
 }
 
 export interface DataTablePaginationConfig {
@@ -64,7 +75,4 @@ export interface DataTableChip {
   onRemove: () => void;
 }
 
-export type DataTableColumnDef<TData, TValue = unknown> = ColumnDef<
-  TData,
-  TValue
->;
+export type DataTableColumnDef<TData, TValue = unknown> = ColumnDef<TData, TValue>;

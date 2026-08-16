@@ -35,7 +35,7 @@ export function DataTablePagination<TData>({
   return (
     <div
       className={cn(
-        "flex min-h-9 flex-wrap items-center gap-2 border-t border-[#E7EDF3] bg-[#FCFDFE] px-2.5 py-1.5 text-[10px] text-[#7A869A]",
+        "flex min-h-9 flex-wrap items-center gap-2 border-t border-erp-border-soft bg-erp-surface-tint-strong px-2.5 py-1.5 text-[10px] text-erp-label",
         className
       )}
     >
@@ -46,7 +46,7 @@ export function DataTablePagination<TData>({
       <div className="ml-auto flex gap-1">
         <button
           type="button"
-          className="h-6 min-w-[26px] rounded-md border border-[#D8E2EC] bg-white px-1.5 text-[10px] text-[#556274] disabled:opacity-40"
+          className="h-6 min-w-[26px] rounded-md border border-erp-border-strong bg-white px-1.5 text-[10px] text-erp-muted disabled:opacity-40"
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
           aria-label="Previous page"
@@ -64,9 +64,8 @@ export function DataTablePagination<TData>({
               <button
                 type="button"
                 className={cn(
-                  "h-6 min-w-[26px] rounded-md border border-[#D8E2EC] bg-white text-[10px] text-[#556274]",
-                  pageIndex === page &&
-                    "border-erp-blue bg-erp-blue text-white"
+                  "h-6 min-w-[26px] rounded-md border border-erp-border-strong bg-white text-[10px] text-erp-muted",
+                  pageIndex === page && "border-erp-blue bg-erp-blue text-white"
                 )}
                 onClick={() => table.setPageIndex(page)}
                 aria-current={pageIndex === page ? "page" : undefined}
@@ -78,7 +77,7 @@ export function DataTablePagination<TData>({
         })}
         <button
           type="button"
-          className="h-6 min-w-[26px] rounded-md border border-[#D8E2EC] bg-white px-1.5 text-[10px] text-[#556274] disabled:opacity-40"
+          className="h-6 min-w-[26px] rounded-md border border-erp-border-strong bg-white px-1.5 text-[10px] text-erp-muted disabled:opacity-40"
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
           aria-label="Next page"

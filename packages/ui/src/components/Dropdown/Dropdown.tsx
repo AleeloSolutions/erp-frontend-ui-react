@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "../../utils";
 import { Button, type ButtonProps } from "../../primitives/Button";
@@ -22,6 +16,8 @@ export interface DropdownProps {
   items: DropdownItem[];
   align?: "left" | "right";
   buttonProps?: Omit<ButtonProps, "children">;
+  /** Hide the chevron (e.g. icon-only row action triggers). */
+  hideChevron?: boolean;
   className?: string;
 }
 
@@ -30,6 +26,7 @@ export function Dropdown({
   items,
   align = "left",
   buttonProps,
+  hideChevron = false,
   className,
 }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -69,15 +66,15 @@ export function Dropdown({
         {...buttonProps}
       >
         {label}
-        <ChevronDown className="h-3 w-3 opacity-70" aria-hidden />
+        {hideChevron ? null : <ChevronDown className="h-3 w-3 opacity-70" aria-hidden />}
       </Button>
       {isOpen ? (
         <div
           id={menuId}
           role="menu"
           className={cn(
-            "absolute top-[calc(100%+4px)] z-50 min-w-[160px] overflow-hidden rounded-md border border-erp-border bg-white py-1 shadow-[0_8px_20px_rgba(16,42,67,0.12)]",
-            align === "right" ? "right-0" : "left-0"
+            "absolute top-[calc(100%+4px)] z-50 min-w-[160px] overflow-hidden rounded-md border border-erp-border bg-white py-1 shadow-lg",
+            align === "right" ? "end-0" : "start-0"
           )}
         >
           {items.map((item) => (

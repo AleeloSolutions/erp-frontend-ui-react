@@ -1,40 +1,76 @@
 import { forwardRef, type SelectHTMLAttributes } from "react";
-import { cn } from "../../utils";
+import { ChevronDown } from "lucide-react";
+import {
+  cn,
+  fieldChromeClasses,
+  fieldIconSizeClasses,
+  fieldSizeClasses,
+  type FieldSize,
+} from "../../utils";
 import type { SelectOption } from "../../types/common";
 
-export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+export interface SelectProps extends Omit<
+  SelectHTMLAttributes<HTMLSelectElement>,
+  "size"
+> {
   options?: SelectOption[];
   placeholder?: string;
   error?: boolean;
+  /** Visual size. Defaults to `sm`. Height is fixed; use className for width. */
+  size?: FieldSize;
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, options = [], placeholder, error, children, ...props }, ref) => {
+  (
+    {
+      className,
+      options = [],
+      placeholder,
+      error,
+      children,
+      style,
+      disabled,
+      size = "sm",
+      ...props
+    },
+    ref
+  ) => {
     return (
-      <select
-        ref={ref}
-        aria-invalid={error || undefined}
-        className={cn(
-          "h-[30px] w-full rounded-md border border-erp-input-border bg-white px-2.5 text-[11px] text-erp-text shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]",
-          "focus:border-erp-blue focus:outline-2 focus:outline-erp-focus focus:-outline-offset-1",
-          "disabled:cursor-not-allowed disabled:bg-erp-surface-alt disabled:opacity-60",
-          error && "border-erp-error focus:border-erp-error",
-          className
-        )}
-        {...props}
-      >
-        {placeholder ? (
-          <option value="" disabled={props.required}>
-            {placeholder}
-          </option>
-        ) : null}
-        {children ??
-          options.map((option) => (
-            <option key={option.value} value={option.value} disabled={option.disabled}>
-              {option.label}
+      <div className={cn("relative min-w-0 max-w-full", className)}>
+        <select
+          {...props}
+          ref={ref}
+          disabled={disabled}
+          aria-invalid={error || undefined}
+          data-size={size}
+          style={{ outline: "none", boxShadow: "none", ...style }}
+          className={cn(
+            "w-full min-w-0 appearance-none pe-7",
+            "[&:has(option[value='']:checked)]:text-erp-placeholder",
+            fieldChromeClasses({ error }),
+            fieldSizeClasses[size]
+          )}
+        >
+          {placeholder ? (
+            <option value="" disabled={props.required}>
+              {placeholder}
             </option>
-          ))}
-      </select>
+          ) : null}
+          {children ??
+            options.map((option) => (
+              <option key={option.value} value={option.value} disabled={option.disabled}>
+                {option.label}
+              </option>
+            ))}
+        </select>
+        <ChevronDown
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute end-1.5 top-1/2 -translate-y-1/2 text-erp-subtle",
+            fieldIconSizeClasses[size]
+          )}
+        />
+      </div>
     );
   }
 );

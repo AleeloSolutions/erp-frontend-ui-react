@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -11,30 +11,44 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { Columns3, MoreHorizontal } from "lucide-react";
+import { AlignJustify, MoreHorizontal } from "lucide-react";
 import { cn } from "../../utils";
 import { Checkbox } from "../../primitives/Checkbox";
+import { Select } from "../../primitives/Select";
 import { Dropdown } from "../Dropdown";
-import { DataTableToolbar } from "./DataTableToolbar";
+import {
+  SearchFilter,
+  type SearchFilterChip,
+  type SearchFilterItem,
+} from "../SearchFilter";
 import { DataTableFilters } from "./DataTableFilters";
 import { DataTableBulkActions } from "./DataTableBulkActions";
 import { DataTableHeader } from "./DataTableHeader";
 import { DataTableBody } from "./DataTableBody";
 import { DataTablePagination } from "./DataTablePagination";
 import { DataTableLoading } from "./DataTableLoading";
-import { getColumnWidthStyle } from "./column-width";
+import {
+  getColumnWidthStyle,
+  estimateDataColumnSizing,
+  normalizeSizingToWidth,
+  type SizingColumnSpec,
+} from "./column-width";
 import { useDebounce } from "../../hooks/useDebounce";
 import type {
   DataTableBulkAction,
-  DataTableChip,
   DataTableFilter,
   DataTableFilterValues,
   DataTableFilteringConfig,
   DataTableGroupingOption,
   DataTablePaginationConfig,
+  DataTableRowAction,
   DataTableSortingConfig,
 } from "../../types/table";
 import "../../types/table";
+
+const SIZING_STORAGE_PREFIX = "erp.datatable.sizing.";
+const DEFAULT_COLUMN_MIN_SIZE = 72;
+const DEFAULT_COLUMN_MAX_SIZE = 640;
 
 export interface DataTableSearchConfig {
   value: string;
@@ -44,6 +58,11 @@ export interface DataTableSearchConfig {
 export interface DataTableProps<TData, TValue = unknown> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  /**
+   * Stable id for this table instance. When set, column widths persist in
+   * localStorage under `erp.datatable.sizing.${tableId}`.
+   */
+  tableId?: string;
   searchable?: boolean;
   searchPlaceholder?: string;
   /** Controlled search. Use with `manualFiltering` for server-backed lists. */
@@ -58,6 +77,13 @@ export interface DataTableProps<TData, TValue = unknown> {
   pagination?: boolean | DataTablePaginationConfig;
   pageSize?: number;
   bulkActions?: DataTableBulkAction<TData>[];
+  /**
+   * Per-row contextual actions for the MoreHorizontal menu.
+   * When this returns items and no `__actions` column is supplied, DataTable
+   * renders the menu column. When absent/empty and no `__actions` column exists,
+   * no actions column is shown.
+   */
+  getRowActions?: (row: TData) => DataTableRowAction[];
   loading?: boolean;
   error?: string | null;
   emptyMessage?: string;
@@ -77,9 +103,23 @@ function getCellSearchText(value: unknown): string {
   return JSON.stringify(value);
 }
 
+function readStoredSizing(tableId: string | undefined): ColumnSizingState {
+  if (!tableId || typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(`${SIZING_STORAGE_PREFIX}${tableId}`);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return parsed as ColumnSizingState;
+  } catch {
+    return {};
+  }
+}
+
 export function DataTable<TData, TValue = unknown>({
   columns,
   data,
+  tableId,
   searchable = false,
   searchPlaceholder,
   search: controlledSearch,
@@ -89,6 +129,7 @@ export function DataTable<TData, TValue = unknown>({
   pagination = true,
   pageSize: initialPageSize = 10,
   bulkActions = [],
+  getRowActions,
   loading = false,
   error = null,
   emptyMessage,
@@ -109,23 +150,90 @@ export function DataTable<TData, TValue = unknown>({
   const setSearch = controlledSearch?.onChange ?? setInternalSearch;
   const debouncedSearch = useDebounce(search, 250);
   const [internalSorting, setInternalSorting] = useState<SortingState>([]);
-  const [internalFilters, setInternalFilters] = useState<DataTableFilterValues>(
-    {}
-  );
+  const [internalFilters, setInternalFilters] = useState<DataTableFilterValues>({});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() => {
+    const stored = readStoredSizing(tableId);
+    if (Object.keys(stored).length > 0) return stored;
+    return estimateDataColumnSizing(columns as ColumnDef<TData, unknown>[], data, {
+      minSize: DEFAULT_COLUMN_MIN_SIZE,
+      maxSize: DEFAULT_COLUMN_MAX_SIZE,
+    });
+  });
+  const sizingLockedRef = useRef(Object.keys(readStoredSizing(tableId)).length > 0);
+  const [columnResizeDirection, setColumnResizeDirection] = useState<"ltr" | "rtl">(
+    "ltr"
+  );
+  const rootRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
   const [grouping, setGrouping] = useState("");
   const [paginationState, setPaginationState] = useState<PaginationState>({
     pageIndex: isServerPagination ? Math.max(0, pagination.page - 1) : 0,
     pageSize: isServerPagination ? pagination.pageSize : initialPageSize,
   });
 
+  useEffect(() => {
+    if (!tableId || typeof window === "undefined") return;
+    if (Object.keys(columnSizing).length === 0) return;
+    window.localStorage.setItem(
+      `${SIZING_STORAGE_PREFIX}${tableId}`,
+      JSON.stringify(columnSizing)
+    );
+  }, [tableId, columnSizing]);
+
+  useEffect(() => {
+    if (sizingLockedRef.current) return;
+    if (loading) return;
+    if (data.length === 0) return;
+    setColumnSizing(
+      estimateDataColumnSizing(columns as ColumnDef<TData, unknown>[], data, {
+        minSize: DEFAULT_COLUMN_MIN_SIZE,
+        maxSize: DEFAULT_COLUMN_MAX_SIZE,
+      })
+    );
+    sizingLockedRef.current = true;
+  }, [loading, data, columns]);
+
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+
+    const measure = () => {
+      const width = Math.floor(node.clientWidth);
+      if (width > 0) setContainerWidth(width);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [loading, error]);
+
+  useEffect(() => {
+    const readDirection = () => {
+      const hostedDir =
+        rootRef.current?.closest("[dir]")?.getAttribute("dir") ??
+        document.documentElement.getAttribute("dir") ??
+        "ltr";
+      setColumnResizeDirection(hostedDir === "rtl" ? "rtl" : "ltr");
+    };
+
+    readDirection();
+
+    const observer = new MutationObserver(readDirection);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["dir"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   const sorting = controlledSorting?.state ?? internalSorting;
   const setSorting = controlledSorting?.onChange ?? setInternalSorting;
   const filterValues = controlledFiltering?.state ?? internalFilters;
-  const setFilterValues =
-    controlledFiltering?.onChange ?? setInternalFilters;
+  const setFilterValues = controlledFiltering?.onChange ?? setInternalFilters;
 
   const tableColumns = useMemo(() => {
     const cols: ColumnDef<TData, TValue>[] = [...columns];
@@ -134,6 +242,8 @@ export function DataTable<TData, TValue = unknown>({
       cols.unshift({
         id: "__select",
         size: 40,
+        minSize: 40,
+        maxSize: 40,
         enableSorting: false,
         enableHiding: false,
         enableResizing: false,
@@ -161,28 +271,56 @@ export function DataTable<TData, TValue = unknown>({
     }
 
     const hasActions = cols.some((column) => column.id === "__actions");
-    if (!hasActions) {
+    if (!hasActions && getRowActions) {
       cols.push({
         id: "__actions",
         size: 52,
+        minSize: 52,
+        maxSize: 52,
         enableSorting: false,
         enableHiding: false,
         enableResizing: false,
         header: () => null,
-        cell: () => (
-          <button
-            type="button"
-            className="grid h-7 w-7 place-items-center rounded-md border border-transparent text-[#667085] hover:border-[#D9E2EC] hover:bg-[#F5F8FC]"
-            aria-label="Row actions"
-          >
-            <MoreHorizontal className="h-3.5 w-3.5" />
-          </button>
-        ),
+        cell: ({ row }) => {
+          const items = getRowActions(row.original);
+          if (!items.length) return null;
+          return (
+            <div className="grid h-[34px] w-full place-items-center">
+              <Dropdown
+                hideChevron
+                align="right"
+                label={<MoreHorizontal className="h-3.5 w-3.5" aria-hidden />}
+                buttonProps={{
+                  variant: "ghost",
+                  size: "icon",
+                  "aria-label": "Row actions",
+                  className:
+                    "text-erp-muted hover:border-erp-border-strong hover:bg-erp-surface-muted",
+                }}
+                items={items}
+              />
+            </div>
+          );
+        },
       } as ColumnDef<TData, TValue>);
     }
 
-    return cols;
-  }, [columns, selectable]);
+    return cols.map((column) => {
+      if (column.id === "__select" || column.id === "__actions") {
+        return {
+          ...column,
+          enableResizing: false,
+          minSize: column.minSize ?? column.size ?? 40,
+          maxSize: column.maxSize ?? column.size ?? 52,
+        };
+      }
+      return {
+        ...column,
+        minSize: column.minSize ?? DEFAULT_COLUMN_MIN_SIZE,
+        maxSize: column.maxSize ?? DEFAULT_COLUMN_MAX_SIZE,
+      };
+    });
+  }, [columns, selectable, getRowActions]);
 
   const filteredBySearch = useMemo(() => {
     if (manualFiltering) return data;
@@ -205,9 +343,7 @@ export function DataTable<TData, TValue = unknown>({
       if (Array.isArray(raw)) {
         if (raw.length === 0) return;
         rows = rows.filter((row) => {
-          const value = String(
-            (row as Record<string, unknown>)[filter.key] ?? ""
-          );
+          const value = String((row as Record<string, unknown>)[filter.key] ?? "");
           return raw.includes(value);
         });
         return;
@@ -224,18 +360,15 @@ export function DataTable<TData, TValue = unknown>({
     });
 
     return rows;
-  }, [
-    data,
-    searchable,
-    debouncedSearch,
-    filters,
-    filterValues,
-    manualFiltering,
-  ]);
+  }, [data, searchable, debouncedSearch, filters, filterValues, manualFiltering]);
 
   const table = useReactTable({
     data: filteredBySearch,
     columns: tableColumns,
+    defaultColumn: {
+      minSize: DEFAULT_COLUMN_MIN_SIZE,
+      maxSize: DEFAULT_COLUMN_MAX_SIZE,
+    },
     state: {
       sorting,
       rowSelection,
@@ -252,6 +385,7 @@ export function DataTable<TData, TValue = unknown>({
     enableRowSelection: selectable,
     enableColumnResizing,
     columnResizeMode: "onChange",
+    columnResizeDirection,
     autoResetPageIndex: false,
     manualPagination: isServerPagination,
     pageCount: isServerPagination
@@ -263,7 +397,12 @@ export function DataTable<TData, TValue = unknown>({
     },
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
-    onColumnSizingChange: setColumnSizing,
+    onColumnSizingChange: (updater) => {
+      sizingLockedRef.current = true;
+      setColumnSizing((prev) =>
+        typeof updater === "function" ? updater(prev) : updater
+      );
+    },
     onPaginationChange: (updater) => {
       if (isServerPagination) {
         const current = {
@@ -283,10 +422,42 @@ export function DataTable<TData, TValue = unknown>({
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: enablePagination
-      ? getPaginationRowModel()
-      : undefined,
+    getPaginationRowModel: enablePagination ? getPaginationRowModel() : undefined,
   });
+
+  // Keep column pixel sizes summing to the measured container width.
+  const visibleLeafKey = table
+    .getVisibleLeafColumns()
+    .map((column) => column.id)
+    .join("|");
+
+  useEffect(() => {
+    if (containerWidth <= 0) return;
+    const leafs = table.getVisibleLeafColumns();
+    if (leafs.length === 0) return;
+
+    setColumnSizing((prev) => {
+      const specs: SizingColumnSpec[] = leafs.map((column) => ({
+        id: column.id,
+        minSize: column.columnDef.minSize ?? DEFAULT_COLUMN_MIN_SIZE,
+        maxSize: column.columnDef.maxSize ?? DEFAULT_COLUMN_MAX_SIZE,
+        size: prev[column.id] ?? column.getSize(),
+        fill: Boolean(column.columnDef.meta?.fill),
+        fixed:
+          column.id === "__select" ||
+          column.id === "__actions" ||
+          column.columnDef.enableResizing === false,
+      }));
+
+      const next = normalizeSizingToWidth(prev, specs, containerWidth);
+      const unchanged = leafs.every(
+        (column) => (next[column.id] ?? 0) === (prev[column.id] ?? column.getSize())
+      );
+      return unchanged ? prev : next;
+    });
+    // table is read for leaf column defs; re-run when width or visible set changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid re-normalize every render
+  }, [containerWidth, visibleLeafKey]);
 
   const sortableColumns = useMemo(
     () =>
@@ -294,9 +465,7 @@ export function DataTable<TData, TValue = unknown>({
         .getAllLeafColumns()
         .filter(
           (column) =>
-            column.getCanSort() &&
-            column.id !== "__select" &&
-            column.id !== "__actions"
+            column.getCanSort() && column.id !== "__select" && column.id !== "__actions"
         )
         .map((column) => ({
           id: column.id,
@@ -317,95 +486,9 @@ export function DataTable<TData, TValue = unknown>({
     }));
   }, [enableGrouping, groupingOptions, sortableColumns]);
 
-  const totalRows = isServerPagination
-    ? pagination.total
-    : filteredBySearch.length;
+  const totalRows = isServerPagination ? pagination.total : filteredBySearch.length;
 
-  const selectedRows = table
-    .getSelectedRowModel()
-    .rows.map((row) => row.original);
-
-  const chips: DataTableChip[] = [];
-
-  if (searchable && search.trim()) {
-    chips.push({
-      key: "search",
-      label: "Search",
-      value: search.trim(),
-      onRemove: () => setSearch(""),
-    });
-  }
-
-  filters.forEach((filter) => {
-    const value = filterValues[filter.key];
-    if (Array.isArray(value) && value.length > 0) {
-      const labels = value
-        .map(
-          (item) =>
-            filter.options?.find((option) => option.value === item)?.label ??
-            item
-        )
-        .join(", ");
-      chips.push({
-        key: filter.key,
-        label: filter.label,
-        value: labels,
-        onRemove: () =>
-          setFilterValues({
-            ...filterValues,
-            [filter.key]: [],
-          }),
-      });
-    } else if (typeof value === "string" && value) {
-      const label =
-        filter.options?.find((option) => option.value === value)?.label ??
-        value;
-      chips.push({
-        key: filter.key,
-        label: filter.label,
-        value: label,
-        onRemove: () =>
-          setFilterValues({
-            ...filterValues,
-            [filter.key]: "",
-          }),
-      });
-    }
-  });
-
-  if (grouping) {
-    const groupLabel =
-      resolvedGroupingOptions.find((item) => item.value === grouping)?.label ??
-      grouping;
-    chips.push({
-      key: "group",
-      label: "Group",
-      value: groupLabel,
-      onRemove: () => setGrouping(""),
-    });
-  }
-
-  if (sorting[0]) {
-    const sortCol = sortableColumns.find((item) => item.id === sorting[0].id);
-    chips.push({
-      key: "sort",
-      label: "Sort",
-      value: `${sortCol?.label ?? sorting[0].id} ${
-        sorting[0].desc ? "descending" : "ascending"
-      }`,
-      onRemove: () => setSorting([]),
-    });
-  }
-
-  function clearAll() {
-    setSearch("");
-    setFilterValues({});
-    setGrouping("");
-    setSorting([]);
-    if (!isServerPagination) {
-      setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
-    }
-  }
+  const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
 
   function handleFilterChange(key: string, value: string | string[]) {
     setFilterValues({
@@ -416,6 +499,95 @@ export function DataTable<TData, TValue = unknown>({
       setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
     }
   }
+
+  const searchFilterChips: SearchFilterChip[] = [];
+
+  filters.forEach((filter) => {
+    const value = filterValues[filter.key];
+    if (Array.isArray(value) && value.length > 0) {
+      value.forEach((item) => {
+        const optionLabel =
+          filter.options?.find((option) => option.value === item)?.label ?? item;
+        searchFilterChips.push({
+          id: `${filter.key}:${item}`,
+          label: `${filter.label}: ${optionLabel}`,
+          onRemove: () =>
+            handleFilterChange(
+              filter.key,
+              value.filter((entry) => entry !== item)
+            ),
+        });
+      });
+    } else if (typeof value === "string" && value) {
+      const optionLabel =
+        filter.options?.find((option) => option.value === value)?.label ?? value;
+      searchFilterChips.push({
+        id: filter.key,
+        label: `${filter.label}: ${optionLabel}`,
+        onRemove: () => handleFilterChange(filter.key, ""),
+      });
+    }
+  });
+
+  if (grouping) {
+    const groupLabel =
+      resolvedGroupingOptions.find((item) => item.value === grouping)?.label ?? grouping;
+    searchFilterChips.push({
+      id: "group",
+      label: `Group: ${groupLabel}`,
+      onRemove: () => setGrouping(""),
+    });
+  }
+
+  const panelFilterItems: SearchFilterItem[] = [];
+  filters.forEach((filter, filterIndex) => {
+    if (filter.type === "select" || filter.type === "date") {
+      (filter.options ?? []).forEach((option, optionIndex) => {
+        const current = String(filterValues[filter.key] ?? "");
+        panelFilterItems.push({
+          id: `${filter.key}:${option.value}`,
+          label: option.label,
+          checked: current === option.value,
+          dividerBefore: filterIndex > 0 && optionIndex === 0,
+          onSelect: () =>
+            handleFilterChange(filter.key, current === option.value ? "" : option.value),
+        });
+      });
+      return;
+    }
+
+    if (filter.type === "multi-select" && filter.options) {
+      const selected = Array.isArray(filterValues[filter.key])
+        ? (filterValues[filter.key] as string[])
+        : [];
+      filter.options.forEach((option, optionIndex) => {
+        const isChecked = selected.includes(option.value);
+        panelFilterItems.push({
+          id: `${filter.key}:${option.value}`,
+          label: option.label,
+          checked: isChecked,
+          dividerBefore: filterIndex > 0 && optionIndex === 0,
+          onSelect: () =>
+            handleFilterChange(
+              filter.key,
+              isChecked
+                ? selected.filter((entry) => entry !== option.value)
+                : [...selected, option.value]
+            ),
+        });
+      });
+    }
+  });
+
+  const panelGroupItems: SearchFilterItem[] = resolvedGroupingOptions.map((option) => ({
+    id: option.value,
+    label: option.label,
+    active: grouping === option.value,
+    onSelect: () => setGrouping(grouping === option.value ? "" : option.value),
+  }));
+
+  const showSearchFilter =
+    searchable || filters.length > 0 || resolvedGroupingOptions.length > 0;
 
   function handleSortingPresetChange(value: string) {
     if (value === "default") {
@@ -433,64 +605,89 @@ export function DataTable<TData, TValue = unknown>({
     .map((column) => ({
       key: column.id,
       label: `${column.getIsVisible() ? "Hide" : "Show"} ${
-        typeof column.columnDef.header === "string"
-          ? column.columnDef.header
-          : column.id
+        typeof column.columnDef.header === "string" ? column.columnDef.header : column.id
       }`,
       onClick: () => column.toggleVisibility(),
     }));
 
   return (
     <div
+      ref={rootRef}
       className={cn(
         "overflow-hidden rounded-lg border border-erp-border bg-white",
         className
       )}
     >
-      <DataTableToolbar
-        searchable={searchable}
-        search={search}
-        onSearchChange={(value) => {
-          setSearch(value);
-          if (!isServerPagination) {
-            setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
-          }
-        }}
-        searchPlaceholder={searchPlaceholder}
-        filters={filters}
-        filterValues={filterValues}
-        onFilterChange={handleFilterChange}
-        onClearFilters={clearAll}
-        groupingOptions={resolvedGroupingOptions}
-        grouping={grouping}
-        onGroupingChange={setGrouping}
-        sortableColumns={sortableColumns}
-        sorting={sorting}
-        onSortingPresetChange={handleSortingPresetChange}
-        columnVisibilityToggle={
-          enableColumnVisibility ? (
-            <Dropdown
-              label={
-                <>
-                  <Columns3 className="h-3.5 w-3.5" aria-hidden />
-                  Columns
-                </>
+      {showSearchFilter ? (
+        <div className="border-b border-erp-border bg-erp-surface-tint px-3 py-2.5">
+          <SearchFilter
+            value={searchable ? search : ""}
+            onChange={(value) => {
+              if (!searchable) return;
+              setSearch(value);
+              if (!isServerPagination) {
+                setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
               }
-              align="right"
-              buttonProps={{
-                variant: "secondary",
-                className: "h-10 rounded-[10px] px-3.5",
-              }}
-              items={visibilityItems}
-            />
-          ) : null
-        }
-      />
+            }}
+            readOnly={!searchable}
+            placeholder={
+              searchable
+                ? (searchPlaceholder ?? "Search records, names, references, or owners")
+                : "Filters & grouping"
+            }
+            chips={searchFilterChips}
+            filters={panelFilterItems}
+            groupBy={panelGroupItems}
+          />
+        </div>
+      ) : null}
 
       <DataTableFilters
-        chips={chips}
-        resultCount={totalRows}
-        onClearAll={chips.length > 0 ? clearAll : undefined}
+        toolbarEnd={
+          sortableColumns.length > 0 || enableColumnVisibility ? (
+            <>
+              {sortableColumns.length > 0 ? (
+                <Select
+                  aria-label="Sort"
+                  size="sm"
+                  className="w-auto min-w-[5.25rem] [&>select]:!h-6 [&>select]:!min-h-6 [&>select]:!px-1.5 [&>select]:!pe-6 [&>select]:!text-[10px] [&>select]:!leading-6"
+                  value={
+                    sorting[0] != null
+                      ? `${sorting[0].desc ? "desc" : "asc"}:${sorting[0].id}`
+                      : "default"
+                  }
+                  onChange={(event) => handleSortingPresetChange(event.target.value)}
+                >
+                  <option value="default">Sort</option>
+                  {sortableColumns.map((column) => (
+                    <option key={`asc-${column.id}`} value={`asc:${column.id}`}>
+                      {column.label} · A–Z
+                    </option>
+                  ))}
+                  {sortableColumns.map((column) => (
+                    <option key={`desc-${column.id}`} value={`desc:${column.id}`}>
+                      {column.label} · Z–A
+                    </option>
+                  ))}
+                </Select>
+              ) : null}
+              {enableColumnVisibility ? (
+                <Dropdown
+                  hideChevron
+                  label={<AlignJustify className="h-3.5 w-3.5" aria-hidden />}
+                  align="right"
+                  buttonProps={{
+                    variant: "secondary",
+                    size: "icon",
+                    "aria-label": "Columns",
+                    className: "h-6 w-6 rounded-md p-0",
+                  }}
+                  items={visibilityItems}
+                />
+              ) : null}
+            </>
+          ) : null
+        }
       />
 
       <DataTableBulkActions
@@ -509,10 +706,12 @@ export function DataTable<TData, TValue = unknown>({
         />
       ) : (
         <>
-          <div className="overflow-auto">
+          <div ref={scrollRef} className="w-full overflow-x-hidden overflow-y-auto">
             <table
-              className="w-full min-w-full table-fixed border-separate border-spacing-0"
-              style={{ minWidth: table.getCenterTotalSize() }}
+              className="w-full table-fixed border-separate border-spacing-0"
+              style={{
+                width: containerWidth > 0 ? containerWidth : "100%",
+              }}
             >
               <colgroup>
                 {table.getVisibleLeafColumns().map((column) => (
@@ -522,6 +721,12 @@ export function DataTable<TData, TValue = unknown>({
               <DataTableHeader
                 table={table}
                 enableResizing={enableColumnResizing}
+                columnResizeDirection={columnResizeDirection}
+                columnSizing={columnSizing}
+                onColumnSizingChange={(next) => {
+                  sizingLockedRef.current = true;
+                  setColumnSizing(next);
+                }}
               />
               <DataTableBody
                 table={table}

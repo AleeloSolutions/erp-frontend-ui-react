@@ -16,25 +16,34 @@ function DataRow<TData>({ row }: { row: Row<TData> }) {
   return (
     <tr
       className={cn(
-        "hover:[&>td]:bg-[#FAFCFE]",
+        "hover:[&>td]:bg-erp-surface-tint-strong",
         row.getIsSelected() &&
-          "[&>td]:bg-[#EEF5FC] [&>td:first-child]:shadow-[inset_3px_0_0_var(--blue)]"
+          "[&>td]:bg-erp-blue-50 [&>td:first-child]:shadow-[inset_3px_0_0_var(--blue)]"
       )}
     >
       {row.getVisibleCells().map((cell) => {
         const alignRight = cell.column.columnDef.meta?.align === "right";
         const isSelect = cell.column.id === "__select";
+        const isActions = cell.column.id === "__actions";
+        const skipTruncate = isSelect || isActions;
+
         return (
           <td
             key={cell.id}
             style={getColumnCellStyle(cell.column)}
             className={cn(
-              "h-[34px] border-b border-[#EEF2F6] bg-white text-[11px] whitespace-nowrap text-[#2F3A4A] align-middle",
-              isSelect ? "p-0" : "px-2",
+              "h-[34px] border-b border-erp-border-soft bg-white text-[11px] text-erp-text align-middle overflow-hidden",
+              isSelect || isActions ? "p-0" : "px-2",
               alignRight && "text-right tabular-nums tracking-[-0.15px]"
             )}
           >
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            {skipTruncate ? (
+              flexRender(cell.column.columnDef.cell, cell.getContext())
+            ) : (
+              <div className="min-w-0 max-w-full truncate whitespace-nowrap">
+                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+              </div>
+            )}
           </td>
         );
       })}
@@ -75,16 +84,16 @@ export function DataTableBody<TData>({
             <tr className="table-group-row">
               <td
                 colSpan={colSpan}
-                className="!border-b !border-[#DCE7F2] !bg-[#F7FAFD] !p-0"
+                className="!border-b !border-erp-border-chip !bg-erp-surface-hover !p-0"
               >
                 <div className="flex min-h-[38px] items-center gap-2 px-3">
-                  <span className="inline-flex h-5 items-center rounded-full bg-[#EAF3FC] px-1.5 text-[9px] font-extrabold uppercase tracking-[0.45px] text-[#3E5F84]">
+                  <span className="inline-flex h-5 items-center rounded-full bg-erp-blue-50 px-1.5 text-[9px] font-extrabold uppercase tracking-[0.45px] text-erp-blue">
                     {groupingColumnId}
                   </span>
-                  <span className="text-[11px] font-extrabold text-[#334155]">
+                  <span className="min-w-0 truncate text-[11px] font-extrabold text-erp-text">
                     {groupName}
                   </span>
-                  <span className="ml-auto text-[10px] font-bold text-[#667085]">
+                  <span className="ml-auto shrink-0 text-[10px] font-bold text-erp-muted">
                     {groupRows.length} item{groupRows.length === 1 ? "" : "s"}
                   </span>
                 </div>

@@ -20,7 +20,7 @@ export function DataTableBulkActions<TData>({
   return (
     <div
       className={cn(
-        "flex min-h-10 items-center gap-2 border-b border-[#C9D8E8] bg-gradient-to-b from-[#F1F7FD] to-[#E9F2FB] px-3 py-1.5",
+        "flex min-h-10 items-center gap-2 border-b border-erp-border-chip bg-gradient-to-b from-erp-blue-50 to-erp-blue-100 px-3 py-1.5",
         className
       )}
       role="status"

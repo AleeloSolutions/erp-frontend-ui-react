@@ -17,9 +17,9 @@ export function DataTableLoading({
             {Array.from({ length: columns }).map((_, index) => (
               <th
                 key={index}
-                className="h-8 border-b border-[#D9E2EC] bg-[#F8FAFC] px-2"
+                className="h-8 border-b border-erp-border-strong bg-erp-surface-tint px-2"
               >
-                <div className="h-2.5 w-16 animate-pulse rounded bg-[#E4EAF1]" />
+                <div className="h-2.5 w-16 animate-pulse rounded bg-erp-border" />
               </th>
             ))}
           </tr>
@@ -30,9 +30,9 @@ export function DataTableLoading({
               {Array.from({ length: columns }).map((_, colIndex) => (
                 <td
                   key={colIndex}
-                  className="h-[34px] border-b border-[#EEF2F6] px-2"
+                  className="h-[34px] border-b border-erp-border-soft px-2"
                 >
-                  <div className="h-2.5 w-full max-w-[140px] animate-pulse rounded bg-[#EEF2F6]" />
+                  <div className="h-2.5 w-full max-w-[140px] animate-pulse rounded bg-erp-border-soft" />
                 </td>
               ))}
             </tr>
