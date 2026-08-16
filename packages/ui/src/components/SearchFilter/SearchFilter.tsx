@@ -166,11 +166,11 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
         <div className="flex w-full items-stretch gap-2">
           <div
             className={cn(
-              "flex min-h-9 min-w-0 flex-1 items-stretch overflow-hidden rounded-md border border-erp-border bg-white",
+              "flex min-h-9 min-w-0 flex-1 items-stretch overflow-hidden rounded-md border border-erp-border-soft/70 bg-white",
               "transition-[border-color,box-shadow] duration-150",
-              "hover:border-erp-border-strong",
-              "focus-within:border-erp-primary focus-within:shadow-[0_0_0_1px_var(--color-erp-primary)]",
-              open && "border-erp-primary shadow-[0_0_0_1px_var(--color-erp-primary)]",
+              "hover:border-erp-border-soft",
+              "focus-within:border-erp-primary focus-within:shadow-none",
+              open && "border-erp-primary",
               disabled && "cursor-not-allowed opacity-60"
             )}
           >
