@@ -72,6 +72,10 @@ export interface DataTableProps<TData, TValue = unknown> {
    * (parent/query owns filtering — typical with server pagination).
    */
   manualFiltering?: boolean;
+  /**
+   * Filters panel — record conditions (e.g. Status is Active / Inactive).
+   * Options are values that match or exclude rows; not table-layout dimensions.
+   */
   filters?: DataTableFilter[];
   selectable?: boolean;
   pagination?: boolean | DataTablePaginationConfig;
@@ -89,10 +93,19 @@ export interface DataTableProps<TData, TValue = unknown> {
   emptyMessage?: string;
   enableColumnVisibility?: boolean;
   enableColumnResizing?: boolean;
+  /**
+   * When true, SearchFilter Group By lists dimensions (columns) to reorganize rows.
+   * Pass `groupingOptions` for an explicit list; otherwise leaf data columns are used.
+   */
   enableGrouping?: boolean;
+  /** Group By dimensions — column ids/labels (not filter option values). */
   groupingOptions?: DataTableGroupingOption[];
   getRowId?: (originalRow: TData, index: number) => string;
   sorting?: DataTableSortingConfig;
+  /**
+   * Record conditions for the Filters panel (e.g. Status = Active).
+   * Prefer discrete option values / predicates — not “group by column” choices.
+   */
   filtering?: DataTableFilteringConfig;
   className?: string;
 }
@@ -480,11 +493,18 @@ export function DataTable<TData, TValue = unknown>({
   const resolvedGroupingOptions = useMemo(() => {
     if (!enableGrouping) return [];
     if (groupingOptions.length > 0) return groupingOptions;
-    return sortableColumns.map((column) => ({
-      label: column.label,
-      value: column.id,
-    }));
-  }, [enableGrouping, groupingOptions, sortableColumns]);
+    // Dimensions = table columns (not filter option values)
+    return table
+      .getAllLeafColumns()
+      .filter((column) => column.id !== "__select" && column.id !== "__actions")
+      .map((column) => ({
+        label:
+          typeof column.columnDef.header === "string"
+            ? column.columnDef.header
+            : column.id,
+        value: column.id,
+      }));
+  }, [enableGrouping, groupingOptions, table]);
 
   const totalRows = isServerPagination ? pagination.total : filteredBySearch.length;
 

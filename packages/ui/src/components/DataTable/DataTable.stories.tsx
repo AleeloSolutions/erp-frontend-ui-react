@@ -72,6 +72,13 @@ export const Default: Story = {
     searchPlaceholder: "Search customers",
     selectable: true,
     enableGrouping: true,
+    // Group By = dimensions (columns) to reorganize the table
+    groupingOptions: [
+      { label: "Customer", value: "name" },
+      { label: "Status", value: "status" },
+      { label: "Balance", value: "amount" },
+    ],
+    // Filters = record conditions (option values)
     filters: [
       {
         key: "status",
@@ -188,6 +195,11 @@ export const ResizablePersisted: Story = {
     searchable: true,
     enableColumnResizing: true,
     enableGrouping: true,
+    groupingOptions: [
+      { label: "Customer", value: "name" },
+      { label: "Status", value: "status" },
+      { label: "Balance", value: "amount" },
+    ],
     filters: [
       {
         key: "status",
@@ -205,7 +217,7 @@ export const ResizablePersisted: Story = {
     docs: {
       description: {
         story:
-          "Medium centered SearchFilter: type to search, open panel for Filters/Group By (Favorites is UI-only). Sort and Columns sit on the strip above the table.",
+          "Filters = record conditions. Group By = column dimensions. SearchFilter panel hosts both; Sort/Columns on the strip above the table.",
       },
     },
   },
@@ -221,8 +233,9 @@ export const SearchFilterPanel: Story = {
     selectable: true,
     enableGrouping: true,
     groupingOptions: [
-      { label: "Status", value: "status" },
       { label: "Customer", value: "name" },
+      { label: "Status", value: "status" },
+      { label: "Balance", value: "amount" },
     ],
     filters: [
       {

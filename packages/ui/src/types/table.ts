@@ -64,7 +64,9 @@ export interface DataTableFilteringConfig {
 }
 
 export interface DataTableGroupingOption {
+  /** Display label for the Group By panel (column / dimension name). */
   label: string;
+  /** Column id used to reorganize rows — not a filter option value. */
   value: string;
 }
 
