@@ -9,7 +9,8 @@ import "../../types/table";
 export interface DataTableBodyProps<TData> {
   table: Table<TData>;
   emptyMessage?: string;
-  groupingColumnId?: string;
+  /** One or more column ids — nested group headers in order. */
+  groupingColumnIds?: string[];
 }
 
 function DataRow<TData>({ row }: { row: Row<TData> }) {
@@ -51,10 +52,80 @@ function DataRow<TData>({ row }: { row: Row<TData> }) {
   );
 }
 
+function GroupedRows<TData>({
+  rows,
+  columnIds,
+  colSpan,
+  depth = 0,
+}: {
+  rows: Row<TData>[];
+  columnIds: string[];
+  colSpan: number;
+  depth?: number;
+}) {
+  if (columnIds.length === 0) {
+    return (
+      <>
+        {rows.map((row) => (
+          <DataRow key={row.id} row={row} />
+        ))}
+      </>
+    );
+  }
+
+  const [columnId, ...rest] = columnIds;
+  const groups = new Map<string, Row<TData>[]>();
+  rows.forEach((row) => {
+    const raw = row.getValue(columnId);
+    const key = String(raw ?? "Unspecified");
+    const list = groups.get(key) ?? [];
+    list.push(row);
+    groups.set(key, list);
+  });
+
+  const pad = Math.min(depth, 4) * 12;
+
+  return (
+    <>
+      {[...groups.entries()].map(([groupName, groupRows]) => (
+        <Fragment key={`${columnId}:${groupName}:${depth}`}>
+          <tr className="table-group-row">
+            <td
+              colSpan={colSpan}
+              className="!border-b !border-erp-border-chip !bg-erp-surface-hover !p-0"
+            >
+              <div
+                className="flex min-h-[38px] items-center gap-2 px-3"
+                style={{ paddingInlineStart: 12 + pad }}
+              >
+                <span className="inline-flex h-5 items-center rounded-full bg-erp-blue-50 px-1.5 text-[9px] font-extrabold uppercase tracking-[0.45px] text-erp-blue">
+                  {columnId}
+                </span>
+                <span className="min-w-0 truncate text-[11px] font-extrabold text-erp-text">
+                  {groupName}
+                </span>
+                <span className="ms-auto shrink-0 text-[10px] font-bold text-erp-muted">
+                  {groupRows.length} item{groupRows.length === 1 ? "" : "s"}
+                </span>
+              </div>
+            </td>
+          </tr>
+          <GroupedRows
+            rows={groupRows}
+            columnIds={rest}
+            colSpan={colSpan}
+            depth={depth + 1}
+          />
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
 export function DataTableBody<TData>({
   table,
   emptyMessage,
-  groupingColumnId,
+  groupingColumnIds = [],
 }: DataTableBodyProps<TData>) {
   const rows = table.getRowModel().rows;
   const colSpan = Math.max(table.getVisibleLeafColumns().length, 1);
@@ -67,43 +138,10 @@ export function DataTableBody<TData>({
     );
   }
 
-  if (groupingColumnId) {
-    const groups = new Map<string, Row<TData>[]>();
-    rows.forEach((row) => {
-      const raw = row.getValue(groupingColumnId);
-      const key = String(raw ?? "Unspecified");
-      const list = groups.get(key) ?? [];
-      list.push(row);
-      groups.set(key, list);
-    });
-
+  if (groupingColumnIds.length > 0) {
     return (
       <tbody>
-        {[...groups.entries()].map(([groupName, groupRows]) => (
-          <Fragment key={`group-${groupName}`}>
-            <tr className="table-group-row">
-              <td
-                colSpan={colSpan}
-                className="!border-b !border-erp-border-chip !bg-erp-surface-hover !p-0"
-              >
-                <div className="flex min-h-[38px] items-center gap-2 px-3">
-                  <span className="inline-flex h-5 items-center rounded-full bg-erp-blue-50 px-1.5 text-[9px] font-extrabold uppercase tracking-[0.45px] text-erp-blue">
-                    {groupingColumnId}
-                  </span>
-                  <span className="min-w-0 truncate text-[11px] font-extrabold text-erp-text">
-                    {groupName}
-                  </span>
-                  <span className="ml-auto shrink-0 text-[10px] font-bold text-erp-muted">
-                    {groupRows.length} item{groupRows.length === 1 ? "" : "s"}
-                  </span>
-                </div>
-              </td>
-            </tr>
-            {groupRows.map((row) => (
-              <DataRow key={row.id} row={row} />
-            ))}
-          </Fragment>
-        ))}
+        <GroupedRows rows={rows} columnIds={groupingColumnIds} colSpan={colSpan} />
       </tbody>
     );
   }

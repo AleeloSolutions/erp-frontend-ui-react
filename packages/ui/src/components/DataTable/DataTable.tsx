@@ -168,7 +168,7 @@ export function DataTable<TData, TValue = unknown>({
   const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [grouping, setGrouping] = useState("");
+  const [grouping, setGrouping] = useState<string[]>([]);
   const [paginationState, setPaginationState] = useState<PaginationState>({
     pageIndex: isServerPagination ? Math.max(0, pagination.page - 1) : 0,
     pageSize: isServerPagination ? pagination.pageSize : initialPageSize,
@@ -529,38 +529,32 @@ export function DataTable<TData, TValue = unknown>({
     }
   });
 
-  if (grouping) {
-    const groupLabel =
-      resolvedGroupingOptions.find((item) => item.value === grouping)?.label ?? grouping;
-    searchFilterChips.push({
-      id: "group",
-      label: `Group: ${groupLabel}`,
-      onRemove: () => setGrouping(""),
+  if (grouping.length > 0) {
+    grouping.forEach((groupId) => {
+      const groupLabel =
+        resolvedGroupingOptions.find((item) => item.value === groupId)?.label ?? groupId;
+      searchFilterChips.push({
+        id: `group:${groupId}`,
+        label: `Group: ${groupLabel}`,
+        onRemove: () => setGrouping((prev) => prev.filter((id) => id !== groupId)),
+      });
     });
   }
 
   const panelFilterItems: SearchFilterItem[] = [];
   filters.forEach((filter, filterIndex) => {
-    if (filter.type === "select" || filter.type === "date") {
+    if (
+      filter.type === "select" ||
+      filter.type === "date" ||
+      filter.type === "multi-select"
+    ) {
+      const raw = filterValues[filter.key];
+      const selected = Array.isArray(raw)
+        ? raw
+        : typeof raw === "string" && raw
+          ? [raw]
+          : [];
       (filter.options ?? []).forEach((option, optionIndex) => {
-        const current = String(filterValues[filter.key] ?? "");
-        panelFilterItems.push({
-          id: `${filter.key}:${option.value}`,
-          label: option.label,
-          checked: current === option.value,
-          dividerBefore: filterIndex > 0 && optionIndex === 0,
-          onSelect: () =>
-            handleFilterChange(filter.key, current === option.value ? "" : option.value),
-        });
-      });
-      return;
-    }
-
-    if (filter.type === "multi-select" && filter.options) {
-      const selected = Array.isArray(filterValues[filter.key])
-        ? (filterValues[filter.key] as string[])
-        : [];
-      filter.options.forEach((option, optionIndex) => {
         const isChecked = selected.includes(option.value);
         panelFilterItems.push({
           id: `${filter.key}:${option.value}`,
@@ -579,12 +573,21 @@ export function DataTable<TData, TValue = unknown>({
     }
   });
 
-  const panelGroupItems: SearchFilterItem[] = resolvedGroupingOptions.map((option) => ({
-    id: option.value,
-    label: option.label,
-    active: grouping === option.value,
-    onSelect: () => setGrouping(grouping === option.value ? "" : option.value),
-  }));
+  const panelGroupItems: SearchFilterItem[] = resolvedGroupingOptions.map((option) => {
+    const isActive = grouping.includes(option.value);
+    return {
+      id: option.value,
+      label: option.label,
+      checked: isActive,
+      active: isActive,
+      onSelect: () =>
+        setGrouping((prev) =>
+          prev.includes(option.value)
+            ? prev.filter((id) => id !== option.value)
+            : [...prev, option.value]
+        ),
+    };
+  });
 
   const showSearchFilter =
     searchable || filters.length > 0 || resolvedGroupingOptions.length > 0;
@@ -731,7 +734,7 @@ export function DataTable<TData, TValue = unknown>({
               <DataTableBody
                 table={table}
                 emptyMessage={emptyMessage}
-                groupingColumnId={grouping || undefined}
+                groupingColumnIds={grouping}
               />
             </table>
           </div>
