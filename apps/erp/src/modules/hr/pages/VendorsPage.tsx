@@ -42,7 +42,7 @@ function VendorsPage() {
     },
     {
       id: "__actions",
-      header: "Actions",
+      header: () => null,
       enableSorting: false,
       size: 52,
       cell: ({ row }) => (
@@ -76,16 +76,33 @@ function VendorsPage() {
           items: vendorsSubmenu,
           activeKey: "vendors",
         }}
-        className="bg-red-500 max-w-full"
       />
 
       {/* Data table */}
       <DataTable
+        tableId="hr-vendors"
         columns={columns}
         data={vendors || []}
         loading={false}
         searchable
+        searchPlaceholder="Search vendors…"
         selectable
+        enableGrouping
+        groupingOptions={[
+          { label: "Status", value: "status" },
+          { label: "Name", value: "name" },
+        ]}
+        filters={[
+          {
+            key: "status",
+            label: "Status",
+            type: "select",
+            options: [
+              { label: "Active", value: "Active" },
+              { label: "Inactive", value: "Inactive" },
+            ],
+          },
+        ]}
         pagination
         pageSize={5}
         bulkActions={[
@@ -95,10 +112,10 @@ function VendorsPage() {
             variant: "danger",
             onClick: (rows) => console.log(rows),
           },
-          
         ]}
       />
-    </AppShell>);
+    </AppShell>
+  );
 }
 
 export default VendorsPage;
