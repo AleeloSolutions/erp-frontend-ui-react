@@ -166,9 +166,9 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
         <div className="flex w-full items-stretch gap-2">
           <div
             className={cn(
-              "flex min-h-9 min-w-0 flex-1 items-stretch overflow-hidden rounded-md border border-erp-border-soft/70 bg-white",
+              "flex min-h-9 min-w-0 flex-1 items-stretch overflow-hidden rounded-md border border-erp-secondary bg-white",
               "transition-[border-color,box-shadow] duration-150",
-              "hover:border-erp-border-soft",
+              "hover:border-erp-secondary-border",
               "focus-within:border-erp-primary focus-within:shadow-none",
               open && "border-erp-primary",
               disabled && "cursor-not-allowed opacity-60"
@@ -218,7 +218,7 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
                 aria-controls={panelId}
                 aria-label={open ? "Close search filters" : "Open search filters"}
                 className={cn(
-                  "grid w-9 shrink-0 place-items-center self-stretch border-s border-erp-border-soft text-erp-muted",
+                  "grid w-9 shrink-0 place-items-center self-stretch border-s border-erp-secondary text-erp-muted",
                   "hover:bg-erp-surface-muted hover:text-erp-text",
                   "disabled:cursor-not-allowed disabled:opacity-60",
                   open && "bg-erp-primary-50/70 text-erp-primary"
