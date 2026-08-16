@@ -1,25 +1,52 @@
-import { forwardRef, type InputHTMLAttributes } from "react";
-import { cn } from "../../utils";
+import { forwardRef, useId, type InputHTMLAttributes } from "react";
+import { cn, fieldChromeClasses, fieldSizeClasses, type FieldSize } from "../../utils";
 
-export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+export type InputSize = FieldSize;
+
+export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "size"> {
   error?: boolean;
+  /** Visual size. Defaults to `sm`. Height is fixed; use className for width. */
+  size?: InputSize;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, error, type = "text", ...props }, ref) => {
+  (
+    {
+      className,
+      error,
+      type = "text",
+      size = "sm",
+      id,
+      disabled,
+      style,
+      placeholder,
+      ...props
+    },
+    ref
+  ) => {
+    const generatedId = useId();
+    const inputId = id ?? generatedId;
+
     return (
       <input
+        {...props}
         ref={ref}
+        id={inputId}
         type={type}
+        disabled={disabled}
+        placeholder={placeholder}
         aria-invalid={error || undefined}
+        data-size={size}
+        style={{ outline: "none", boxShadow: "none", ...style }}
         className={cn(
-          "h-[30px] w-full rounded-md border border-erp-input-border bg-white px-2.5 text-[11px] text-erp-text shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] placeholder:text-[#94A3B8]",
-          "focus:border-erp-blue focus:outline-2 focus:outline-erp-focus focus:-outline-offset-1",
-          "disabled:cursor-not-allowed disabled:bg-erp-surface-alt disabled:opacity-60",
-          error && "border-erp-error focus:border-erp-error focus:outline-erp-error-bg",
+          "min-w-0 max-w-full appearance-none",
+          // Hide number spinners so chrome matches text fields
+          type === "number" &&
+            "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+          fieldChromeClasses({ error }),
+          fieldSizeClasses[size],
           className
         )}
-        {...props}
       />
     );
   }

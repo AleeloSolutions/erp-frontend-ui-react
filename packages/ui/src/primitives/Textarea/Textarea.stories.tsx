@@ -1,12 +1,20 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Textarea } from "./Textarea";
+import { fieldMinWidthClasses } from "../../utils";
 
 const meta: Meta<typeof Textarea> = {
   title: "Primitives/Textarea",
   component: Textarea,
   args: {
-    placeholder: "Add notes…",
-    rows: 4,
+    placeholder: "Description",
+    size: "sm",
+    className: fieldMinWidthClasses.sm,
+  },
+  argTypes: {
+    size: {
+      control: "inline-radio",
+      options: ["sm", "md", "default"],
+    },
   },
 };
 
@@ -25,7 +33,7 @@ export const WithValue: Story = {
 export const WithError: Story = {
   args: {
     error: true,
-    defaultValue: "Too short",
+    placeholder: "Notes",
   },
 };
 

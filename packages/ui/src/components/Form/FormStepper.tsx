@@ -7,11 +7,7 @@ export interface FormStepperProps {
   className?: string;
 }
 
-export function FormStepper({
-  steps,
-  currentStep,
-  className,
-}: FormStepperProps) {
+export function FormStepper({ steps, currentStep, className }: FormStepperProps) {
   return (
     <div
       className={cn("ml-auto flex flex-wrap gap-1.5", className)}
@@ -31,9 +27,8 @@ export function FormStepper({
             role="listitem"
             aria-current={active ? "step" : undefined}
             className={cn(
-              "inline-flex h-[22px] items-center rounded-[11px] bg-[#EEF1F4] px-2 text-[9.5px] text-erp-muted",
-              (active || completed) &&
-                "bg-erp-blue-100 font-bold text-erp-blue"
+              "inline-flex h-[22px] items-center rounded-[11px] bg-erp-header px-2 text-[9.5px] text-erp-muted",
+              (active || completed) && "bg-erp-blue-100 font-bold text-erp-blue"
             )}
           >
             {label}

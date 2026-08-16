@@ -1,8 +1,6 @@
 import { forwardRef } from "react";
-import {
-  DatePicker,
-  type DatePickerProps,
-} from "../../../primitives/DatePicker";
+import { DatePicker, type DatePickerProps } from "../../../primitives/DatePicker";
+import { cn } from "../../../utils";
 
 export type FormDatePickerProps = Omit<DatePickerProps, "min" | "max"> & {
   /** Widened for RHF `register()` (min/max may be number | string). */
@@ -11,8 +9,16 @@ export type FormDatePickerProps = Omit<DatePickerProps, "min" | "max"> & {
 };
 
 export const FormDatePicker = forwardRef<HTMLInputElement, FormDatePickerProps>(
-  function FormDatePicker(props, ref) {
-    return <DatePicker ref={ref} {...props} />;
+  function FormDatePicker({ min, max, className, ...props }, ref) {
+    return (
+      <DatePicker
+        ref={ref}
+        className={cn("w-full min-w-0", className)}
+        min={min != null ? String(min) : undefined}
+        max={max != null ? String(max) : undefined}
+        {...props}
+      />
+    );
   }
 );
 
