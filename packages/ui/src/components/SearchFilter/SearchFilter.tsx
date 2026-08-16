@@ -1,7 +1,6 @@
 import { forwardRef, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Filter, Layers, Search, Star, X } from "lucide-react";
-import { cn, fieldChromeClasses } from "../../utils";
-import { Input } from "../../primitives/Input";
+import { cn } from "../../utils";
 
 export type SearchFilterChip = {
   id: string;
@@ -163,19 +162,19 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
     }, [open, showPanel, isControlled, onPanelOpenChange]);
 
     return (
-      <div ref={rootRef} className={cn("relative mx-auto w-full max-w-3xl", className)}>
+      <div ref={rootRef} className={cn("relative mx-auto w-full max-w-2xl", className)}>
         <div className="flex w-full items-stretch gap-2">
           <div
             className={cn(
-              "flex min-h-9 min-w-0 flex-1 items-stretch",
-              fieldChromeClasses({
-                within: true,
-                active: open,
-                disabled,
-              })
+              "flex min-h-9 min-w-0 flex-1 items-stretch overflow-hidden rounded-md border border-erp-border bg-white",
+              "transition-[border-color,box-shadow] duration-150",
+              "hover:border-erp-border-strong",
+              "focus-within:border-erp-primary focus-within:shadow-[0_0_0_1px_var(--color-erp-primary)]",
+              open && "border-erp-primary shadow-[0_0_0_1px_var(--color-erp-primary)]",
+              disabled && "cursor-not-allowed opacity-60"
             )}
           >
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 px-2 py-1">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 px-2.5 py-1">
               <Search className="h-3.5 w-3.5 shrink-0 text-erp-subtle" aria-hidden />
               {chips.map((chip) => (
                 <span
@@ -195,14 +194,19 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
                   </button>
                 </span>
               ))}
-              <Input
+              <input
                 ref={ref}
                 value={value}
                 disabled={disabled}
                 readOnly={readOnly}
                 placeholder={chips.length ? "" : placeholder}
                 aria-label="Search"
-                className="h-7 min-w-[8rem] flex-1 border-0 bg-transparent px-1 shadow-none hover:border-transparent focus:border-transparent"
+                className={cn(
+                  "h-7 min-w-[6rem] flex-1 border-0 bg-transparent px-0.5 text-xs text-erp-text",
+                  "placeholder:text-erp-placeholder",
+                  "outline-none ring-0 focus:outline-none focus:ring-0",
+                  "disabled:cursor-not-allowed"
+                )}
                 onChange={(event) => onChange(event.target.value)}
               />
             </div>
@@ -214,11 +218,10 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
                 aria-controls={panelId}
                 aria-label={open ? "Close search filters" : "Open search filters"}
                 className={cn(
-                  "grid w-8 shrink-0 place-items-center self-stretch border-s border-erp-border-soft text-erp-muted",
+                  "grid w-9 shrink-0 place-items-center self-stretch border-s border-erp-border-soft text-erp-muted",
                   "hover:bg-erp-surface-muted hover:text-erp-text",
                   "disabled:cursor-not-allowed disabled:opacity-60",
-                  open &&
-                    "border-s-erp-primary border-y border-y-erp-primary bg-erp-primary-50/60 text-erp-primary"
+                  open && "bg-erp-primary-50/70 text-erp-primary"
                 )}
                 onClick={() => setOpen(!open)}
               >
