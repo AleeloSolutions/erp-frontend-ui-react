@@ -17,14 +17,18 @@
   --blue-bright: #184a7a;
   --blue-light: #2a5f8f;
   --teal: #0d8a7c;
-  --teal-50: #e6f7f5;
+  --teal-50: #cfeaef;
   --bg: #f5f7fa;
-  --surface: #ffffff;
+  --surface: #f9fafb;
   --surface-alt: #fafbfc;
   --surface-hover: #f7f9fb;
   --surface-muted: #f5f8fc;
   --surface-tint: #f8fafc;
   --surface-tint-strong: #fbfcfe;
+  --table-odd: var(--surface);
+  --table-even: #f2f4f7;
+  --table-odd-hover: #eef1f4;
+  --table-even-hover: #e7ebf0;
   --text: #1f2937;
   --muted: #6b7280;
   --subtle: #8a94a6;
@@ -56,9 +60,9 @@
   --shadow-color: 14, 46, 84;
 
   /* Semantic roles — change these to retheme the product */
-  --primary: var(--brand-primary);
-  --primary-hover: var(--brand-primary-hover);
-  --primary-active: var(--brand-primary-hover);
+  --primary: var(--nav);
+  --primary-hover: var(--nav-active);
+  --primary-active: var(--nav-active);
   --primary-50: var(--blue-50);
   --primary-100: var(--blue-100);
   --primary-soft: var(--blue-soft);
