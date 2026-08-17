@@ -162,25 +162,19 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
     }, [open, showPanel, isControlled, onPanelOpenChange]);
 
     return (
-      <div
-        ref={rootRef}
-        className={cn(
-          "relative mx-auto w-fit min-w-[min(100%,18rem)] max-w-full",
-          className
-        )}
-      >
-        <div className="flex max-w-full items-stretch gap-2">
+      <div ref={rootRef} className={cn("relative mx-auto w-full max-w-lg", className)}>
+        <div className="flex w-full max-w-full items-stretch gap-2">
           <div
             className={cn(
-              "flex min-h-9 max-w-full items-stretch overflow-hidden rounded-md border border-erp-secondary bg-white",
-              "transition-[border-color,box-shadow,min-width] duration-150",
+              "flex min-h-9 w-full max-w-full items-stretch overflow-hidden rounded-md border border-erp-secondary bg-erp-surface",
+              "transition-[border-color,box-shadow] duration-150",
               "hover:border-erp-secondary-border",
               "focus-within:border-erp-primary focus-within:shadow-none",
               open && "border-erp-primary",
               disabled && "cursor-not-allowed opacity-60"
             )}
           >
-            <div className="flex max-w-full flex-wrap items-center gap-1.5 px-2.5 py-1">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 px-2.5 py-1">
               <Search className="h-3.5 w-3.5 shrink-0 text-erp-subtle" aria-hidden />
               {chips.map((chip) => (
                 <span
@@ -207,9 +201,8 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
                 readOnly={readOnly}
                 placeholder={chips.length ? "" : placeholder}
                 aria-label="Search"
-                size={Math.min(Math.max(value.length || placeholder.length, 12), 40)}
                 className={cn(
-                  "h-7 min-w-[8rem] shrink-0 border-0 bg-transparent px-0.5 text-xs text-erp-text",
+                  "h-7 min-w-0 flex-1 border-0 bg-transparent px-0.5 text-xs text-erp-text",
                   "placeholder:text-erp-placeholder",
                   "outline-none ring-0 focus:outline-none focus:ring-0",
                   "disabled:cursor-not-allowed"
@@ -252,7 +245,7 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
             id={panelId}
             role="dialog"
             aria-label="Search filters"
-            className="absolute start-1/2 z-50 mt-1 w-[max(100%,min(36rem,calc(100vw-2rem)))] -translate-x-1/2 overflow-hidden rounded-lg border border-erp-border bg-white shadow-lg"
+            className="absolute start-0 z-50 mt-1 w-full min-w-full overflow-hidden rounded-lg border border-erp-border bg-erp-surface shadow-lg"
           >
             <div className="grid grid-cols-1 gap-0 divide-y divide-erp-border-soft p-2 min-[721px]:grid-cols-3 min-[721px]:divide-x min-[721px]:divide-y-0">
               <PanelColumn

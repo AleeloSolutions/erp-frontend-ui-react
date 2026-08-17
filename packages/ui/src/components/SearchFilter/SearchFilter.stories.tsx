@@ -25,7 +25,11 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   render: function DefaultStory() {
     const [value, setValue] = useState("");
-    return <SearchFilter value={value} onChange={setValue} />;
+    return (
+      <div className="w-full max-w-4xl">
+        <SearchFilter value={value} onChange={setValue} />
+      </div>
+    );
   },
 };
 
@@ -34,12 +38,14 @@ export const SearchOnly: Story = {
   render: function SearchOnlyStory() {
     const [value, setValue] = useState("");
     return (
-      <SearchFilter
-        value={value}
-        onChange={setValue}
-        showPanel={false}
-        placeholder="Search customers…"
-      />
+      <div className="w-full max-w-4xl">
+        <SearchFilter
+          value={value}
+          onChange={setValue}
+          showPanel={false}
+          placeholder="Search customers…"
+        />
+      </div>
     );
   },
 };
