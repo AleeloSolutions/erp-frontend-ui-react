@@ -49,12 +49,12 @@ export function Sidebar({
         </div>
         <div className="min-w-0 max-[980px]:hidden">
           <b className="block text-[13px] font-bold leading-tight">{brandName}</b>
-          <span className="block text-[10px] text-[#AFC1D0]">{brandSubtitle}</span>
+          <span className="block text-[10px] text-white/65">{brandSubtitle}</span>
         </div>
       </div>
 
       <nav className="flex-1 overflow-auto p-2" aria-label="Main navigation">
-        <div className="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.7px] text-[#7F96AC] max-[980px]:hidden">
+        <div className="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.7px] text-white/50 max-[980px]:hidden">
           Main menus
         </div>
         <ul className="m-0 list-none p-0">
@@ -71,7 +71,7 @@ export function Sidebar({
             );
 
             const classNameLink = cn(
-              "my-0.5 flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-xs text-[#D7E1EA] transition-colors",
+              "my-0.5 flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-xs text-white/85 transition-colors",
               "hover:bg-nav-hover",
               active && "bg-nav-active text-white",
               "max-[980px]:justify-center max-[980px]:px-0"
@@ -106,7 +106,7 @@ export function Sidebar({
           </div>
           <div className="min-w-0 max-[980px]:hidden">
             <b className="block text-[11px] leading-tight">{userName}</b>
-            <span className="block text-[9px] text-[#AFC1D0]">{userRole}</span>
+            <span className="block text-[9px] text-white/65">{userRole}</span>
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@ import type { Row, Table } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { cn } from "../../utils";
 import { DataTableEmpty } from "./DataTableEmpty";
+import { DataTableTruncatedCell } from "./DataTableTruncatedCell";
 import { getColumnCellStyle } from "./column-width";
 import "../../types/table";
 
@@ -33,7 +34,7 @@ function DataRow<TData>({ row }: { row: Row<TData> }) {
             key={cell.id}
             style={getColumnCellStyle(cell.column)}
             className={cn(
-              "h-[34px] border-b border-erp-border-soft bg-white text-[11px] text-erp-text align-middle overflow-hidden",
+              "h-[34px] border-b border-erp-border-soft bg-white text-[11px] text-erp-text align-middle",
               isSelect || isActions ? "p-0" : "px-2",
               alignRight && "text-right tabular-nums tracking-[-0.15px]"
             )}
@@ -41,9 +42,9 @@ function DataRow<TData>({ row }: { row: Row<TData> }) {
             {skipTruncate ? (
               flexRender(cell.column.columnDef.cell, cell.getContext())
             ) : (
-              <div className="min-w-0 max-w-full truncate whitespace-nowrap">
+              <DataTableTruncatedCell value={cell.getValue()}>
                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
-              </div>
+              </DataTableTruncatedCell>
             )}
           </td>
         );

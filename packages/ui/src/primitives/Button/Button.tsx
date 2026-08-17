@@ -11,15 +11,16 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-erp-blue border-erp-blue text-white hover:brightness-95 shadow-[0_4px_10px_rgba(30,78,140,0.14)]",
+    "bg-erp-primary border-erp-primary text-erp-primary-foreground hover:bg-erp-primary-hover hover:border-erp-primary-hover shadow-md",
   secondary:
-    "bg-white border-erp-input-border text-erp-text hover:bg-[#F7F9FB]",
+    "bg-erp-secondary border-erp-secondary-border text-erp-secondary-foreground hover:bg-erp-secondary-hover",
   teal: "bg-erp-teal border-erp-teal text-white hover:brightness-95",
-  danger: "bg-erp-error border-erp-error text-white hover:brightness-95",
+  danger:
+    "bg-erp-danger border-erp-danger text-erp-danger-foreground hover:brightness-95",
   ghost:
-    "bg-transparent border-transparent text-erp-muted hover:bg-[#F5F8FC] hover:border-[#D9E2EC]",
+    "bg-transparent border-transparent text-erp-muted hover:bg-erp-surface-muted hover:border-erp-border-strong",
   outline:
-    "bg-white border-erp-input-border text-erp-text hover:bg-[#F7F9FB]",
+    "bg-erp-secondary border-erp-secondary-border text-erp-secondary-foreground hover:bg-erp-secondary-hover",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

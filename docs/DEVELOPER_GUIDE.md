@@ -4,20 +4,20 @@ How to build pages with this component system — without reinventing UI.
 
 **Contracts**
 
-| Doc | Purpose |
-|-----|---------|
+| Doc                                            | Purpose                            |
+| ---------------------------------------------- | ---------------------------------- |
 | [`ERP_UI_STANDARDS.md`](./ERP_UI_STANDARDS.md) | Target standards + v1.1 amendments |
-| [`REGISTRY.md`](./REGISTRY.md) | Component approval status |
-| [`RTL.md`](./RTL.md) | RTL-ready rules |
+| [`REGISTRY.md`](./REGISTRY.md)                 | Component approval status          |
+| [`RTL.md`](./RTL.md)                           | RTL-ready rules                    |
 
 **Live demos**
 
-| What | URL / command |
-|------|----------------|
-| All components (Storybook) | `npm run storybook` |
-| In-app catalog (temporary) | `/components-demo` |
-| Example module (list) | `/sales/customers` |
-| Example module (create) | `/sales/customers/new` |
+| What                       | URL / command          |
+| -------------------------- | ---------------------- |
+| All components (Storybook) | `npm run storybook`    |
+| In-app catalog (temporary) | `/components-demo`     |
+| Example module (list)      | `/sales/customers`     |
+| Example module (create)    | `/sales/customers/new` |
 
 **Run locally**
 
@@ -39,16 +39,28 @@ npm run test        # Vitest (packages/ui)
 
 This repo is a **design system + ERP app** monorepo. Business rules stay in `apps/erp`. Shared UI stays in `packages/ui`.
 
-| Layer | Job | Put business rules here? |
-|-------|-----|--------------------------|
-| `packages/ui/src/primitives` | Buttons, inputs, select, checkbox… | No |
-| `packages/ui/src/components` | DataTable, Form, Modal, Drawer, Toast… | No |
-| `packages/ui/src/layout` | Generic AppShell, Sidebar, Header, PageContainer | No |
-| `apps/erp/src/modules/*/api` | Mock/real API + React Query hooks | Light mapping only |
-| `apps/erp/src/modules/*/pages` | Compose UI + call hooks | Yes — page/module config |
-| `apps/erp/src/modules/*` | Schemas, column defs, feature helpers | Yes |
+| Layer                          | Job                                              | Put business rules here? |
+| ------------------------------ | ------------------------------------------------ | ------------------------ |
+| `packages/ui/src/primitives`   | Buttons, inputs, select, checkbox…               | No                       |
+| `packages/ui/src/components`   | DataTable, Form, Modal, Drawer, Toast…           | No                       |
+| `packages/ui/src/layout`       | Generic AppShell, Sidebar, Header, PageContainer | No                       |
+| `apps/erp/src/modules/*/api`   | Mock/real API + React Query hooks                | Light mapping only       |
+| `apps/erp/src/modules/*/pages` | Compose UI + call hooks                          | Yes — page/module config |
+| `apps/erp/src/modules/*`       | Schemas, column defs, feature helpers            | Yes                      |
 
 **Golden rule:** Generic components accept **props / config**. They must not know “invoice”, “payroll”, etc.
+
+### Design-system rules
+
+1. Import shared UI from `@erp/ui` only. Do not rebuild primitives or DataTable patterns inside modules.
+2. Theme via tokens in `packages/ui/src/tokens/` (semantic roles like `primary`, `secondary`, `danger`). Do not hardcode hex colors in modules or invent one-off colors in `@erp/ui` components.
+3. Never ship fake interactive chrome (e.g. a three-dots button with no menu). If there is no behavior, omit the control.
+4. Storybook (`npm run storybook`) is the primary reference for how `@erp/ui` behaves. Add stories for real API states when you change shared components.
+5. Modules own business decisions (which row actions exist, API calls, permissions). `@erp/ui` owns reusable presentation and interaction patterns.
+6. DataTable:
+   - `getRowActions={(row) => [...]}` for a MoreHorizontal menu of contextual actions
+   - custom `__actions` column for a single direct action (e.g. delete icon)
+   - `tableId="customers-list"` to persist column widths per table in `localStorage`
 
 **Recipe for almost every list page:**
 
@@ -110,18 +122,18 @@ apps/erp/src/
 
 ## 3. Stack
 
-| Tool | Use for |
-|------|---------|
-| Vite + React Router | SPA pages & layouts |
-| TypeScript | Required everywhere in app code |
-| Tailwind CSS v4 | Styling (`erp-*` tokens in `packages/ui/src/tokens/`) — **locked** |
-| Storybook | Component review / approval surface |
-| Lucide React | Icons (no emoji / Unicode icons) |
-| TanStack Table **v8** | DataTable |
-| React Hook Form + Zod | Forms & validation (app/modules) |
-| TanStack Query | Server/mock data fetching |
-| i18next | Translation keys (`common.*`, `ui.*`) |
-| Vitest + RTL | `@erp/ui` unit/component tests |
+| Tool                  | Use for                                                            |
+| --------------------- | ------------------------------------------------------------------ |
+| Vite + React Router   | SPA pages & layouts                                                |
+| TypeScript            | Required everywhere in app code                                    |
+| Tailwind CSS v4       | Styling (`erp-*` tokens in `packages/ui/src/tokens/`) — **locked** |
+| Storybook             | Component review / approval surface                                |
+| Lucide React          | Icons (no emoji / Unicode icons)                                   |
+| TanStack Table **v8** | DataTable                                                          |
+| React Hook Form + Zod | Forms & validation (app/modules)                                   |
+| TanStack Query        | Server/mock data fetching                                          |
+| i18next               | Translation keys (`common.*`, `ui.*`)                              |
+| Vitest + RTL          | `@erp/ui` unit/component tests                                     |
 
 Providers are wired in `apps/erp/src/main.tsx` via `AppProviders` (Query + Toast + i18n). App-level routes live in `apps/erp/src/routes.tsx`; each module registers its own routes in `modules/<name>/routes.tsx` and is mounted under a path prefix (e.g. `/sales/*`).
 
@@ -178,7 +190,7 @@ import { Button } from "@erp/ui";
   description="Manage customers."
   icon={<Users className="h-4 w-4" aria-hidden />}
   actions={<Button variant="primary">Create</Button>}
-/>
+/>;
 ```
 
 **Important:** `icon` is a **React node** (`<Users … />`), not the component type.
@@ -189,7 +201,7 @@ import { Button } from "@erp/ui";
 import { PageSubmenu } from "@/app";
 import { salesSubmenu } from "@/app/navigation";
 
-<PageSubmenu module="Sales" items={salesSubmenu} activeKey="customers" />
+<PageSubmenu module="Sales" items={salesSubmenu} activeKey="customers" />;
 ```
 
 Add new submenu items in `apps/erp/src/app/navigation.ts`.
@@ -200,18 +212,18 @@ Add new submenu items in `apps/erp/src/app/navigation.ts`.
 
 Import from `@erp/ui`.
 
-| Component | Notes |
-|-----------|--------|
-| `Button` | `variant`: primary, secondary, teal, danger, ghost, outline · `loading` |
-| `Input` / `Select` / `Textarea` | `error` boolean for invalid state |
-| `Checkbox` / `Radio` / `Switch` | Controlled via normal HTML props |
-| `Badge` / `StatusBadge` | StatusBadge maps status strings to colors |
-| `Card` | Grouped content |
-| `Modal` | Generic dialog |
-| `ConfirmDialog` | Modal preset for confirm / delete |
-| `Drawer` | Side panel for detail |
-| `Dropdown` / `Tooltip` | Menus & hints |
-| `Toast` + `useToast()` | Global notifications |
+| Component                       | Notes                                                                   |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| `Button`                        | `variant`: primary, secondary, teal, danger, ghost, outline · `loading` |
+| `Input` / `Select` / `Textarea` | `error` boolean for invalid state                                       |
+| `Checkbox` / `Radio` / `Switch` | Controlled via normal HTML props                                        |
+| `Badge` / `StatusBadge`         | StatusBadge maps status strings to colors                               |
+| `Card`                          | Grouped content                                                         |
+| `Modal`                         | Generic dialog                                                          |
+| `ConfirmDialog`                 | Modal preset for confirm / delete                                       |
+| `Drawer`                        | Side panel for detail                                                   |
+| `Dropdown` / `Tooltip`          | Menus & hints                                                           |
+| `Toast` + `useToast()`          | Global notifications                                                    |
 
 ### Toast
 
@@ -314,7 +326,7 @@ Use when the API (or mock API) owns search, filters, and paging.
   data={query.data?.data ?? []}
   searchable
   search={{ value: search, onChange: setSearch }}
-  manualFiltering          // ← important: don’t double-filter client-side
+  manualFiltering // ← important: don’t double-filter client-side
   filters={filters}
   filtering={{ state: filterValues, onChange: setFilterValues }}
   loading={query.isLoading || query.isFetching}
@@ -334,19 +346,19 @@ Copy the full pattern from `apps/erp/src/modules/sales/pages/CustomersPage.tsx`.
 
 ### Useful props
 
-| Prop | Meaning |
-|------|---------|
-| `searchable` | Show search box |
-| `search` | Controlled search value |
-| `manualFiltering` | Parent/API filters; table UI only |
-| `filters` | Filter definitions |
-| `filtering` | Controlled filter values |
-| `selectable` | Row checkboxes |
-| `bulkActions` | Actions for selected rows |
-| `loading` / `error` / `emptyMessage` | States |
-| `enableColumnVisibility` | Columns menu (default on) |
-| `enableColumnResizing` | Drag column edges (default on) |
-| `enableGrouping` + `groupingOptions` | Group by column |
+| Prop                                 | Meaning                           |
+| ------------------------------------ | --------------------------------- |
+| `searchable`                         | Show search box                   |
+| `search`                             | Controlled search value           |
+| `manualFiltering`                    | Parent/API filters; table UI only |
+| `filters`                            | Filter definitions                |
+| `filtering`                          | Controlled filter values          |
+| `selectable`                         | Row checkboxes                    |
+| `bulkActions`                        | Actions for selected rows         |
+| `loading` / `error` / `emptyMessage` | States                            |
+| `enableColumnVisibility`             | Columns menu (default on)         |
+| `enableColumnResizing`               | Drag column edges (default on)    |
+| `enableGrouping` + `groupingOptions` | Group by column                   |
 
 Custom row action column: use `id: "__actions"` so DataTable does not inject the default ⋯ button.
 
@@ -379,13 +391,7 @@ Optional: `FormStepper`, `FormSummary`, `serverError` on `FormShell`.
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  FormShell,
-  FormSection,
-  FormGrid,
-  FormField,
-  FormInput,
-} from "@erp/ui";
+import { FormShell, FormSection, FormGrid, FormField, FormInput } from "@erp/ui";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -423,11 +429,7 @@ export function CreateThingForm({ onSubmit }: { onSubmit: (v: Values) => void })
             error={errors.name?.message}
             span={6}
           >
-            <FormInput
-              id="name"
-              error={Boolean(errors.name)}
-              {...register("name")}
-            />
+            <FormInput id="name" error={Boolean(errors.name)} {...register("name")} />
           </FormField>
           <FormField
             label="Email"
@@ -452,14 +454,14 @@ export function CreateThingForm({ onSubmit }: { onSubmit: (v: Values) => void })
 
 ### Form field components
 
-| Component | Typical use |
-|-----------|-------------|
-| `FormInput` | Text / email / number |
-| `FormSelect` | Dropdown (`options={[{label,value}]}`) |
-| `FormTextarea` | Long text |
-| `FormCheckbox` / `FormRadio` / `FormSwitch` | Booleans / choices |
-| `FormDatePicker` | `type="date"` |
-| `FormFileUpload` | File name / upload UI |
+| Component                                   | Typical use                            |
+| ------------------------------------------- | -------------------------------------- |
+| `FormInput`                                 | Text / email / number                  |
+| `FormSelect`                                | Dropdown (`options={[{label,value}]}`) |
+| `FormTextarea`                              | Long text                              |
+| `FormCheckbox` / `FormRadio` / `FormSwitch` | Booleans / choices                     |
+| `FormDatePicker`                            | `type="date"`                          |
+| `FormFileUpload`                            | File name / upload UI                  |
 
 **Zod v4 note:** use `{ message: "…" }` on enums (not `required_error`).
 
@@ -599,17 +601,17 @@ import { useCustomersQuery } from "@/modules/sales/api";
 
 ## 13. Where to look when stuck
 
-| Question | Look here |
-|----------|-----------|
-| How should a list page look? | `apps/erp/src/modules/sales/pages/CustomersPage.tsx` |
+| Question                     | Look here                                                 |
+| ---------------------------- | --------------------------------------------------------- |
+| How should a list page look? | `apps/erp/src/modules/sales/pages/CustomersPage.tsx`      |
 | How should a form page look? | `apps/erp/src/modules/sales/pages/CustomerCreatePage.tsx` |
-| All UI states demo? | `apps/erp/src/app/components-demo/` |
-| Table prop types? | `packages/ui/src/types/table.ts` |
-| Form types? | `packages/ui/src/types/forms.ts` |
-| Nav items? | `apps/erp/src/app/navigation.ts` |
-| Design tokens? | `packages/ui/src/tokens/` |
-| Prototype look & feel? | `preview (12).html` |
+| All UI states demo?          | `apps/erp/src/app/components-demo/`                       |
+| Table prop types?            | `packages/ui/src/types/table.ts`                          |
+| Form types?                  | `packages/ui/src/types/forms.ts`                          |
+| Nav items?                   | `apps/erp/src/app/navigation.ts`                          |
+| Design tokens?               | `packages/ui/src/tokens/`                                 |
+| Prototype look & feel?       | `preview (12).html`                                       |
 
 ---
 
-*Keep this guide updated when you add a new shared pattern (e.g. new feedback component or data hook convention).*
+_Keep this guide updated when you add a new shared pattern (e.g. new feedback component or data hook convention)._

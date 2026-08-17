@@ -15,10 +15,7 @@ import {
   useToast,
 } from "@erp/ui";
 import { inventorySubmenu } from "@/modules/inventory/manifest";
-import {
-  useProductQuery,
-  useUpdateProductMutation,
-} from "@/modules/inventory/api";
+import { useProductQuery, useUpdateProductMutation } from "@/modules/inventory/api";
 import {
   productCategoryOptions,
   productFormSchema,
@@ -101,9 +98,7 @@ export default function ProductEditPage() {
       navigate("/inventory/products");
     } catch (error) {
       const message =
-        error instanceof MockApiError
-          ? error.message
-          : "Could not update product.";
+        error instanceof MockApiError ? error.message : "Could not update product.";
       toast({ title: "Update failed", description: message, variant: "error" });
     }
   }
@@ -121,11 +116,7 @@ export default function ProductEditPage() {
         icon={<Package className="h-4 w-4" aria-hidden />}
       />
 
-      <PageSubmenu
-        module="Inventory"
-        items={inventorySubmenu}
-        activeKey="products"
-      />
+      <PageSubmenu module="Inventory" items={inventorySubmenu} activeKey="products" />
 
       {notFound ? (
         <div className="rounded-[10px] border border-erp-border bg-white p-4 text-[12px] text-erp-muted">
@@ -325,7 +316,6 @@ export default function ProductEditPage() {
               >
                 <FormTextarea
                   id="product-description"
-                  rows={3}
                   error={Boolean(errors.description)}
                   disabled={loading}
                   {...register("description")}

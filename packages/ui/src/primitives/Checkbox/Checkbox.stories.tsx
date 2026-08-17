@@ -26,3 +26,7 @@ export const Indeterminate: Story = {
 export const Disabled: Story = {
   args: { disabled: true, defaultChecked: true },
 };
+
+export const DisabledUnchecked: Story = {
+  args: { disabled: true, label: "Unavailable option" },
+};

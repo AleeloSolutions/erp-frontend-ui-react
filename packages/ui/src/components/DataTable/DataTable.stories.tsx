@@ -8,25 +8,82 @@ import { Button } from "../../primitives/Button";
 type Row = {
   id: string;
   name: string;
+  email: string;
+  phone: string;
+  country: string;
+  owner: string;
   status: string;
   amount: number;
+  created: string;
 };
 
 const data: Row[] = [
   {
     id: "1",
     name: "Acme Trading International Holdings LLC",
+    email: "finance@acmetrading.example.com",
+    phone: "615100074",
+    country: "Somalia",
+    owner: "Ahmed Hassan",
     status: "Active",
     amount: 1200,
+    created: "05 Jul 2026",
   },
-  { id: "2", name: "Nile Supplies", status: "Inactive", amount: 450 },
+  {
+    id: "2",
+    name: "Nile Supplies",
+    email: "accounts@nilesupplies.example.com",
+    phone: "615200881",
+    country: "Kenya",
+    owner: "Fatima Ali",
+    status: "Inactive",
+    amount: 450,
+    created: "12 Jun 2026",
+  },
   {
     id: "3",
     name: "Sahara Logistics and Freight Partners",
+    email: "billing@sahralogistics.example.com",
+    phone: "615300442",
+    country: "UAE",
+    owner: "Omar Yusuf",
     status: "Active",
     amount: 9800,
+    created: "28 May 2026",
   },
-  { id: "4", name: "Red Sea Imports", status: "Pending", amount: 220 },
+  {
+    id: "4",
+    name: "Red Sea Imports",
+    email: "procurement@redseaimports.example.com",
+    phone: "615400119",
+    country: "Djibouti",
+    owner: "Layla Mohamed",
+    status: "Pending",
+    amount: 220,
+    created: "03 Apr 2026",
+  },
+  {
+    id: "5",
+    name: "HornRise Group",
+    email: "ops@hornrise.example.com",
+    phone: "615500337",
+    country: "Somalia",
+    owner: "Hassan Abdi",
+    status: "Active",
+    amount: 3400,
+    created: "18 Mar 2026",
+  },
+  {
+    id: "6",
+    name: "East Africa Supplies Ltd",
+    email: "projects@eastafricasupplies.example.com",
+    phone: "615600928",
+    country: "Ethiopia",
+    owner: "Amina Noor",
+    status: "Active",
+    amount: 760,
+    created: "09 Feb 2026",
+  },
 ];
 
 const columns: ColumnDef<Row>[] = [
@@ -34,6 +91,32 @@ const columns: ColumnDef<Row>[] = [
     accessorKey: "name",
     header: "Customer",
     meta: { fill: true, tooltip: "Customer display name" },
+    cell: ({ getValue }) => (
+      <button
+        type="button"
+        className="block max-w-full truncate text-start font-bold text-erp-primary hover:underline"
+      >
+        {String(getValue())}
+      </button>
+    ),
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+    meta: { tooltip: "Primary billing email" },
+  },
+  {
+    accessorKey: "phone",
+    header: "Phone",
+    meta: { align: "right" },
+  },
+  {
+    accessorKey: "country",
+    header: "Country",
+  },
+  {
+    accessorKey: "owner",
+    header: "Owner",
   },
   {
     accessorKey: "status",
@@ -46,6 +129,47 @@ const columns: ColumnDef<Row>[] = [
     meta: { align: "right" },
     cell: ({ getValue }) => Number(getValue()).toLocaleString(),
   },
+  {
+    accessorKey: "created",
+    header: "Created",
+    meta: { align: "right" },
+  },
+];
+
+const groupingOptions = [
+  { label: "Customer", value: "name" },
+  { label: "Country", value: "country" },
+  { label: "Owner", value: "owner" },
+  { label: "Status", value: "status" },
+  { label: "Created", value: "created" },
+];
+
+const statusFilters = [
+  {
+    key: "status",
+    label: "Status",
+    type: "select" as const,
+    options: [
+      { label: "Active", value: "Active" },
+      { label: "Inactive", value: "Inactive" },
+      { label: "Pending", value: "Pending" },
+    ],
+  },
+];
+
+const countryFilters = [
+  {
+    key: "country",
+    label: "Country",
+    type: "select" as const,
+    options: [
+      { label: "Somalia", value: "Somalia" },
+      { label: "Kenya", value: "Kenya" },
+      { label: "UAE", value: "UAE" },
+      { label: "Djibouti", value: "Djibouti" },
+      { label: "Ethiopia", value: "Ethiopia" },
+    ],
+  },
 ];
 
 const meta = {
@@ -53,7 +177,7 @@ const meta = {
   component: DataTable,
   decorators: [
     (Story) => (
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-6xl">
         <Story />
       </div>
     ),
@@ -72,25 +196,8 @@ export const Default: Story = {
     searchPlaceholder: "Search customers",
     selectable: true,
     enableGrouping: true,
-    // Group By = dimensions (columns) to reorganize the table
-    groupingOptions: [
-      { label: "Customer", value: "name" },
-      { label: "Status", value: "status" },
-      { label: "Balance", value: "amount" },
-    ],
-    // Filters = record conditions (option values)
-    filters: [
-      {
-        key: "status",
-        label: "Status",
-        type: "select",
-        options: [
-          { label: "Active", value: "Active" },
-          { label: "Inactive", value: "Inactive" },
-          { label: "Pending", value: "Pending" },
-        ],
-      },
-    ],
+    groupingOptions,
+    filters: [...statusFilters, ...countryFilters],
     bulkActions: [
       {
         label: "Export",
@@ -195,23 +302,8 @@ export const ResizablePersisted: Story = {
     searchable: true,
     enableColumnResizing: true,
     enableGrouping: true,
-    groupingOptions: [
-      { label: "Customer", value: "name" },
-      { label: "Status", value: "status" },
-      { label: "Balance", value: "amount" },
-    ],
-    filters: [
-      {
-        key: "status",
-        label: "Status",
-        type: "select",
-        options: [
-          { label: "Active", value: "Active" },
-          { label: "Inactive", value: "Inactive" },
-          { label: "Pending", value: "Pending" },
-        ],
-      },
-    ],
+    groupingOptions,
+    filters: statusFilters,
   },
   parameters: {
     docs: {
@@ -232,22 +324,7 @@ export const SearchFilterPanel: Story = {
     searchPlaceholder: "Search customers",
     selectable: true,
     enableGrouping: true,
-    groupingOptions: [
-      { label: "Customer", value: "name" },
-      { label: "Status", value: "status" },
-      { label: "Balance", value: "amount" },
-    ],
-    filters: [
-      {
-        key: "status",
-        label: "Status",
-        type: "select",
-        options: [
-          { label: "Active", value: "Active" },
-          { label: "Inactive", value: "Inactive" },
-          { label: "Pending", value: "Pending" },
-        ],
-      },
-    ],
+    groupingOptions,
+    filters: [...statusFilters, ...countryFilters],
   },
 };

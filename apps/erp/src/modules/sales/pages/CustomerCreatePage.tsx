@@ -60,9 +60,7 @@ export default function CustomerCreatePage() {
       navigate("/sales/customers");
     } catch (error) {
       const message =
-        error instanceof MockApiError
-          ? error.message
-          : "Could not create customer.";
+        error instanceof MockApiError ? error.message : "Could not create customer.";
       toast({ title: "Create failed", description: message, variant: "error" });
     }
   }
@@ -168,7 +166,6 @@ export default function CustomerCreatePage() {
             >
               <FormTextarea
                 id="customer-notes"
-                rows={3}
                 error={Boolean(errors.notes)}
                 {...register("notes")}
               />

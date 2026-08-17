@@ -69,7 +69,7 @@ export function Modal({
       <button
         type="button"
         aria-label="Close dialog overlay"
-        className="absolute inset-0 bg-[rgba(16,42,67,0.45)]"
+        className="absolute inset-0 bg-erp-overlay"
         onClick={onClose}
       />
       <div
@@ -80,7 +80,7 @@ export function Modal({
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         className={cn(
-          "relative z-[101] w-full overflow-hidden rounded-lg border border-erp-border bg-white shadow-[0_16px_40px_rgba(16,42,67,0.18)]",
+          "relative z-[101] w-full overflow-hidden rounded-lg border border-erp-border bg-white shadow-lg",
           sizeClasses[size],
           className
         )}

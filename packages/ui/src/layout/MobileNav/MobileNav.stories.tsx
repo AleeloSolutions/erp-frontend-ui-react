@@ -30,3 +30,11 @@ export const Default: Story = {
     className: "!relative !inset-auto !flex h-14 w-full",
   },
 };
+
+export const ActiveHome: Story = {
+  args: {
+    items: demoMobileNav,
+    activeKey: "home",
+    className: "!relative !inset-auto !flex h-14 w-full",
+  },
+};

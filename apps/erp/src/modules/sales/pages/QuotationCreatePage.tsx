@@ -82,9 +82,7 @@ export default function QuotationCreatePage() {
       navigate("/sales/quotations");
     } catch (error) {
       const message =
-        error instanceof MockApiError
-          ? error.message
-          : "Could not create quotation.";
+        error instanceof MockApiError ? error.message : "Could not create quotation.";
       toast({ title: "Create failed", description: message, variant: "error" });
     }
   }
@@ -99,11 +97,7 @@ export default function QuotationCreatePage() {
         icon={<FileText className="h-4 w-4" aria-hidden />}
       />
 
-      <PageSubmenu
-        module="Sales"
-        items={salesSubmenu}
-        activeKey="quotations"
-      />
+      <PageSubmenu module="Sales" items={salesSubmenu} activeKey="quotations" />
 
       <FormShell
         title="New quotation"
@@ -127,10 +121,7 @@ export default function QuotationCreatePage() {
               <FormSelect
                 id="quotation-customer"
                 error={Boolean(errors.customer)}
-                options={[
-                  { label: "Select customer", value: "" },
-                  ...customerOptions,
-                ]}
+                options={[{ label: "Select customer", value: "" }, ...customerOptions]}
                 {...register("customer")}
               />
             </FormField>
@@ -202,7 +193,6 @@ export default function QuotationCreatePage() {
             >
               <FormTextarea
                 id="quotation-notes"
-                rows={3}
                 error={Boolean(errors.notes)}
                 {...register("notes")}
               />

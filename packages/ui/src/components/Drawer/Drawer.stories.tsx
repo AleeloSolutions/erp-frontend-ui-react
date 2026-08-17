@@ -17,8 +17,16 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-function DrawerDemo({ side }: { side?: "left" | "right" }) {
-  const [open, setOpen] = useState(true);
+function DrawerDemo({
+  side,
+  size,
+  initiallyOpen = false,
+}: {
+  side?: "left" | "right";
+  size?: "sm" | "md" | "lg";
+  initiallyOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(initiallyOpen);
   return (
     <>
       <Button variant="secondary" onClick={() => setOpen(true)}>
@@ -28,8 +36,9 @@ function DrawerDemo({ side }: { side?: "left" | "right" }) {
         open={open}
         onClose={() => setOpen(false)}
         title="Customer detail"
-        description="Read-only quick view"
+        description="Read-only quick view. Escape closes the panel."
         side={side}
+        size={size}
         footer={
           <Button variant="primary" onClick={() => setOpen(false)}>
             Done
@@ -49,10 +58,23 @@ function DrawerDemo({ side }: { side?: "left" | "right" }) {
   );
 }
 
-export const Right: Story = {
+export const OpenFlow: Story = {
+  name: "Open flow",
   render: () => <DrawerDemo side="right" />,
 };
 
+export const Right: Story = {
+  render: () => <DrawerDemo side="right" initiallyOpen />,
+};
+
 export const Left: Story = {
-  render: () => <DrawerDemo side="left" />,
+  render: () => <DrawerDemo side="left" initiallyOpen />,
+};
+
+export const Small: Story = {
+  render: () => <DrawerDemo side="right" size="sm" initiallyOpen />,
+};
+
+export const Large: Story = {
+  render: () => <DrawerDemo side="right" size="lg" initiallyOpen />,
 };

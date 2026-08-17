@@ -27,3 +27,15 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+
+export const CustomBrand: Story = {
+  args: {
+    brandName: "Aleelo ERP",
+    brandSubtitle: "Finance workspace",
+    brandMark: "AL",
+    userName: "Amina Hassan",
+    userRole: "Accountant",
+    userInitials: "AH",
+    activeKey: "home",
+  },
+};

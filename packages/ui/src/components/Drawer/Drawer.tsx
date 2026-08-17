@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "../../utils";
 import { Button } from "../../primitives/Button";
@@ -70,7 +64,7 @@ export function Drawer({
       <button
         type="button"
         aria-label="Close drawer overlay"
-        className="absolute inset-0 bg-[rgba(16,42,67,0.45)]"
+        className="absolute inset-0 bg-erp-overlay"
         onClick={onClose}
       />
       <div
@@ -81,7 +75,7 @@ export function Drawer({
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         className={cn(
-          "absolute top-0 bottom-0 flex w-full flex-col border-erp-border bg-white shadow-[0_16px_40px_rgba(16,42,67,0.18)]",
+          "absolute top-0 bottom-0 flex w-full flex-col border-erp-border bg-white shadow-lg",
           side === "right" ? "right-0 border-l" : "left-0 border-r",
           sizeClasses[size],
           className

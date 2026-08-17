@@ -41,9 +41,9 @@ export default function ProductCreatePage() {
       category: "Office",
       unit: "ea",
       unitPrice: "",
-      costPrice: "0",
-      stockQty: "0",
-      reorderLevel: "0",
+      costPrice: "",
+      stockQty: "",
+      reorderLevel: "",
       status: "Active",
       barcode: "",
       description: "",
@@ -73,9 +73,7 @@ export default function ProductCreatePage() {
       navigate("/inventory/products");
     } catch (error) {
       const message =
-        error instanceof MockApiError
-          ? error.message
-          : "Could not create product.";
+        error instanceof MockApiError ? error.message : "Could not create product.";
       toast({ title: "Create failed", description: message, variant: "error" });
     }
   }
@@ -90,11 +88,7 @@ export default function ProductCreatePage() {
         icon={<Package className="h-4 w-4" aria-hidden />}
       />
 
-      <PageSubmenu
-        module="Inventory"
-        items={inventorySubmenu}
-        activeKey="products"
-      />
+      <PageSubmenu module="Inventory" items={inventorySubmenu} activeKey="products" />
 
       <FormShell
         title="New product"
@@ -266,7 +260,6 @@ export default function ProductCreatePage() {
             >
               <FormTextarea
                 id="product-description"
-                rows={3}
                 error={Boolean(errors.description)}
                 {...register("description")}
               />

@@ -10,7 +10,7 @@ export {
 } from "./Card";
 export { Checkbox, type CheckboxProps } from "./Checkbox";
 export { DatePicker, type DatePickerProps } from "./DatePicker";
-export { Input, type InputProps } from "./Input";
+export { Input, type InputProps, type InputSize } from "./Input";
 export { Radio, type RadioProps } from "./Radio";
 export { Select, type SelectProps } from "./Select";
 export { StatusBadge, type StatusBadgeProps } from "./StatusBadge";

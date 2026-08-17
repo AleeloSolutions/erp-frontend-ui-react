@@ -40,3 +40,14 @@ export const AllStatuses: Story = {
 export const CustomLabel: Story = {
   args: { status: "pending", label: "Awaiting approval" },
 };
+
+export const ResolvedFromString: Story = {
+  name: "Resolved from string",
+  render: () => (
+    <div className="flex flex-wrap gap-2">
+      <StatusBadge status="Partially Paid" />
+      <StatusBadge status="PAYMENT OVERDUE" />
+      <StatusBadge status="unknown-status" />
+    </div>
+  ),
+};

@@ -25,18 +25,55 @@ function ToastTriggers() {
       <Button
         variant="secondary"
         onClick={() =>
-          toast({ title: "Heads up", description: "Sync in progress.", variant: "warning" })
+          toast({
+            title: "Heads up",
+            description: "Sync in progress.",
+            variant: "warning",
+          })
         }
       >
         Warning
       </Button>
       <Button
         variant="outline"
-        onClick={() => toast({ title: "Info", description: "New version available.", variant: "info" })}
+        onClick={() =>
+          toast({ title: "Info", description: "New version available.", variant: "info" })
+        }
       >
         Info
       </Button>
     </div>
+  );
+}
+
+function TitleOnlyTrigger() {
+  const { toast } = useToast();
+  return (
+    <Button
+      variant="secondary"
+      onClick={() => toast({ title: "Copied to clipboard", variant: "success" })}
+    >
+      Title only
+    </Button>
+  );
+}
+
+function PersistentTrigger() {
+  const { toast } = useToast();
+  return (
+    <Button
+      variant="outline"
+      onClick={() =>
+        toast({
+          title: "Pinned notice",
+          description: "Stays until dismissed (duration: 0).",
+          variant: "info",
+          duration: 0,
+        })
+      }
+    >
+      Persistent
+    </Button>
   );
 }
 
@@ -56,4 +93,13 @@ type Story = StoryObj<typeof meta>;
 
 export const Variants: Story = {
   render: () => <ToastTriggers />,
+};
+
+export const TitleOnly: Story = {
+  name: "Title only",
+  render: () => <TitleOnlyTrigger />,
+};
+
+export const Persistent: Story = {
+  render: () => <PersistentTrigger />,
 };

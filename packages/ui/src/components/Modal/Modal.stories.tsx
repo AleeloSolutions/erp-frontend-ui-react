@@ -18,8 +18,14 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-function ModalDemo({ size }: { size?: "sm" | "md" | "lg" }) {
-  const [open, setOpen] = useState(true);
+function ModalDemo({
+  size,
+  initiallyOpen = false,
+}: {
+  size?: "sm" | "md" | "lg";
+  initiallyOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(initiallyOpen);
   return (
     <>
       <Button variant="primary" onClick={() => setOpen(true)}>
@@ -29,7 +35,7 @@ function ModalDemo({ size }: { size?: "sm" | "md" | "lg" }) {
         open={open}
         onClose={() => setOpen(false)}
         title="Edit customer"
-        description="Update contact details."
+        description="Update contact details. Escape or overlay closes the dialog."
         size={size}
         footer={
           <>
@@ -48,10 +54,19 @@ function ModalDemo({ size }: { size?: "sm" | "md" | "lg" }) {
   );
 }
 
-export const Medium: Story = {
+export const OpenFlow: Story = {
+  name: "Open flow",
   render: () => <ModalDemo size="md" />,
 };
 
+export const Small: Story = {
+  render: () => <ModalDemo size="sm" initiallyOpen />,
+};
+
+export const Medium: Story = {
+  render: () => <ModalDemo size="md" initiallyOpen />,
+};
+
 export const Large: Story = {
-  render: () => <ModalDemo size="lg" />,
+  render: () => <ModalDemo size="lg" initiallyOpen />,
 };

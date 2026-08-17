@@ -2,23 +2,16 @@ import type { HTMLAttributes } from "react";
 import { cn } from "../../utils";
 
 export type BadgeVariant =
-  | "default"
-  | "blue"
-  | "teal"
-  | "success"
-  | "warning"
-  | "error"
-  | "info"
-  | "purple";
+  "default" | "blue" | "teal" | "success" | "warning" | "error" | "info" | "purple";
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "bg-[#EEF1F4] text-[#5F6875]",
+  default: "bg-erp-header text-erp-muted",
   blue: "bg-erp-blue-50 text-erp-blue",
-  teal: "bg-[#E6F7F5] text-erp-teal",
+  teal: "bg-erp-teal-50 text-erp-teal",
   success: "bg-erp-success-bg text-erp-success",
   warning: "bg-erp-warning-bg text-erp-warning",
   error: "bg-erp-error-bg text-erp-error",

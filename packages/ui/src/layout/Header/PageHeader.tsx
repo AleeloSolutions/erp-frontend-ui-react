@@ -52,8 +52,8 @@ export function PageHeader({
   return (
     <section
       className={cn(
-        "mb-2 overflow-hidden rounded-[10px] border border-[#D9E2EC]",
-        "bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_28%),linear-gradient(180deg,#FFFFFF_0%,#F9FBFD_100%)]",
+        "mb-2 overflow-hidden rounded-[10px] border border-erp-border-strong",
+        "bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_28%),linear-gradient(180deg,var(--surface)_0%,var(--surface-alt)_100%)]",
         "shadow-[0_4px_14px_rgba(16,42,67,0.05),0_1px_3px_rgba(16,42,67,0.03)]",
         className
       )}
@@ -61,7 +61,7 @@ export function PageHeader({
       <div className="grid min-h-[68px] grid-cols-1 items-center gap-3 px-3 py-2.5 min-[721px]:grid-cols-[minmax(0,1fr)_minmax(320px,auto)]">
         <div className="grid min-w-0 grid-cols-[38px_minmax(0,1fr)] items-center gap-2.5">
           {icon ? (
-            <div className="relative grid h-[38px] w-[38px] place-items-center rounded-[10px] bg-gradient-to-br from-[#2F6FB3] to-erp-blue text-white shadow-[0_5px_12px_rgba(30,78,140,0.16)]">
+            <div className="relative grid h-[38px] w-[38px] place-items-center rounded-[10px] bg-gradient-to-br from-erp-blue-soft to-erp-blue text-white shadow-[0_5px_12px_rgba(30,78,140,0.16)]">
               {icon}
               <span
                 aria-hidden
@@ -72,10 +72,10 @@ export function PageHeader({
 
           <div className="min-w-0">
             {(module || section) && (
-              <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.65px] text-[#7A869A]">
+              <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.65px] text-erp-label">
                 {module ? <span>{module}</span> : null}
                 {module && section ? (
-                  <span className="h-1 w-1 shrink-0 rounded-full bg-[#A7B1BE]" />
+                  <span className="h-1 w-1 shrink-0 rounded-full bg-erp-subtle" />
                 ) : null}
                 {section ? <span>{section}</span> : null}
               </div>
@@ -84,7 +84,7 @@ export function PageHeader({
               {title}
             </h1>
             {description ? (
-              <p className="m-0 max-w-[760px] text-[11px] leading-[1.35] text-[#667085]">
+              <p className="m-0 max-w-[760px] text-[11px] leading-[1.35] text-erp-muted">
                 {description}
               </p>
             ) : null}
@@ -97,7 +97,7 @@ export function PageHeader({
               {organizations?.length ? (
                 <Select
                   aria-label="Organization"
-                  className="h-7 min-w-[150px] text-[10.5px] max-[720px]:min-w-0 max-[720px]:w-full"
+                  className="w-auto min-w-[150px] max-[720px]:w-full max-[720px]:min-w-0"
                   options={organizations}
                   value={organizationValue}
                   onChange={(event) => onOrganizationChange?.(event.target.value)}
@@ -106,7 +106,7 @@ export function PageHeader({
               {branches?.length ? (
                 <Select
                   aria-label="Branch"
-                  className="h-7 min-w-[118px] text-[10.5px] max-[720px]:min-w-0 max-[720px]:w-full"
+                  className="w-auto min-w-[118px] max-[720px]:w-full max-[720px]:min-w-0"
                   options={branches}
                   value={branchValue}
                   onChange={(event) => onBranchChange?.(event.target.value)}
@@ -115,7 +115,9 @@ export function PageHeader({
             </div>
           ) : null}
 
-          {tools ? <div className="ml-auto flex items-center gap-1.5">{tools}</div> : null}
+          {tools ? (
+            <div className="ml-auto flex items-center gap-1.5">{tools}</div>
+          ) : null}
 
           {actions ? (
             <div className="flex flex-wrap items-center justify-end gap-1.5 max-[720px]:w-full [&_button]:max-[720px]:flex-1">
@@ -130,12 +132,12 @@ export function PageHeader({
           {meta.map((item) => (
             <div
               key={item.label}
-              className="flex min-h-[60px] flex-col justify-center gap-1 rounded-xl border border-[#E3EAF2] bg-gradient-to-b from-white to-[#F8FBFE] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+              className="flex min-h-[60px] flex-col justify-center gap-1 rounded-xl border border-erp-border-soft bg-gradient-to-b from-white to-erp-surface-tint px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
             >
               <strong className="text-lg font-extrabold tracking-[-0.25px] text-erp-text leading-none">
                 {item.value}
               </strong>
-              <span className="text-[10px] font-bold uppercase tracking-[0.45px] text-[#7A869A]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.45px] text-erp-label">
                 {item.label}
               </span>
             </div>

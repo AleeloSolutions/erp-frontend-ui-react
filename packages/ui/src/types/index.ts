@@ -9,13 +9,10 @@ export type {
   WithChildren,
   WithClassName,
 } from "./common";
-export type {
-  MobileNavItem,
-  NavigationItem,
-  SubmenuItem,
-} from "./navigation";
+export type { MobileNavItem, NavigationItem, SubmenuItem } from "./navigation";
 export type {
   DataTableBulkAction,
+  DataTableRowAction,
   DataTableChip,
   DataTableColumnDef,
   DataTableFilter,

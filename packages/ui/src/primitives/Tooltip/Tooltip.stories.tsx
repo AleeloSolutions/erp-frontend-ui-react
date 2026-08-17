@@ -26,3 +26,18 @@ export const Bottom: Story = {
     </Tooltip>
   ),
 };
+
+export const KeyboardFocus: Story = {
+  name: "Keyboard focus",
+  render: () => (
+    <div className="flex flex-col gap-2">
+      <p className="m-0 text-[11px] text-erp-muted">
+        Tab to the button — tooltip uses focus/blur and sets <code>aria-describedby</code>{" "}
+        while visible.
+      </p>
+      <Tooltip content="Shown on focus and hover" side="top">
+        <Button variant="secondary">Focus me</Button>
+      </Tooltip>
+    </div>
+  ),
+};

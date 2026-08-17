@@ -12,10 +12,10 @@ const statusClasses: Record<StatusVariant, string> = {
   pending: "bg-erp-warning-bg text-erp-warning",
   approved: "bg-erp-info-bg text-erp-info",
   overdue: "bg-erp-error-bg text-erp-error",
-  draft: "bg-[#EEF1F4] text-[#5F6875]",
+  draft: "bg-erp-header text-erp-muted",
   partial: "bg-erp-purple-bg text-erp-purple",
   active: "bg-erp-info-bg text-erp-info",
-  inactive: "bg-[#EEF1F4] text-[#5F6875]",
+  inactive: "bg-erp-header text-erp-muted",
   open: "bg-erp-warning-bg text-erp-warning",
   closed: "bg-erp-success-bg text-erp-success",
 };
@@ -50,12 +50,7 @@ function resolveStatus(status: string): StatusVariant {
   return "draft";
 }
 
-export function StatusBadge({
-  status,
-  label,
-  className,
-  ...props
-}: StatusBadgeProps) {
+export function StatusBadge({ status, label, className, ...props }: StatusBadgeProps) {
   const resolved = resolveStatus(status);
   const display =
     label ??

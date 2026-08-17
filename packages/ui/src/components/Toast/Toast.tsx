@@ -23,19 +23,19 @@ const variantStyles: Record<
   { className: string; Icon: typeof CheckCircle2 }
 > = {
   success: {
-    className: "border-[#BBF7D0] bg-erp-success-bg text-erp-success",
+    className: "border-erp-success-border bg-erp-success-bg text-erp-success",
     Icon: CheckCircle2,
   },
   error: {
-    className: "border-[#FECACA] bg-erp-error-bg text-erp-error",
+    className: "border-erp-error-border bg-erp-error-bg text-erp-error",
     Icon: AlertCircle,
   },
   warning: {
-    className: "border-[#FDE68A] bg-erp-warning-bg text-erp-warning",
+    className: "border-erp-warning-border bg-erp-warning-bg text-erp-warning",
     Icon: AlertTriangle,
   },
   info: {
-    className: "border-[#BFDBFE] bg-erp-info-bg text-erp-info",
+    className: "border-erp-info-border bg-erp-info-bg text-erp-info",
     Icon: Info,
   },
 };
@@ -73,10 +73,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [dismiss]
   );
 
-  const value = useMemo(
-    () => ({ toasts, toast, dismiss }),
-    [toasts, toast, dismiss]
-  );
+  const value = useMemo(() => ({ toasts, toast, dismiss }), [toasts, toast, dismiss]);
 
   return (
     <ToastContext.Provider value={value}>
@@ -93,7 +90,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               key={item.id}
               role="status"
               className={cn(
-                "pointer-events-auto flex items-start gap-2 rounded-md border px-3 py-2 shadow-[0_10px_24px_rgba(16,42,67,0.12)]",
+                "pointer-events-auto flex items-start gap-2 rounded-md border px-3 py-2 shadow-lg",
                 className
               )}
             >

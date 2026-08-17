@@ -22,3 +22,7 @@ export const On: Story = {
 export const Disabled: Story = {
   args: { disabled: true, defaultChecked: true },
 };
+
+export const DisabledOff: Story = {
+  args: { disabled: true, label: "SMS notifications" },
+};

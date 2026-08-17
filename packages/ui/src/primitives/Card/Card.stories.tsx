@@ -29,3 +29,18 @@ export const Default: Story = {
     </Card>
   ),
 };
+
+export const ContentOnly: Story = {
+  render: () => (
+    <Card className="max-w-md">
+      <CardHeader>
+        <CardTitle>Notes</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="m-0 text-[12px] text-erp-text">
+          Header + content composition without a footer action row.
+        </p>
+      </CardContent>
+    </Card>
+  ),
+};
