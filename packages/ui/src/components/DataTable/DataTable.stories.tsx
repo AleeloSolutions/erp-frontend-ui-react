@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Trash2, Users } from "lucide-react";
 import { DataTable } from "./DataTable";
 import { StatusBadge } from "../../primitives/StatusBadge";
 import { Button } from "../../primitives/Button";
+import { PageHeader } from "../../layout/Header";
 
 type Row = {
   id: string;
@@ -136,12 +138,12 @@ const columns: ColumnDef<Row>[] = [
   },
 ];
 
+const compactColumns = columns.slice(0, 5);
+
 const groupingOptions = [
-  { label: "Customer", value: "name" },
   { label: "Country", value: "country" },
   { label: "Owner", value: "owner" },
   { label: "Status", value: "status" },
-  { label: "Created", value: "created" },
 ];
 
 const statusFilters = [
@@ -157,24 +159,81 @@ const statusFilters = [
   },
 ];
 
+const countryFilterOptions = [
+  { label: "Somalia", value: "Somalia" },
+  { label: "Kenya", value: "Kenya" },
+  { label: "UAE", value: "UAE" },
+  { label: "Djibouti", value: "Djibouti" },
+  { label: "Ethiopia", value: "Ethiopia" },
+];
+
 const countryFilters = [
   {
     key: "country",
     label: "Country",
     type: "select" as const,
+    options: countryFilterOptions,
+  },
+];
+
+const multiCountryFilters = [
+  {
+    key: "country",
+    label: "Country",
+    type: "multi-select" as const,
+    options: countryFilterOptions,
+  },
+];
+
+const createdDateFilters = [
+  {
+    key: "created",
+    label: "Created",
+    type: "date" as const,
     options: [
-      { label: "Somalia", value: "Somalia" },
-      { label: "Kenya", value: "Kenya" },
-      { label: "UAE", value: "UAE" },
-      { label: "Djibouti", value: "Djibouti" },
-      { label: "Ethiopia", value: "Ethiopia" },
+      { label: "Jul 2026", value: "05 Jul 2026" },
+      { label: "Jun 2026", value: "12 Jun 2026" },
+      { label: "May 2026", value: "28 May 2026" },
+      { label: "Apr 2026", value: "03 Apr 2026" },
+      { label: "Mar 2026", value: "18 Mar 2026" },
+      { label: "Feb 2026", value: "09 Feb 2026" },
     ],
   },
 ];
 
+/** Full module list — only used by ListPage. */
+const listPageTableArgs = {
+  tableId: "storybook-customers-list-page",
+  columns,
+  data,
+  searchable: true,
+  searchPlaceholder: "Search customers",
+  selectable: true,
+  enableGrouping: true,
+  groupingOptions: [
+    { label: "Customer", value: "name" },
+    { label: "Country", value: "country" },
+    { label: "Owner", value: "owner" },
+    { label: "Status", value: "status" },
+  ],
+  filters: [...statusFilters, ...countryFilters],
+  bulkActions: [
+    { label: "Export", onClick: () => undefined },
+    { label: "Archive", variant: "danger" as const, onClick: () => undefined },
+  ],
+};
+
 const meta = {
   title: "Composites/DataTable",
   component: DataTable,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Primary list surface for ERP modules. Each story below isolates one behavior — use List Page for the full composed route.",
+      },
+    },
+  },
   decorators: [
     (Story) => (
       <div className="w-full max-w-6xl">
@@ -187,56 +246,61 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Search + Sort/Columns strip + paginated rows. No filters, grouping, or selection. */
 export const Default: Story = {
   args: {
     tableId: "storybook-customers-default",
-    columns,
+    columns: compactColumns,
     data,
     searchable: true,
     searchPlaceholder: "Search customers",
-    selectable: true,
-    enableGrouping: true,
-    groupingOptions,
-    filters: [...statusFilters, ...countryFilters],
-    bulkActions: [
-      {
-        label: "Export",
-        onClick: () => undefined,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: "Baseline list: client search, column sort, and column visibility only.",
       },
-    ],
+    },
   },
 };
 
+/** Skeleton rows while data loads. */
 export const Loading: Story = {
   args: {
-    columns,
+    columns: compactColumns,
     data: [],
     loading: true,
+    searchable: false,
+    pagination: false,
   },
 };
 
+/** Zero rows returned. */
 export const Empty: Story = {
   args: {
-    columns,
+    columns: compactColumns,
     data: [],
     emptyMessage: "No customers found.",
+    searchable: false,
   },
 };
 
+/** Fetch or query failure message. */
 export const ErrorState: Story = {
   args: {
-    columns,
+    columns: compactColumns,
     data: [],
     error: "Failed to load customers.",
+    searchable: false,
   },
 };
 
-/** Single direct destructive action (no MoreHorizontal menu). */
+/** Single explicit destructive control in `__actions` — no row menu. */
 export const DirectAction: Story = {
   args: {
     tableId: "storybook-customers-direct-action",
     columns: [
-      ...columns,
+      ...compactColumns,
       {
         id: "__actions",
         header: "",
@@ -256,28 +320,21 @@ export const DirectAction: Story = {
       },
     ],
     data,
-    searchable: true,
+    searchable: false,
+    enableColumnVisibility: false,
   },
 };
 
-/** Multiple contextual actions via getRowActions (MoreHorizontal menu). */
+/** MoreHorizontal contextual menu via `getRowActions`. */
 export const RowActionsMenu: Story = {
   args: {
     tableId: "storybook-customers-row-actions",
-    columns,
+    columns: compactColumns,
     data,
-    searchable: true,
+    searchable: false,
     getRowActions: (row) => [
-      {
-        key: "view",
-        label: "View",
-        onClick: () => undefined,
-      },
-      {
-        key: "edit",
-        label: "Edit",
-        onClick: () => undefined,
-      },
+      { key: "view", label: "View", onClick: () => undefined },
+      { key: "edit", label: "Edit", onClick: () => undefined },
       {
         key: "delete",
         label: "Delete",
@@ -289,42 +346,255 @@ export const RowActionsMenu: Story = {
   },
 };
 
-/**
- * Table fills the container. Drag a column edge — the adjacent column absorbs
- * the space. Clipped cell text shows ellipsis. Search shell hosts query + chips;
- * Sort and Columns sit on the strip above the table.
- */
+/** Drag column edges; widths persist when `tableId` is set. */
 export const ResizablePersisted: Story = {
   args: {
-    tableId: "storybook-customers-resize-v3",
+    tableId: "storybook-customers-resize",
     columns,
     data,
-    searchable: true,
+    searchable: false,
     enableColumnResizing: true,
-    enableGrouping: true,
-    groupingOptions,
-    filters: statusFilters,
+    enableColumnVisibility: false,
   },
   parameters: {
     docs: {
       description: {
         story:
-          "Filters = record conditions. Group By = column dimensions. SearchFilter panel hosts both; Sort/Columns on the strip above the table.",
+          "Column resize only. Reload to confirm localStorage persistence under `erp.datatable.sizing.${tableId}`.",
       },
     },
   },
 };
 
+/** DataTable wiring for SearchFilter: search, filter chips, Filters + Group By panel. */
 export const SearchFilterPanel: Story = {
   args: {
     tableId: "storybook-customers-searchfilter",
-    columns,
+    columns: compactColumns,
     data,
     searchable: true,
     searchPlaceholder: "Search customers",
-    selectable: true,
+    filters: [...statusFilters, ...countryFilters],
     enableGrouping: true,
     groupingOptions,
-    filters: [...statusFilters, ...countryFilters],
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "SearchFilter integration only — open the panel for Filters (conditions) and Group By (dimensions). Sort/Columns stay on the strip below.",
+      },
+    },
+  },
+};
+
+/** PageHeader + full list table — the only story that combines every list feature. */
+export const ListPage: Story = {
+  render: function ListPageStory() {
+    return (
+      <div className="flex flex-col gap-2">
+        <PageHeader
+          module="Sales"
+          section="Customers"
+          title="Customers"
+          description="Manage customer accounts and open balances."
+          icon={<Users className="h-4 w-4" aria-hidden />}
+          actions={<Button variant="primary">Create</Button>}
+        />
+        <DataTable {...listPageTableArgs} />
+      </div>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "End-to-end module list route: header actions, search, filters, grouping, selection, and bulk actions.",
+      },
+    },
+  },
+};
+
+/** Row checkboxes and bulk action bar — no search or filter panel. */
+export const BulkSelection: Story = {
+  args: {
+    tableId: "storybook-customers-bulk",
+    columns: compactColumns,
+    data,
+    selectable: true,
+    searchable: false,
+    pageSize: 5,
+    bulkActions: [
+      { label: "Export", onClick: () => undefined },
+      { label: "Archive", variant: "danger", onClick: () => undefined },
+    ],
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Select rows to reveal the bulk bar. No SearchFilter chrome in this story.",
+      },
+    },
+  },
+};
+
+/** Embedded table — no search shell, selection, pagination, or column controls. */
+export const SimpleList: Story = {
+  args: {
+    tableId: "storybook-customers-simple",
+    columns: compactColumns.slice(0, 4),
+    data,
+    pagination: false,
+    searchable: false,
+    enableColumnVisibility: false,
+    enableColumnResizing: false,
+  },
+};
+
+/** Truncated cells and native title tooltips in a narrow container. */
+export const NarrowContainer: Story = {
+  args: {
+    tableId: "storybook-customers-narrow",
+    columns,
+    data,
+    searchable: false,
+    enableColumnResizing: true,
+    enableColumnVisibility: false,
+  },
+  decorators: [
+    (Story) => (
+      <div className="w-full max-w-md">
+        <Story />
+      </div>
+    ),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Table layout only in a narrow width — hover clipped text for the overflow tooltip.",
+      },
+    },
+  },
+};
+
+/** Filter panel field types: select, multi-select, and date options. */
+export const FilterTypes: Story = {
+  args: {
+    tableId: "storybook-customers-filter-types",
+    columns: compactColumns,
+    data,
+    searchable: false,
+    enableGrouping: false,
+    filters: [...statusFilters, ...multiCountryFilters, ...createdDateFilters],
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Open the panel → Filters column only. Toggle Status, Country (multi), or Created (date options).",
+      },
+    },
+  },
+};
+
+/** Group By dimensions reorganize rows under section headers. */
+export const WithGrouping: Story = {
+  args: {
+    tableId: "storybook-customers-grouping",
+    columns: compactColumns,
+    data,
+    searchable: false,
+    filters: [],
+    enableGrouping: true,
+    groupingOptions,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: "Open the panel → Group By column. Pick Country or Owner to group rows.",
+      },
+    },
+  },
+};
+
+/** Parent supplies the current page slice and total count. */
+export const ServerPagination: Story = {
+  render: function ServerPaginationStory() {
+    const [page, setPage] = useState(1);
+    const pageSize = 3;
+    const total = data.length;
+    const pageData = useMemo(
+      () => data.slice((page - 1) * pageSize, page * pageSize),
+      [page]
+    );
+
+    return (
+      <DataTable
+        tableId="storybook-customers-server-page"
+        columns={compactColumns}
+        data={pageData}
+        searchable={false}
+        manualFiltering={true}
+        pagination={{
+          page,
+          pageSize,
+          total,
+          onPageChange: setPage,
+        }}
+      />
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Server pagination only — parent passes one page of rows and handles `onPageChange`.",
+      },
+    },
+  },
+};
+
+/** Controlled search with `manualFiltering` — parent owns filtering. */
+export const ServerSearch: Story = {
+  render: function ServerSearchStory() {
+    const [search, setSearch] = useState("");
+    const query = search.trim().toLowerCase();
+    const filtered = useMemo(() => {
+      if (!query) return data;
+      return data.filter((row) =>
+        [row.name, row.email, row.owner, row.country]
+          .join(" ")
+          .toLowerCase()
+          .includes(query)
+      );
+    }, [query]);
+
+    return (
+      <DataTable
+        tableId="storybook-customers-server-search"
+        columns={compactColumns}
+        data={filtered}
+        searchable={true}
+        searchPlaceholder="Search customers"
+        search={{ value: search, onChange: setSearch }}
+        manualFiltering={true}
+        pagination={{
+          page: 1,
+          pageSize: 10,
+          total: filtered.length,
+          onPageChange: () => undefined,
+        }}
+      />
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Controlled search + manualFiltering. Parent filters data; DataTable does not apply client-side search.",
+      },
+    },
   },
 };
