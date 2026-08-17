@@ -43,7 +43,7 @@ export function PageSubmenu({ module, items, activeKey, className }: PageSubmenu
               aria-current={active ? "page" : undefined}
               className={cn(
                 "relative inline-flex h-[34px] shrink-0 items-center justify-center rounded-[7px] border border-transparent px-2.5 text-[10.5px] font-bold leading-none tracking-[-0.1px] text-erp-muted whitespace-nowrap transition-all",
-                "hover:-translate-y-px hover:border-erp-border-soft hover:bg-white hover:text-erp-blue hover:shadow-[0_6px_14px_rgba(16,42,67,0.06)]",
+                "hover:-translate-y-px hover:border-erp-border-soft hover:bg-erp-surface hover:text-erp-blue hover:shadow-[0_6px_14px_rgba(16,42,67,0.06)]",
                 "max-[720px]:h-10 max-[720px]:px-3.5 max-[720px]:text-[11px]",
                 active &&
                   "border-erp-border-strong bg-gradient-to-b from-white to-erp-blue-50 font-extrabold text-erp-blue shadow-[0_3px_8px_rgba(30,78,140,0.08),inset_0_-2px_0_var(--blue),inset_0_1px_0_rgba(255,255,255,0.9)] before:absolute before:inset-x-3 before:top-0 before:h-0.5 before:rounded-b-sm before:bg-gradient-to-r before:from-erp-blue-soft before:to-erp-blue-light before:content-['']"

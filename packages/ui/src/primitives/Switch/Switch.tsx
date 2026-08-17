@@ -37,7 +37,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
           <span
             aria-hidden
             className={cn(
-              "absolute left-[2px] h-[12px] w-[12px] rounded-full bg-white shadow-sm transition-transform",
+              "absolute left-[2px] h-[12px] w-[12px] rounded-full bg-erp-surface shadow-sm transition-transform",
               "peer-checked:translate-x-[14px]"
             )}
           />

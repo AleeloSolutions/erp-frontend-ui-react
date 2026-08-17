@@ -14,7 +14,7 @@ export function DataTableFilters({ toolbarEnd, className }: DataTableFiltersProp
   return (
     <div
       className={cn(
-        "flex min-h-8 flex-wrap items-center justify-end gap-2 border-b border-erp-border-soft bg-white px-3 py-1.5",
+        "flex min-h-8 flex-wrap items-center justify-end gap-2 border-b border-erp-border-soft bg-erp-surface px-3 py-1.5",
         className
       )}
     >

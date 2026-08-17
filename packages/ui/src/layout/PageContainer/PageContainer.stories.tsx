@@ -6,7 +6,7 @@ const meta = {
   component: PageContainer,
   args: {
     children: (
-      <div className="rounded-lg border border-dashed border-erp-border bg-white p-4 text-[12px] text-erp-muted">
+      <div className="rounded-lg border border-dashed border-erp-border bg-erp-surface p-4 text-[12px] text-erp-muted">
         Page content
       </div>
     ),

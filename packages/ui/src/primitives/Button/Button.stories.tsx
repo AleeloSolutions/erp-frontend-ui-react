@@ -138,7 +138,7 @@ export const DangerConfirm: Story = {
 /** Compact controls aligned with list-page meta strip height. */
 export const ToolbarRow: Story = {
   render: () => (
-    <div className="flex items-center gap-2 rounded-lg border border-erp-border bg-white px-3 py-1.5">
+    <div className="flex items-center gap-2 rounded-lg border border-erp-border bg-erp-surface px-3 py-1.5">
       <Button variant="primary" size="sm">
         Create
       </Button>

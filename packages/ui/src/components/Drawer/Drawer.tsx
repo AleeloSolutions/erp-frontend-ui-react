@@ -75,7 +75,7 @@ export function Drawer({
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         className={cn(
-          "absolute top-0 bottom-0 flex w-full flex-col border-erp-border bg-white shadow-lg",
+          "absolute top-0 bottom-0 flex w-full flex-col border-erp-border bg-erp-surface shadow-lg",
           side === "right" ? "right-0 border-l" : "left-0 border-r",
           sizeClasses[size],
           className

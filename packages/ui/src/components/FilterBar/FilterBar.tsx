@@ -19,7 +19,7 @@ export function FilterBar({
   return (
     <div
       className={cn(
-        "flex min-h-10 flex-wrap items-center gap-2.5 border-b border-erp-border-soft bg-white px-3 py-2",
+        "flex min-h-10 flex-wrap items-center gap-2.5 border-b border-erp-border-soft bg-erp-surface px-3 py-2",
         className
       )}
     >

@@ -17,9 +17,9 @@ export default function StockMovementsPage() {
           activeKey: "movements",
         }}
       />
-      <div className="rounded-[10px] border border-dashed border-erp-border bg-white p-6 text-[12px] text-erp-muted">
-        No stock movement workflows yet. Use Products to manage catalog and
-        on-hand quantities.
+      <div className="rounded-[10px] border border-dashed border-erp-border bg-erp-surface p-6 text-[12px] text-erp-muted">
+        No stock movement workflows yet. Use Products to manage catalog and on-hand
+        quantities.
       </div>
     </AppShell>
   );

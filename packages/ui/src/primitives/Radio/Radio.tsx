@@ -21,8 +21,8 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
           id={id}
           type="radio"
           className={cn(
-            "h-4 w-4 appearance-none rounded-full border border-erp-border-control bg-white",
-            "checked:border-erp-blue checked:bg-white",
+            "h-4 w-4 appearance-none rounded-full border border-erp-border-control bg-erp-surface",
+            "checked:border-erp-blue checked:bg-erp-surface",
             "checked:after:absolute checked:after:left-1/2 checked:after:top-1/2 checked:after:h-2 checked:after:w-2 checked:after:-translate-x-1/2 checked:after:-translate-y-1/2 checked:after:rounded-full checked:after:bg-erp-blue checked:after:content-['']",
             "relative grid place-items-center",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-erp-blue-mid/16",

@@ -11,7 +11,7 @@ export function DataTableEmpty({
 }) {
   return (
     <tr className={cn("empty-row", className)}>
-      <td colSpan={colSpan} className="!bg-white !p-0">
+      <td colSpan={colSpan} className="!bg-erp-surface !p-0">
         <div className="grid min-h-[120px] place-items-center text-[11px] text-erp-label">
           {message}
         </div>

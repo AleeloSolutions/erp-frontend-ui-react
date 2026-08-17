@@ -34,7 +34,7 @@ export function FormShell({
       id={id}
       onSubmit={onSubmit}
       className={cn(
-        "overflow-hidden rounded-lg border border-erp-border bg-white",
+        "overflow-hidden rounded-lg border border-erp-border bg-erp-surface",
         className
       )}
       noValidate

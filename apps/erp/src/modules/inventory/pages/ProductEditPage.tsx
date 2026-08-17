@@ -119,7 +119,7 @@ export default function ProductEditPage() {
       <PageSubmenu module="Inventory" items={inventorySubmenu} activeKey="products" />
 
       {notFound ? (
-        <div className="rounded-[10px] border border-erp-border bg-white p-4 text-[12px] text-erp-muted">
+        <div className="rounded-[10px] border border-erp-border bg-erp-surface p-4 text-[12px] text-erp-muted">
           <p className="m-0 font-bold text-erp-text">Product not found</p>
           <p className="mt-1 mb-0">
             The product may have been deleted.{" "}

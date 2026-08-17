@@ -80,7 +80,7 @@ export function Modal({
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         className={cn(
-          "relative z-[101] w-full overflow-hidden rounded-lg border border-erp-border bg-white shadow-lg",
+          "relative z-[101] w-full overflow-hidden rounded-lg border border-erp-border bg-erp-surface shadow-lg",
           sizeClasses[size],
           className
         )}
