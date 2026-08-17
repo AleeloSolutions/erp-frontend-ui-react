@@ -415,14 +415,15 @@ export const ListPage: Story = {
   },
 };
 
-/** Row checkboxes and bulk action bar — no search or filter panel. */
+/** Check rows to swap SearchFilter for the “N selected + Actions” bar. */
 export const BulkSelection: Story = {
   args: {
     tableId: "storybook-customers-bulk",
     columns: compactColumns,
     data,
     selectable: true,
-    searchable: false,
+    searchable: true,
+    searchPlaceholder: "Search customers",
     pageSize: 5,
     bulkActions: [
       { label: "Export", onClick: () => undefined },
@@ -433,7 +434,7 @@ export const BulkSelection: Story = {
     docs: {
       description: {
         story:
-          "Select rows to reveal the bulk bar. No SearchFilter chrome in this story.",
+          "Check a row: SearchFilter is replaced by a joined “N selected” + Actions control. Hover rows for gray; selected rows stay pale teal. X clears selection and restores search.",
       },
     },
   },

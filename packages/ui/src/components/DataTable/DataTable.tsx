@@ -11,17 +11,15 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { AlignJustify, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, SlidersHorizontal } from "lucide-react";
 import { cn } from "../../utils";
 import { Checkbox } from "../../primitives/Checkbox";
-import { Select } from "../../primitives/Select";
 import { Dropdown } from "../Dropdown";
 import {
   SearchFilter,
   type SearchFilterChip,
   type SearchFilterItem,
 } from "../SearchFilter";
-import { DataTableFilters } from "./DataTableFilters";
 import { DataTableBulkActions } from "./DataTableBulkActions";
 import { DataTableHeader } from "./DataTableHeader";
 import { DataTableBody } from "./DataTableBody";
@@ -472,24 +470,6 @@ export function DataTable<TData, TValue = unknown>({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid re-normalize every render
   }, [containerWidth, visibleLeafKey]);
 
-  const sortableColumns = useMemo(
-    () =>
-      table
-        .getAllLeafColumns()
-        .filter(
-          (column) =>
-            column.getCanSort() && column.id !== "__select" && column.id !== "__actions"
-        )
-        .map((column) => ({
-          id: column.id,
-          label:
-            typeof column.columnDef.header === "string"
-              ? column.columnDef.header
-              : column.id,
-        })),
-    [table]
-  );
-
   const resolvedGroupingOptions = useMemo(() => {
     if (!enableGrouping) return [];
     if (groupingOptions.length > 0) return groupingOptions;
@@ -611,113 +591,74 @@ export function DataTable<TData, TValue = unknown>({
 
   const showSearchFilter =
     searchable || filters.length > 0 || resolvedGroupingOptions.length > 0;
+  const hasSelection = selectedRows.length > 0;
+  const showSearchSlot = showSearchFilter || hasSelection;
 
-  function handleSortingPresetChange(value: string) {
-    if (value === "default") {
-      setSorting([]);
-      return;
-    }
-    const [direction, id] = value.split(":");
-    if (!id) return;
-    setSorting([{ id, desc: direction === "desc" }]);
-  }
-
-  const visibilityItems = table
-    .getAllLeafColumns()
-    .filter((column) => column.getCanHide())
-    .map((column) => ({
-      key: column.id,
-      label: `${column.getIsVisible() ? "Hide" : "Show"} ${
-        typeof column.columnDef.header === "string" ? column.columnDef.header : column.id
-      }`,
-      onClick: () => column.toggleVisibility(),
-    }));
+  const columnsMenu = enableColumnVisibility ? (
+    <Dropdown
+      trigger="button"
+      hideChevron
+      label={<SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />}
+      align="right"
+      buttonProps={{
+        variant: "ghost",
+        size: "icon",
+        "aria-label": "Columns",
+        className:
+          "h-6 w-6 rounded-md border-0 bg-transparent p-0 text-erp-text shadow-none hover:bg-erp-surface-muted hover:border-transparent",
+      }}
+      items={table
+        .getAllLeafColumns()
+        .filter((column) => column.getCanHide())
+        .map((column) => ({
+          key: column.id,
+          label: `${column.getIsVisible() ? "Hide" : "Show"} ${
+            typeof column.columnDef.header === "string"
+              ? column.columnDef.header
+              : column.id
+          }`,
+          onClick: () => column.toggleVisibility(),
+        }))}
+    />
+  ) : null;
 
   return (
     <div
       ref={rootRef}
-      className={cn(
-        "overflow-hidden rounded-lg border border-erp-border bg-white",
-        className
-      )}
+      className={cn("overflow-hidden border border-erp-border bg-erp-surface", className)}
     >
-      {showSearchFilter ? (
+      {showSearchSlot ? (
         <div className="border-b border-erp-border bg-erp-surface-tint px-3 py-2.5">
-          <SearchFilter
-            value={searchable ? search : ""}
-            onChange={(value) => {
-              if (!searchable) return;
-              setSearch(value);
-              if (!isServerPagination) {
-                setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
+          {hasSelection ? (
+            <DataTableBulkActions
+              selectedCount={selectedRows.length}
+              selectedRows={selectedRows}
+              actions={bulkActions}
+              onClear={() => setRowSelection({})}
+            />
+          ) : (
+            <SearchFilter
+              value={searchable ? search : ""}
+              onChange={(value) => {
+                if (!searchable) return;
+                setSearch(value);
+                if (!isServerPagination) {
+                  setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
+                }
+              }}
+              readOnly={!searchable}
+              placeholder={
+                searchable
+                  ? (searchPlaceholder ?? "Search records, names, references, or owners")
+                  : "Filters & grouping"
               }
-            }}
-            readOnly={!searchable}
-            placeholder={
-              searchable
-                ? (searchPlaceholder ?? "Search records, names, references, or owners")
-                : "Filters & grouping"
-            }
-            chips={searchFilterChips}
-            filters={panelFilterItems}
-            groupBy={panelGroupItems}
-          />
+              chips={searchFilterChips}
+              filters={panelFilterItems}
+              groupBy={panelGroupItems}
+            />
+          )}
         </div>
       ) : null}
-
-      <DataTableFilters
-        toolbarEnd={
-          sortableColumns.length > 0 || enableColumnVisibility ? (
-            <>
-              {sortableColumns.length > 0 ? (
-                <Select
-                  aria-label="Sort"
-                  size="sm"
-                  className="w-auto min-w-[5.25rem] [&>select]:!h-6 [&>select]:!min-h-6 [&>select]:!px-1.5 [&>select]:!pe-6 [&>select]:!text-[10px] [&>select]:!leading-6"
-                  value={
-                    sorting[0] != null
-                      ? `${sorting[0].desc ? "desc" : "asc"}:${sorting[0].id}`
-                      : "default"
-                  }
-                  onChange={(event) => handleSortingPresetChange(event.target.value)}
-                >
-                  <option value="default">Sort</option>
-                  {sortableColumns.map((column) => (
-                    <option key={`asc-${column.id}`} value={`asc:${column.id}`}>
-                      {column.label} · A–Z
-                    </option>
-                  ))}
-                  {sortableColumns.map((column) => (
-                    <option key={`desc-${column.id}`} value={`desc:${column.id}`}>
-                      {column.label} · Z–A
-                    </option>
-                  ))}
-                </Select>
-              ) : null}
-              {enableColumnVisibility ? (
-                <Dropdown
-                  hideChevron
-                  label={<AlignJustify className="h-3.5 w-3.5" aria-hidden />}
-                  align="right"
-                  buttonProps={{
-                    variant: "secondary",
-                    size: "icon",
-                    "aria-label": "Columns",
-                    className: "h-6 w-6 rounded-md p-0",
-                  }}
-                  items={visibilityItems}
-                />
-              ) : null}
-            </>
-          ) : null
-        }
-      />
-
-      <DataTableBulkActions
-        selectedCount={selectedRows.length}
-        selectedRows={selectedRows}
-        actions={bulkActions}
-      />
 
       {error ? (
         <div className="grid min-h-[120px] place-items-center px-3 text-[11px] text-erp-error">
@@ -729,34 +670,42 @@ export function DataTable<TData, TValue = unknown>({
         />
       ) : (
         <>
-          <div ref={scrollRef} className="w-full overflow-x-hidden overflow-y-auto">
-            <table
-              className="w-full table-fixed border-separate border-spacing-0"
-              style={{
-                width: containerWidth > 0 ? containerWidth : "100%",
-              }}
-            >
-              <colgroup>
-                {table.getVisibleLeafColumns().map((column) => (
-                  <col key={column.id} style={getColumnWidthStyle(column)} />
-                ))}
-              </colgroup>
-              <DataTableHeader
-                table={table}
-                enableResizing={enableColumnResizing}
-                columnResizeDirection={columnResizeDirection}
-                columnSizing={columnSizing}
-                onColumnSizingChange={(next) => {
-                  sizingLockedRef.current = true;
-                  setColumnSizing(next);
+          <div className="relative">
+            <div ref={scrollRef} className="w-full overflow-x-hidden overflow-y-auto">
+              <table
+                className="w-full table-fixed border-separate border-spacing-0"
+                style={{
+                  width: containerWidth > 0 ? containerWidth : "100%",
                 }}
-              />
-              <DataTableBody
-                table={table}
-                emptyMessage={emptyMessage}
-                groupingColumnIds={grouping}
-              />
-            </table>
+              >
+                <colgroup>
+                  {table.getVisibleLeafColumns().map((column) => (
+                    <col key={column.id} style={getColumnWidthStyle(column)} />
+                  ))}
+                </colgroup>
+                <DataTableHeader
+                  table={table}
+                  enableResizing={enableColumnResizing}
+                  columnResizeDirection={columnResizeDirection}
+                  columnSizing={columnSizing}
+                  onColumnSizingChange={(next) => {
+                    sizingLockedRef.current = true;
+                    setColumnSizing(next);
+                  }}
+                  columnsMenu={columnsMenu}
+                />
+                <DataTableBody
+                  table={table}
+                  emptyMessage={emptyMessage}
+                  groupingColumnIds={grouping}
+                />
+              </table>
+            </div>
+            {columnsMenu ? (
+              <div className="absolute end-0 top-0 z-30 grid h-8 w-10 place-items-center">
+                {columnsMenu}
+              </div>
+            ) : null}
           </div>
           {enablePagination ? (
             <DataTablePagination

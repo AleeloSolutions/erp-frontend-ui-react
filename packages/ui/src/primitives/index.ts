@@ -8,7 +8,7 @@ export {
   CardTitle,
   type CardProps,
 } from "./Card";
-export { Checkbox, type CheckboxProps } from "./Checkbox";
+export { Checkbox, type CheckboxProps, type CheckboxVariant } from "./Checkbox";
 export { DatePicker, type DatePickerProps } from "./DatePicker";
 export { Input, type InputProps, type InputSize } from "./Input";
 export { Radio, type RadioProps } from "./Radio";

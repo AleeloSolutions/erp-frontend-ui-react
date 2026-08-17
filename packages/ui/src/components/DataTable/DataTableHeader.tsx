@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Header, Table } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
@@ -13,6 +14,8 @@ export interface DataTableHeaderProps<TData> {
   columnResizeDirection?: "ltr" | "rtl";
   columnSizing: ColumnSizingState;
   onColumnSizingChange: (sizing: ColumnSizingState) => void;
+  /** Overlay at the end of the header row — not a data column. */
+  columnsMenu?: ReactNode;
 }
 
 function SortIcon({ sorted }: { sorted: false | "asc" | "desc" }) {
@@ -36,6 +39,7 @@ function HeaderCell<TData>({
   neighborId,
   columnSizing,
   onColumnSizingChange,
+  padEnd,
 }: {
   header: Header<TData, unknown>;
   enableResizing?: boolean;
@@ -43,6 +47,7 @@ function HeaderCell<TData>({
   neighborId?: string;
   columnSizing: ColumnSizingState;
   onColumnSizingChange: (sizing: ColumnSizingState) => void;
+  padEnd?: boolean;
 }) {
   const canSort = header.column.getCanSort();
   const sorted = header.column.getIsSorted();
@@ -61,9 +66,12 @@ function HeaderCell<TData>({
         key={header.id}
         colSpan={header.colSpan}
         style={getColumnCellStyle(header.column)}
-        className="relative h-8 border-b border-erp-border-strong bg-erp-surface-tint p-0 align-middle overflow-hidden"
+        className={cn(
+          "relative h-8 border-b border-erp-border-strong bg-erp-surface-tint p-0 align-middle",
+          isSelect ? "overflow-visible" : "overflow-hidden",
+          padEnd && "pe-10"
+        )}
       >
-        {/* Actions / select: never show header text */}
         {isSelect && !header.isPlaceholder
           ? flexRender(header.column.columnDef.header, header.getContext())
           : null}
@@ -77,7 +85,8 @@ function HeaderCell<TData>({
       colSpan={header.colSpan}
       style={getColumnCellStyle(header.column)}
       className={cn(
-        "relative h-8 border-b border-erp-border-strong bg-erp-surface-tint px-2 text-left text-[10px] font-bold whitespace-nowrap text-erp-muted align-middle overflow-hidden",
+        "relative h-8 border-b border-erp-border-strong bg-erp-surface-tint px-2 text-left text-[10px] font-bold whitespace-nowrap text-erp-muted align-middle",
+        padEnd ? "overflow-visible pe-10" : "overflow-hidden",
         alignRight && "text-right"
       )}
     >
@@ -176,8 +185,10 @@ export function DataTableHeader<TData>({
   columnResizeDirection = "ltr",
   columnSizing,
   onColumnSizingChange,
+  columnsMenu,
 }: DataTableHeaderProps<TData>) {
   const leafIds = table.getVisibleLeafColumns().map((column) => column.id);
+  const lastLeafId = leafIds[leafIds.length - 1];
 
   return (
     <thead>
@@ -193,6 +204,11 @@ export function DataTableHeader<TData>({
               neighborColumn.getCanResize() &&
               neighborColumn.id !== "__select" &&
               neighborColumn.id !== "__actions";
+            const isLastData =
+              Boolean(columnsMenu) &&
+              header.column.id === lastLeafId &&
+              header.column.id !== "__select" &&
+              header.column.id !== "__actions";
 
             return (
               <HeaderCell
@@ -203,6 +219,7 @@ export function DataTableHeader<TData>({
                 neighborId={neighborResizable ? neighborId : undefined}
                 columnSizing={columnSizing}
                 onColumnSizingChange={onColumnSizingChange}
+                padEnd={isLastData}
               />
             );
           })}

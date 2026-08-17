@@ -46,7 +46,7 @@ export function DataTablePagination<TData>({
       <div className="ml-auto flex gap-1">
         <button
           type="button"
-          className="h-6 min-w-[26px] rounded-md border border-erp-border-strong bg-white px-1.5 text-[10px] text-erp-muted disabled:opacity-40"
+          className="h-6 min-w-[26px] rounded-md border border-erp-border-strong bg-erp-surface px-1.5 text-[10px] text-erp-muted disabled:opacity-40"
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
           aria-label="Previous page"
@@ -64,8 +64,9 @@ export function DataTablePagination<TData>({
               <button
                 type="button"
                 className={cn(
-                  "h-6 min-w-[26px] rounded-md border border-erp-border-strong bg-white text-[10px] text-erp-muted",
-                  pageIndex === page && "border-erp-blue bg-erp-blue text-white"
+                  "h-6 min-w-[26px] rounded-md border border-erp-border-strong bg-erp-surface text-[10px] text-erp-muted",
+                  pageIndex === page &&
+                    "border-nav bg-nav text-white hover:border-nav-active hover:bg-nav-active"
                 )}
                 onClick={() => table.setPageIndex(page)}
                 aria-current={pageIndex === page ? "page" : undefined}
@@ -77,7 +78,7 @@ export function DataTablePagination<TData>({
         })}
         <button
           type="button"
-          className="h-6 min-w-[26px] rounded-md border border-erp-border-strong bg-white px-1.5 text-[10px] text-erp-muted disabled:opacity-40"
+          className="h-6 min-w-[26px] rounded-md border border-erp-border-strong bg-erp-surface px-1.5 text-[10px] text-erp-muted disabled:opacity-40"
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
           aria-label="Next page"

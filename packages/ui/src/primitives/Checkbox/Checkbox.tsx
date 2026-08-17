@@ -1,5 +1,9 @@
 import { forwardRef, useEffect, useRef, type InputHTMLAttributes } from "react";
+import { Check, Minus } from "lucide-react";
 import { cn } from "../../utils";
+
+/** @deprecated One visual only — teal fill + halo. Kept so existing `accent` callers compile. */
+export type CheckboxVariant = "default" | "accent";
 
 export interface CheckboxProps extends Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -7,10 +11,12 @@ export interface CheckboxProps extends Omit<
 > {
   label?: string;
   indeterminate?: boolean;
+  /** Ignored — all checkboxes use the teal selected look. */
+  variant?: CheckboxVariant;
 }
 
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ className, label, id, indeterminate = false, ...props }, ref) => {
+  ({ className, label, id, indeterminate = false, variant: _variant, ...props }, ref) => {
     const localRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
@@ -23,32 +29,46 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
       <label
         htmlFor={id}
         className={cn(
-          "inline-flex cursor-pointer items-center gap-2 text-[11px] text-erp-text",
+          "inline-flex cursor-pointer items-center justify-center gap-2 text-[11px] text-erp-text",
           props.disabled && "cursor-not-allowed opacity-60",
           className
         )}
       >
-        <input
-          ref={(node) => {
-            localRef.current = node;
-            if (typeof ref === "function") ref(node);
-            else if (ref) ref.current = node;
-          }}
-          id={id}
-          type="checkbox"
-          className={cn(
-            "relative h-4 w-4 appearance-none rounded border border-erp-border-control",
-            "bg-gradient-to-b from-white to-erp-surface-tint",
-            "shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_1px_rgba(16,42,67,0.05)]",
-            "checked:border-erp-blue-mid checked:bg-gradient-to-b checked:from-erp-blue-bright checked:to-erp-blue-mid",
-            "checked:after:absolute checked:after:left-[3px] checked:after:top-[1px] checked:after:h-[5px] checked:after:w-2 checked:after:rotate-[-45deg] checked:after:border-b-2 checked:after:border-l-2 checked:after:border-white checked:after:content-['']",
-            "indeterminate:border-erp-blue-mid indeterminate:bg-gradient-to-b indeterminate:from-erp-blue-bright indeterminate:to-erp-blue-mid",
-            "indeterminate:after:absolute indeterminate:after:left-[3px] indeterminate:after:top-[6px] indeterminate:after:h-0.5 indeterminate:after:w-2 indeterminate:after:rounded-sm indeterminate:after:bg-white indeterminate:after:content-['']",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-erp-blue-mid/16",
-            "disabled:cursor-not-allowed"
-          )}
-          {...props}
-        />
+        <span
+          data-indeterminate={indeterminate ? "" : undefined}
+          className="group/cb relative grid size-4 shrink-0 place-items-center"
+        >
+          <input
+            ref={(node) => {
+              localRef.current = node;
+              if (typeof ref === "function") ref(node);
+              else if (ref) ref.current = node;
+            }}
+            id={id}
+            type="checkbox"
+            className="peer absolute inset-0 z-10 m-0 size-full cursor-pointer appearance-none opacity-0 disabled:cursor-not-allowed"
+            {...props}
+          />
+          <span
+            className={cn(
+              "pointer-events-none absolute inset-0 rounded-[4px] border border-erp-border-control bg-erp-surface",
+              "peer-checked:border-erp-teal peer-checked:bg-erp-teal peer-checked:shadow-[0_0_0_4px_var(--teal-50)]",
+              "group-data-[indeterminate]/cb:border-erp-teal group-data-[indeterminate]/cb:bg-erp-teal group-data-[indeterminate]/cb:shadow-[0_0_0_4px_var(--teal-50)]",
+              "peer-focus-visible:ring-2 peer-focus-visible:ring-erp-teal/20"
+            )}
+            aria-hidden
+          />
+          <Check
+            aria-hidden
+            strokeWidth={3}
+            className="pointer-events-none relative z-[1] size-2.5 text-white opacity-0 peer-checked:opacity-100 group-data-[indeterminate]/cb:opacity-0"
+          />
+          <Minus
+            aria-hidden
+            strokeWidth={3}
+            className="pointer-events-none absolute z-[1] size-2.5 text-white opacity-0 group-data-[indeterminate]/cb:opacity-100"
+          />
+        </span>
         {label ? <span>{label}</span> : null}
       </label>
     );

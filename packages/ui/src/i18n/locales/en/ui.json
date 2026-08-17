@@ -13,7 +13,10 @@
     "showing": "Showing {{start}}–{{end}} of {{total}} records",
     "prevPage": "Previous page",
     "nextPage": "Next page",
-    "selectedCount": "{{count}} selected"
+    "selectedCount": "{{count}} selected",
+    "selected": "selected",
+    "clearSelection": "Clear selection",
+    "actions": "Actions"
   },
   "confirm": {
     "confirm": "Confirm",
