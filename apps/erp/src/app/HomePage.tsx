@@ -15,7 +15,7 @@ export default function HomePage() {
         actions={
           <Link
             to="/inventory/products"
-            className="inline-flex h-8 items-center justify-center rounded-[7px] border border-erp-blue bg-erp-blue px-3 text-[11px] font-bold text-white shadow-[0_4px_10px_rgba(30,78,140,0.14)] hover:brightness-95"
+            className="inline-flex h-8 items-center justify-center rounded-[7px] border border-nav bg-nav px-3 text-[11px] font-bold text-white shadow-[0_4px_10px_rgba(30,78,140,0.14)] hover:border-nav-active hover:bg-nav-active active:border-nav-active active:bg-nav-active"
           >
             Open Products module
           </Link>

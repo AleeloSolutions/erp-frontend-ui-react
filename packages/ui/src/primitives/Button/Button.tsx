@@ -11,7 +11,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-erp-primary border-erp-primary text-erp-primary-foreground hover:bg-erp-primary-hover hover:border-erp-primary-hover shadow-md",
+    "bg-nav border-nav text-erp-primary-foreground hover:bg-nav-active hover:border-nav-active active:bg-nav-active active:border-nav-active shadow-md",
   secondary:
     "bg-erp-secondary border-erp-secondary-border text-erp-secondary-foreground hover:bg-erp-secondary-hover",
   teal: "bg-erp-teal border-erp-teal text-white hover:brightness-95",
@@ -50,7 +50,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         type={type}
         disabled={disabled || loading}
         className={cn(
-          "inline-flex items-center justify-center gap-1.5 rounded-[7px] border font-bold transition-[filter,background-color,border-color] disabled:cursor-not-allowed disabled:opacity-50",
+          "inline-flex items-center justify-center gap-1.5 rounded-[4px] border font-bold transition-[filter,background-color,border-color] disabled:cursor-not-allowed disabled:opacity-50",
           variantClasses[variant],
           sizeClasses[size],
           className
