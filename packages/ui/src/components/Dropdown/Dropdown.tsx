@@ -12,6 +12,8 @@ import {
   fieldChromeClasses,
   fieldIconSizeClasses,
   fieldSizeClasses,
+  type FieldChrome,
+  type FieldChromeEdge,
   type FieldSize,
 } from "../../utils";
 import { Button, type ButtonProps } from "../../primitives/Button";
@@ -35,6 +37,10 @@ export interface DropdownProps {
   trigger?: "field" | "button";
   size?: FieldSize;
   error?: boolean;
+  /** Field border treatment. Used when `trigger="field"`. Defaults to `corner`. */
+  chrome?: FieldChrome;
+  /** Side for `corner` / `tick`. Ignored by `underline`. Defaults to `end`. */
+  chromeEdge?: FieldChromeEdge;
   buttonProps?: Omit<ButtonProps, "children">;
   /** Hide the chevron (e.g. icon-only row action triggers). */
   hideChevron?: boolean;
@@ -63,6 +69,8 @@ export function Dropdown({
   trigger,
   size = "sm",
   error = false,
+  chrome,
+  chromeEdge,
   buttonProps,
   hideChevron = false,
   className,
@@ -110,7 +118,7 @@ export function Dropdown({
       id={menuId}
       role="menu"
       className={cn(
-        "absolute top-[calc(100%+4px)] z-50 min-w-[160px] overflow-hidden rounded-md border border-erp-border bg-white py-1 shadow-lg",
+        "absolute top-[calc(100%+4px)] z-50 min-w-[160px] overflow-hidden rounded-md border border-erp-border bg-erp-surface py-1 shadow-lg",
         align === "right" ? "end-0" : "start-0"
       )}
     >
@@ -174,7 +182,7 @@ export function Dropdown({
         style={{ outline: "none", boxShadow: "none" }}
         className={cn(
           "inline-flex w-full min-w-0 items-center justify-between gap-2 text-start font-normal",
-          fieldChromeClasses({ error, active: isOpen }),
+          fieldChromeClasses({ error, active: isOpen, chrome, chromeEdge }),
           fieldSizeClasses[size],
           hideChevron ? "pe-3" : "pe-7",
           buttonClassName

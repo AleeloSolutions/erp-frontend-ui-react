@@ -21,6 +21,8 @@ import {
   fieldChromeClasses,
   fieldIconSizeClasses,
   fieldSizeClasses,
+  type FieldChrome,
+  type FieldChromeEdge,
   type FieldSize,
 } from "../../utils";
 
@@ -49,6 +51,10 @@ export interface DatePickerProps {
   displayStyle?: Intl.DateTimeFormatOptions["dateStyle"];
   /** Visual size. Defaults to `sm`. */
   size?: FieldSize;
+  /** Field border treatment. Defaults to `corner`. */
+  chrome?: FieldChrome;
+  /** Side for `corner` / `tick`. Ignored by `underline`. Defaults to `end`. */
+  chromeEdge?: FieldChromeEdge;
   className?: string;
 }
 
@@ -152,6 +158,8 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       locale,
       displayStyle = "medium",
       size = "sm",
+      chrome,
+      chromeEdge,
       className,
     },
     ref
@@ -291,6 +299,8 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
               within: true,
               active: open,
               disabled,
+              chrome,
+              chromeEdge,
             }),
             fieldSizeClasses[size]
           )}
@@ -341,7 +351,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             role="dialog"
             aria-modal="false"
             aria-label="Choose date"
-            className="absolute start-0 z-50 mt-1 w-[280px] rounded-lg border border-erp-border bg-white p-2.5 shadow-lg"
+            className="absolute start-0 z-50 mt-1 w-[280px] rounded-lg border border-erp-border bg-erp-surface p-2.5 shadow-lg"
           >
             <div className="mb-2 flex items-center justify-between gap-2">
               <button

@@ -22,6 +22,14 @@ const meta: Meta<typeof Select> = {
       control: "inline-radio",
       options: ["sm", "md", "default"],
     },
+    chrome: {
+      control: "inline-radio",
+      options: ["underline", "corner", "tick"],
+    },
+    chromeEdge: {
+      control: "inline-radio",
+      options: ["end", "start"],
+    },
   },
 };
 
@@ -88,6 +96,47 @@ export const Sizes: Story = {
           className={fieldMinWidthClasses.default}
         />
       </div>
+    </div>
+  ),
+};
+
+export const Chrome: Story = {
+  render: () => (
+    <div className="flex flex-col items-start gap-4">
+      <Select
+        options={options}
+        placeholder="underline"
+        chrome="underline"
+        className={fieldMinWidthClasses.md}
+      />
+      <Select
+        options={options}
+        placeholder="corner end"
+        chrome="corner"
+        chromeEdge="end"
+        className={fieldMinWidthClasses.md}
+      />
+      <Select
+        options={options}
+        placeholder="corner start"
+        chrome="corner"
+        chromeEdge="start"
+        className={fieldMinWidthClasses.md}
+      />
+      <Select
+        options={options}
+        placeholder="tick end"
+        chrome="tick"
+        chromeEdge="end"
+        className={fieldMinWidthClasses.md}
+      />
+      <Select
+        options={options}
+        placeholder="tick start"
+        chrome="tick"
+        chromeEdge="start"
+        className={fieldMinWidthClasses.md}
+      />
     </div>
   ),
 };

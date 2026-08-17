@@ -15,6 +15,14 @@ const meta = {
       control: "inline-radio",
       options: ["sm", "md", "default"],
     },
+    chrome: {
+      control: "inline-radio",
+      options: ["underline", "corner", "tick"],
+    },
+    chromeEdge: {
+      control: "inline-radio",
+      options: ["end", "start"],
+    },
   },
 } satisfies Meta<typeof DatePicker>;
 
@@ -81,6 +89,38 @@ export const Disabled: Story = {
     defaultValue: "2026-08-15",
     disabled: true,
   },
+};
+
+export const Chrome: Story = {
+  render: () => (
+    <div className="flex flex-col items-start gap-4">
+      <DatePicker placeholder="underline" chrome="underline" className="w-64" />
+      <DatePicker
+        placeholder="corner end"
+        chrome="corner"
+        chromeEdge="end"
+        className="w-64"
+      />
+      <DatePicker
+        placeholder="corner start"
+        chrome="corner"
+        chromeEdge="start"
+        className="w-64"
+      />
+      <DatePicker
+        placeholder="tick end"
+        chrome="tick"
+        chromeEdge="end"
+        className="w-64"
+      />
+      <DatePicker
+        placeholder="tick start"
+        chrome="tick"
+        chromeEdge="start"
+        className="w-64"
+      />
+    </div>
+  ),
 };
 
 export const LocaleDisplay: Story = {

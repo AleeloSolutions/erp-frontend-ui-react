@@ -84,3 +84,49 @@ export const FieldWidthSteps: Story = {
     </div>
   ),
 };
+
+export const FieldChrome: Story = {
+  render: () => (
+    <div className="flex flex-col items-start gap-4">
+      <Dropdown
+        trigger="field"
+        label="underline"
+        chrome="underline"
+        className="w-64"
+        items={[{ key: "a", label: "Option A" }]}
+      />
+      <Dropdown
+        trigger="field"
+        label="corner end"
+        chrome="corner"
+        chromeEdge="end"
+        className="w-64"
+        items={[{ key: "a", label: "Option A" }]}
+      />
+      <Dropdown
+        trigger="field"
+        label="corner start"
+        chrome="corner"
+        chromeEdge="start"
+        className="w-64"
+        items={[{ key: "a", label: "Option A" }]}
+      />
+      <Dropdown
+        trigger="field"
+        label="tick end"
+        chrome="tick"
+        chromeEdge="end"
+        className="w-64"
+        items={[{ key: "a", label: "Option A" }]}
+      />
+      <Dropdown
+        trigger="field"
+        label="tick start"
+        chrome="tick"
+        chromeEdge="start"
+        className="w-64"
+        items={[{ key: "a", label: "Option A" }]}
+      />
+    </div>
+  ),
+};

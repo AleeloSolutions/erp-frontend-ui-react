@@ -5,6 +5,8 @@ import {
   fieldChromeClasses,
   fieldIconSizeClasses,
   fieldSizeClasses,
+  type FieldChrome,
+  type FieldChromeEdge,
   type FieldSize,
 } from "../../utils";
 import type { SelectOption } from "../../types/common";
@@ -18,6 +20,10 @@ export interface SelectProps extends Omit<
   error?: boolean;
   /** Visual size. Defaults to `sm`. Height is fixed; use className for width. */
   size?: FieldSize;
+  /** Field border treatment. Defaults to `corner`. */
+  chrome?: FieldChrome;
+  /** Side for `corner` / `tick`. Ignored by `underline`. Defaults to `end`. */
+  chromeEdge?: FieldChromeEdge;
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
@@ -31,6 +37,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       style,
       disabled,
       size = "sm",
+      chrome,
+      chromeEdge,
       ...props
     },
     ref
@@ -43,11 +51,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           disabled={disabled}
           aria-invalid={error || undefined}
           data-size={size}
+          data-chrome={chrome}
+          data-chrome-edge={chromeEdge}
           style={{ outline: "none", boxShadow: "none", ...style }}
           className={cn(
             "w-full min-w-0 appearance-none pe-7",
             "[&:has(option[value='']:checked)]:text-erp-placeholder",
-            fieldChromeClasses({ error }),
+            fieldChromeClasses({ error, chrome, chromeEdge }),
             fieldSizeClasses[size]
           )}
         >

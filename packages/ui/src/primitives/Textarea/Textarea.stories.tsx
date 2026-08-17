@@ -17,6 +17,14 @@ const meta = {
       control: "inline-radio",
       options: ["sm", "md", "default"],
     },
+    chrome: {
+      control: "inline-radio",
+      options: ["underline", "corner", "tick"],
+    },
+    chromeEdge: {
+      control: "inline-radio",
+      options: ["end", "start"],
+    },
   },
   parameters: {
     docs: {
@@ -62,6 +70,45 @@ export const Sizes: Story = {
           className={fieldMinWidthClasses.default}
         />
       </div>
+    </div>
+  ),
+};
+
+/** Shared field chrome: underline, corner (default), tick — plus start/end edge. */
+export const Chrome: Story = {
+  render: () => (
+    <div className="flex flex-col items-start gap-4">
+      <Textarea
+        placeholder="underline"
+        chrome="underline"
+        className={fieldMinWidthClasses.md}
+      />
+      <Textarea
+        placeholder="corner end"
+        chrome="corner"
+        chromeEdge="end"
+        className={fieldMinWidthClasses.md}
+      />
+      <Textarea
+        placeholder="corner start"
+        chrome="corner"
+        chromeEdge="start"
+        className={fieldMinWidthClasses.md}
+      />
+      <Textarea
+        placeholder="tick end"
+        chrome="tick"
+        chromeEdge="end"
+        rows={3}
+        className={fieldMinWidthClasses.md}
+      />
+      <Textarea
+        placeholder="tick start"
+        chrome="tick"
+        chromeEdge="start"
+        rows={3}
+        className={fieldMinWidthClasses.md}
+      />
     </div>
   ),
 };

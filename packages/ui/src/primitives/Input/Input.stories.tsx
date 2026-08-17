@@ -17,6 +17,14 @@ const meta = {
       control: "inline-radio",
       options: ["sm", "md", "default"],
     },
+    chrome: {
+      control: "inline-radio",
+      options: ["underline", "corner", "tick"],
+    },
+    chromeEdge: {
+      control: "inline-radio",
+      options: ["end", "start"],
+    },
   },
   parameters: {
     docs: {
@@ -60,6 +68,65 @@ export const Sizes: Story = {
     docs: {
       description: {
         story: "Width tokens only — height stays at the sm baseline (h-9).",
+      },
+    },
+  },
+};
+
+/** Shared field chrome: underline, corner (default), tick — plus start/end edge. */
+export const Chrome: Story = {
+  render: () => (
+    <div className="flex flex-col items-start gap-4">
+      <Input
+        placeholder="underline"
+        chrome="underline"
+        className={fieldMinWidthClasses.md}
+      />
+      <Input
+        placeholder="corner end (default)"
+        chrome="corner"
+        chromeEdge="end"
+        className={fieldMinWidthClasses.md}
+      />
+      <Input
+        placeholder="corner start"
+        chrome="corner"
+        chromeEdge="start"
+        className={fieldMinWidthClasses.md}
+      />
+      <Input
+        placeholder="tick end"
+        chrome="tick"
+        chromeEdge="end"
+        className={fieldMinWidthClasses.md}
+      />
+      <Input
+        placeholder="tick start"
+        chrome="tick"
+        chromeEdge="start"
+        className={fieldMinWidthClasses.md}
+      />
+      <Input
+        placeholder="corner end error"
+        chrome="corner"
+        error
+        defaultValue="invalid@"
+        className={fieldMinWidthClasses.md}
+      />
+      <Input
+        placeholder="tick end disabled"
+        chrome="tick"
+        disabled
+        defaultValue="Locked"
+        className={fieldMinWidthClasses.md}
+      />
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "`underline` is bottom only. `corner` is full-height end/start side. `tick` is a half-height side mark. Toggle RTL in the toolbar to flip edges.",
       },
     },
   },
