@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AlignJustify } from "lucide-react";
 import { SearchFilter, type SearchFilterChip } from "./SearchFilter";
 import { Button } from "../../primitives/Button";
@@ -12,7 +12,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Search shell for list pages. Each story isolates one concern — see DataTable › Search Filter Panel for table integration.",
+          "Search shell for list pages. Stays `max-w-md`; extra chips wrap in the field. The filter panel stays that same width. Typing or focusing opens Filters / Group By / Favorites.",
       },
     },
   },
@@ -21,14 +21,23 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Matches DataTable search strip — SearchFilter stays `max-w-md` and centered. */
+function ListSearchStrip({ children }: { children: ReactNode }) {
+  return (
+    <div className="border-b border-erp-border bg-erp-surface-tint px-3 py-2.5">
+      {children}
+    </div>
+  );
+}
+
 /** Empty search shell with panel toggle. */
 export const Default: Story = {
   render: function DefaultStory() {
     const [value, setValue] = useState("");
     return (
-      <div className="w-full max-w-4xl">
+      <ListSearchStrip>
         <SearchFilter value={value} onChange={setValue} />
-      </div>
+      </ListSearchStrip>
     );
   },
 };
@@ -38,14 +47,14 @@ export const SearchOnly: Story = {
   render: function SearchOnlyStory() {
     const [value, setValue] = useState("");
     return (
-      <div className="w-full max-w-4xl">
+      <ListSearchStrip>
         <SearchFilter
           value={value}
           onChange={setValue}
           showPanel={false}
           placeholder="Search customers…"
         />
-      </div>
+      </ListSearchStrip>
     );
   },
 };
@@ -60,43 +69,45 @@ export const FilterPanel: Story = {
 
     return (
       <div className="pb-56">
-        <SearchFilter
-          value={value}
-          onChange={setValue}
-          panelOpen={open}
-          onPanelOpenChange={setOpen}
-          chips={
-            active
-              ? [
-                  {
-                    id: "active",
-                    label: "Status: Active",
-                    onRemove: () => setActive(false),
-                  },
-                ]
-              : []
-          }
-          filters={[
-            {
-              id: "active",
-              label: "Active",
-              checked: active,
-              onSelect: () => setActive((v) => !v),
-            },
-            {
-              id: "inactive",
-              label: "Inactive",
-              checked: inactive,
-              onSelect: () => setInactive((v) => !v),
-            },
-            {
-              id: "pending",
-              label: "Pending",
-              checked: false,
-              onSelect: () => undefined,
-            },
-          ]}
-        />
+        <ListSearchStrip>
+          <SearchFilter
+            value={value}
+            onChange={setValue}
+            panelOpen={open}
+            onPanelOpenChange={setOpen}
+            chips={
+              active
+                ? [
+                    {
+                      id: "active",
+                      label: "Status: Active",
+                      onRemove: () => setActive(false),
+                    },
+                  ]
+                : []
+            }
+            filters={[
+              {
+                id: "active",
+                label: "Active",
+                checked: active,
+                onSelect: () => setActive((v) => !v),
+              },
+              {
+                id: "inactive",
+                label: "Inactive",
+                checked: inactive,
+                onSelect: () => setInactive((v) => !v),
+              },
+              {
+                id: "pending",
+                label: "Pending",
+                checked: false,
+                onSelect: () => undefined,
+              },
+            ]}
+          />
+        </ListSearchStrip>
       </div>
     );
   },
@@ -122,43 +133,45 @@ export const GroupByPanel: Story = {
 
     return (
       <div className="pb-56">
-        <SearchFilter
-          value={value}
-          onChange={setValue}
-          panelOpen={open}
-          onPanelOpenChange={setOpen}
-          chips={
-            group
-              ? [
-                  {
-                    id: "group",
-                    label: `Group: ${groupLabel}`,
-                    onRemove: () => setGroup(""),
-                  },
-                ]
-              : []
-          }
-          groupBy={[
-            {
-              id: "country",
-              label: "Country",
-              active: group === "country",
-              onSelect: () => setGroup((g) => (g === "country" ? "" : "country")),
-            },
-            {
-              id: "owner",
-              label: "Owner",
-              active: group === "owner",
-              onSelect: () => setGroup((g) => (g === "owner" ? "" : "owner")),
-            },
-            {
-              id: "status",
-              label: "Status",
-              active: group === "status",
-              onSelect: () => setGroup((g) => (g === "status" ? "" : "status")),
-            },
-          ]}
-        />
+        <ListSearchStrip>
+          <SearchFilter
+            value={value}
+            onChange={setValue}
+            panelOpen={open}
+            onPanelOpenChange={setOpen}
+            chips={
+              group
+                ? [
+                    {
+                      id: "group",
+                      label: `Group: ${groupLabel}`,
+                      onRemove: () => setGroup(""),
+                    },
+                  ]
+                : []
+            }
+            groupBy={[
+              {
+                id: "country",
+                label: "Country",
+                active: group === "country",
+                onSelect: () => setGroup((g) => (g === "country" ? "" : "country")),
+              },
+              {
+                id: "owner",
+                label: "Owner",
+                active: group === "owner",
+                onSelect: () => setGroup((g) => (g === "owner" ? "" : "owner")),
+              },
+              {
+                id: "status",
+                label: "Status",
+                active: group === "status",
+                onSelect: () => setGroup((g) => (g === "status" ? "" : "status")),
+              },
+            ]}
+          />
+        </ListSearchStrip>
       </div>
     );
   },
@@ -181,42 +194,44 @@ export const WithFavorites: Story = {
 
     return (
       <div className="pb-56">
-        <SearchFilter
-          value={value}
-          onChange={setValue}
-          panelOpen={open}
-          onPanelOpenChange={setOpen}
-          chips={
-            activeFavorite
-              ? [
-                  {
-                    id: "fav",
-                    label: "Active customers (HQ)",
-                    onRemove: () => setActiveFavorite(""),
-                  },
-                ]
-              : []
-          }
-          favorites={[
-            {
-              id: "active-customers",
-              label: "Active customers (HQ)",
-              active: activeFavorite === "active-customers",
-              onSelect: () => setActiveFavorite("active-customers"),
-            },
-            {
-              id: "overdue",
-              label: "Overdue balances",
-              active: activeFavorite === "overdue",
-              onSelect: () => setActiveFavorite("overdue"),
-            },
-            {
-              id: "save-current",
-              label: "Save current search",
-              disabled: true,
-            },
-          ]}
-        />
+        <ListSearchStrip>
+          <SearchFilter
+            value={value}
+            onChange={setValue}
+            panelOpen={open}
+            onPanelOpenChange={setOpen}
+            chips={
+              activeFavorite
+                ? [
+                    {
+                      id: "fav",
+                      label: "Active customers (HQ)",
+                      onRemove: () => setActiveFavorite(""),
+                    },
+                  ]
+                : []
+            }
+            favorites={[
+              {
+                id: "active-customers",
+                label: "Active customers (HQ)",
+                active: activeFavorite === "active-customers",
+                onSelect: () => setActiveFavorite("active-customers"),
+              },
+              {
+                id: "overdue",
+                label: "Overdue balances",
+                active: activeFavorite === "overdue",
+                onSelect: () => setActiveFavorite("overdue"),
+              },
+              {
+                id: "save-current",
+                label: "Save current search",
+                disabled: true,
+              },
+            ]}
+          />
+        </ListSearchStrip>
       </div>
     );
   },
@@ -235,20 +250,22 @@ export const WithColumnsSlot: Story = {
   render: function ColumnsStory() {
     const [value, setValue] = useState("acme");
     return (
-      <SearchFilter
-        value={value}
-        onChange={setValue}
-        columnsSlot={
-          <Button
-            variant="secondary"
-            size="icon"
-            aria-label="Columns"
-            className="h-9 w-9"
-          >
-            <AlignJustify className="h-3.5 w-3.5" aria-hidden />
-          </Button>
-        }
-      />
+      <ListSearchStrip>
+        <SearchFilter
+          value={value}
+          onChange={setValue}
+          columnsSlot={
+            <Button
+              variant="secondary"
+              size="icon"
+              aria-label="Columns"
+              className="h-9 w-9"
+            >
+              <AlignJustify className="h-3.5 w-3.5" aria-hidden />
+            </Button>
+          }
+        />
+      </ListSearchStrip>
     );
   },
 };
@@ -263,7 +280,7 @@ export const FullListToolbar: Story = {
     const [sort, setSort] = useState("default");
 
     return (
-      <div className="border-b border-erp-border bg-erp-surface-tint px-3 py-2.5">
+      <ListSearchStrip>
         <SearchFilter
           value={value}
           onChange={setValue}
@@ -293,15 +310,16 @@ export const FullListToolbar: Story = {
             </div>
           }
         />
-      </div>
+      </ListSearchStrip>
     );
   },
 };
 
-/** Many active chips + long query — shell wrap and truncation. */
+/** Extra chips wrap inside the compact shell — panel stays `max-w-md`. */
 export const ManyChips: Story = {
   render: function ManyChipsStory() {
-    const [value, setValue] = useState("Acme Trading International Holdings");
+    const [value, setValue] = useState("");
+    const [open, setOpen] = useState(false);
     const chips: SearchFilterChip[] = [
       { id: "1", label: "Status: Active", onRemove: () => undefined },
       { id: "2", label: "Country: Somalia", onRemove: () => undefined },
@@ -311,18 +329,36 @@ export const ManyChips: Story = {
     ];
 
     return (
-      <SearchFilter
-        value={value}
-        onChange={setValue}
-        chips={chips}
-        placeholder="Search customers"
-        showPanel={false}
-      />
+      <div className="pb-56">
+        <ListSearchStrip>
+          <SearchFilter
+            value={value}
+            onChange={setValue}
+            panelOpen={open}
+            onPanelOpenChange={setOpen}
+            chips={chips}
+            placeholder="Search customers"
+            filters={[
+              { id: "active", label: "Active", checked: true },
+              { id: "inactive", label: "Inactive" },
+            ]}
+            groupBy={[
+              { id: "country", label: "Country" },
+              { id: "owner", label: "Owner" },
+            ]}
+          />
+        </ListSearchStrip>
+      </div>
     );
   },
 };
 
 export const Disabled: Story = {
+  render: (args) => (
+    <ListSearchStrip>
+      <SearchFilter {...args} />
+    </ListSearchStrip>
+  ),
   args: {
     value: "Locked query",
     onChange: () => undefined,
@@ -332,6 +368,11 @@ export const Disabled: Story = {
 };
 
 export const ReadOnly: Story = {
+  render: (args) => (
+    <ListSearchStrip>
+      <SearchFilter {...args} />
+    </ListSearchStrip>
+  ),
   args: {
     value: "",
     onChange: () => undefined,

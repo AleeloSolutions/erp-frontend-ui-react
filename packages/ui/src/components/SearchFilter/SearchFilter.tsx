@@ -162,7 +162,7 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
     }, [open, showPanel, isControlled, onPanelOpenChange]);
 
     return (
-      <div ref={rootRef} className={cn("relative mx-auto w-full max-w-lg", className)}>
+      <div ref={rootRef} className={cn("relative mx-auto w-full max-w-md", className)}>
         <div className="flex w-full max-w-full items-stretch gap-2">
           <div
             className={cn(
@@ -199,15 +199,22 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
                 value={value}
                 disabled={disabled}
                 readOnly={readOnly}
-                placeholder={chips.length ? "" : placeholder}
+                placeholder={placeholder}
                 aria-label="Search"
                 className={cn(
-                  "h-7 min-w-0 flex-1 border-0 bg-transparent px-0.5 text-xs text-erp-text",
+                  "h-7 min-w-[8rem] flex-1 basis-[8rem] border-0 bg-transparent px-0.5 text-xs text-erp-text",
                   "placeholder:text-erp-placeholder",
                   "outline-none ring-0 focus:outline-none focus:ring-0",
                   "disabled:cursor-not-allowed"
                 )}
-                onChange={(event) => onChange(event.target.value)}
+                onFocus={() => {
+                  if (!disabled && !readOnly) setOpen(true);
+                }}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  onChange(next);
+                  if (!disabled && !readOnly) setOpen(true);
+                }}
               />
             </div>
             {showPanel ? (
@@ -245,7 +252,7 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
             id={panelId}
             role="dialog"
             aria-label="Search filters"
-            className="absolute start-0 z-50 mt-1 w-full min-w-full overflow-hidden rounded-lg border border-erp-border bg-erp-surface shadow-lg"
+            className="absolute start-0 z-50 mt-1 w-full max-w-md overflow-hidden rounded-lg border border-erp-border bg-erp-surface shadow-lg"
           >
             <div className="grid grid-cols-1 gap-0 divide-y divide-erp-border-soft p-2 min-[721px]:grid-cols-3 min-[721px]:divide-x min-[721px]:divide-y-0">
               <PanelColumn
