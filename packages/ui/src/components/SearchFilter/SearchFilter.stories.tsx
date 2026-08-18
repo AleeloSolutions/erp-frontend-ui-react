@@ -12,7 +12,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Search shell for list pages. Stays `max-w-md`; extra chips wrap in the field. The filter panel stays that same width. Typing or focusing opens Filters / Group By / Favorites.",
+          "Odoo-style search view: facet chips (filter = or, group = >) plus a caret-attached Filters / Group By / Favorites panel.",
       },
     },
   },
@@ -21,10 +21,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Matches DataTable search strip — SearchFilter stays `max-w-md` and centered. */
+/** Matches DataTable search strip — SearchFilter is centered, up to 600px. */
 function ListSearchStrip({ children }: { children: ReactNode }) {
   return (
-    <div className="border-b border-erp-border bg-erp-surface-tint px-3 py-2.5">
+    <div className="relative z-20 overflow-visible border-b border-erp-table-border bg-erp-table-header px-4 py-2">
       {children}
     </div>
   );
@@ -64,48 +64,60 @@ export const FilterPanel: Story = {
   render: function FilterPanelStory() {
     const [value, setValue] = useState("");
     const [open, setOpen] = useState(true);
-    const [active, setActive] = useState(true);
-    const [inactive, setInactive] = useState(false);
+    const [checked, setChecked] = useState<string[]>(["active"]);
+
+    function toggle(id: string) {
+      setChecked((prev) =>
+        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      );
+    }
+
+    const options = [
+      { id: "mine", label: "My Invoices" },
+      { id: "draft", label: "Draft", dividerBefore: true },
+      { id: "posted", label: "Posted" },
+      { id: "cancelled", label: "Cancelled" },
+      { id: "active", label: "Active", dividerBefore: true },
+      { id: "inactive", label: "Inactive" },
+      { id: "pending", label: "Pending" },
+    ];
 
     return (
-      <div className="pb-56">
+      <div className="min-h-[28rem] pb-8">
         <ListSearchStrip>
           <SearchFilter
             value={value}
             onChange={setValue}
             panelOpen={open}
             onPanelOpenChange={setOpen}
-            chips={
-              active
-                ? [
-                    {
-                      id: "active",
-                      label: "Status: Active",
-                      onRemove: () => setActive(false),
-                    },
-                  ]
-                : []
-            }
-            filters={[
-              {
-                id: "active",
-                label: "Active",
-                checked: active,
-                onSelect: () => setActive((v) => !v),
-              },
-              {
-                id: "inactive",
-                label: "Inactive",
-                checked: inactive,
-                onSelect: () => setInactive((v) => !v),
-              },
-              {
-                id: "pending",
-                label: "Pending",
-                checked: false,
-                onSelect: () => undefined,
-              },
-            ]}
+            chips={(() => {
+              const groups: { ids: string[]; labels: string[] }[] = [];
+              let current: { ids: string[]; labels: string[] } = { ids: [], labels: [] };
+              options.forEach((option, index) => {
+                if (option.dividerBefore && index > 0 && current.ids.length > 0) {
+                  groups.push(current);
+                  current = { ids: [], labels: [] };
+                }
+                if (checked.includes(option.id)) {
+                  current.ids.push(option.id);
+                  current.labels.push(option.label);
+                }
+              });
+              if (current.ids.length > 0) groups.push(current);
+              return groups.map((group) => ({
+                id: group.ids.join(":"),
+                label: group.labels[0],
+                values: group.labels,
+                kind: "filter" as const,
+                onRemove: () =>
+                  setChecked((prev) => prev.filter((id) => !group.ids.includes(id))),
+              }));
+            })()}
+            filters={options.map((option) => ({
+              ...option,
+              checked: checked.includes(option.id),
+              onSelect: () => toggle(option.id),
+            }))}
           />
         </ListSearchStrip>
       </div>
@@ -129,10 +141,16 @@ export const GroupByPanel: Story = {
     const [group, setGroup] = useState("country");
 
     const groupLabel =
-      group === "country" ? "Country" : group === "owner" ? "Owner" : "Status";
+      group === "salesperson"
+        ? "Salesperson"
+        : group === "country"
+          ? "Country"
+          : group === "owner"
+            ? "Owner"
+            : "Status";
 
     return (
-      <div className="pb-56">
+      <div className="min-h-[28rem] pb-8">
         <ListSearchStrip>
           <SearchFilter
             value={value}
@@ -144,13 +162,22 @@ export const GroupByPanel: Story = {
                 ? [
                     {
                       id: "group",
-                      label: `Group: ${groupLabel}`,
+                      label: groupLabel,
+                      values: [groupLabel],
+                      kind: "group",
                       onRemove: () => setGroup(""),
                     },
                   ]
                 : []
             }
             groupBy={[
+              {
+                id: "salesperson",
+                label: "Salesperson",
+                active: group === "salesperson",
+                onSelect: () =>
+                  setGroup((g) => (g === "salesperson" ? "" : "salesperson")),
+              },
               {
                 id: "country",
                 label: "Country",
@@ -193,7 +220,7 @@ export const WithFavorites: Story = {
     const [activeFavorite, setActiveFavorite] = useState("active-customers");
 
     return (
-      <div className="pb-56">
+      <div className="min-h-[28rem] pb-8">
         <ListSearchStrip>
           <SearchFilter
             value={value}
@@ -206,6 +233,8 @@ export const WithFavorites: Story = {
                     {
                       id: "fav",
                       label: "Active customers (HQ)",
+                      values: ["Active customers (HQ)"],
+                      kind: "filter",
                       onRemove: () => setActiveFavorite(""),
                     },
                   ]
@@ -285,7 +314,15 @@ export const FullListToolbar: Story = {
           value={value}
           onChange={setValue}
           placeholder="Search customers"
-          chips={[{ id: "status", label: "Status: Active", onRemove: () => undefined }]}
+          chips={[
+            {
+              id: "status",
+              label: "Active",
+              values: ["Active"],
+              kind: "filter",
+              onRemove: () => undefined,
+            },
+          ]}
           columnsSlot={
             <div className="flex items-stretch gap-2">
               <Select
@@ -315,29 +352,71 @@ export const FullListToolbar: Story = {
   },
 };
 
-/** Extra chips wrap inside the compact shell — panel stays `max-w-md`. */
+/** Extra facets wrap inside the search view — filters join with “or”, groups with “>”. */
 export const ManyChips: Story = {
   render: function ManyChipsStory() {
     const [value, setValue] = useState("");
     const [open, setOpen] = useState(false);
-    const chips: SearchFilterChip[] = [
-      { id: "1", label: "Status: Active", onRemove: () => undefined },
-      { id: "2", label: "Country: Somalia", onRemove: () => undefined },
-      { id: "3", label: "Country: Kenya", onRemove: () => undefined },
-      { id: "4", label: "Group: Owner", onRemove: () => undefined },
-      { id: "5", label: "Subject to VAT", onRemove: () => undefined },
-    ];
+    const [chips, setChips] = useState<SearchFilterChip[]>([
+      {
+        id: "status",
+        label: "Draft",
+        values: ["Draft", "Posted", "Cancelled"],
+        kind: "filter",
+        onRemove: () => undefined,
+      },
+      {
+        id: "sent",
+        label: "Not Sent",
+        values: ["Not Sent"],
+        kind: "filter",
+        onRemove: () => undefined,
+      },
+      {
+        id: "type",
+        label: "Invoices",
+        values: ["Invoices", "Credit Notes", "Receipts"],
+        kind: "filter",
+        onRemove: () => undefined,
+      },
+      {
+        id: "review",
+        label: "To Review",
+        values: ["To Review"],
+        kind: "filter",
+        onRemove: () => undefined,
+      },
+      {
+        id: "group",
+        label: "Journal",
+        values: [
+          "Journal",
+          "Payment Method",
+          "Sales Team",
+          "Status",
+          "Partner",
+          "Salesperson",
+        ],
+        kind: "group",
+        onRemove: () => undefined,
+      },
+    ]);
+
+    const removableChips = chips.map((chip) => ({
+      ...chip,
+      onRemove: () => setChips((prev) => prev.filter((item) => item.id !== chip.id)),
+    }));
 
     return (
-      <div className="pb-56">
+      <div className="min-h-[28rem] pb-8">
         <ListSearchStrip>
           <SearchFilter
             value={value}
             onChange={setValue}
             panelOpen={open}
             onPanelOpenChange={setOpen}
-            chips={chips}
-            placeholder="Search customers"
+            chips={removableChips}
+            placeholder="Search..."
             filters={[
               { id: "active", label: "Active", checked: true },
               { id: "inactive", label: "Inactive" },
@@ -363,7 +442,15 @@ export const Disabled: Story = {
     value: "Locked query",
     onChange: () => undefined,
     disabled: true,
-    chips: [{ id: "status", label: "Status: Active", onRemove: () => undefined }],
+    chips: [
+      {
+        id: "status",
+        label: "Active",
+        values: ["Active"],
+        kind: "filter",
+        onRemove: () => undefined,
+      },
+    ],
   },
 };
 
@@ -377,7 +464,15 @@ export const ReadOnly: Story = {
     value: "",
     onChange: () => undefined,
     readOnly: true,
-    placeholder: "Filters & grouping",
-    chips: [{ id: "group", label: "Group: Country", onRemove: () => undefined }],
+    placeholder: "Search...",
+    chips: [
+      {
+        id: "group",
+        label: "Country",
+        values: ["Country"],
+        kind: "group",
+        onRemove: () => undefined,
+      },
+    ],
   },
 };

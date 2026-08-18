@@ -35,7 +35,7 @@ export function DataTablePagination<TData>({
   return (
     <div
       className={cn(
-        "flex min-h-9 flex-wrap items-center gap-2 border-t border-erp-border-soft bg-erp-surface-tint-strong px-2.5 py-1.5 text-[10px] text-erp-label",
+        "flex min-h-10 flex-wrap items-center gap-2 border-t border-erp-table-border bg-erp-table-bg px-4 py-2 text-[0.875rem] font-medium text-erp-text",
         className
       )}
     >
@@ -46,7 +46,7 @@ export function DataTablePagination<TData>({
       <div className="ml-auto flex gap-1">
         <button
           type="button"
-          className="h-6 min-w-[26px] rounded-md border border-erp-border-strong bg-erp-surface px-1.5 text-[10px] text-erp-muted disabled:opacity-40"
+          className="h-7 min-w-7 rounded border border-erp-table-border bg-erp-table-bg px-2 text-[0.8125rem] text-erp-muted disabled:opacity-40"
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
           aria-label="Previous page"
@@ -59,12 +59,12 @@ export function DataTablePagination<TData>({
           return (
             <span key={page} className="contents">
               {showEllipsis ? (
-                <span className="grid h-6 place-items-center px-1">…</span>
+                <span className="grid h-7 place-items-center px-1">…</span>
               ) : null}
               <button
                 type="button"
                 className={cn(
-                  "h-6 min-w-[26px] rounded-md border border-erp-border-strong bg-erp-surface text-[10px] text-erp-muted",
+                  "h-7 min-w-7 rounded border border-erp-table-border bg-erp-table-bg text-[0.8125rem] text-erp-muted",
                   pageIndex === page &&
                     "border-nav bg-nav text-white hover:border-nav-active hover:bg-nav-active"
                 )}
@@ -78,7 +78,7 @@ export function DataTablePagination<TData>({
         })}
         <button
           type="button"
-          className="h-6 min-w-[26px] rounded-md border border-erp-border-strong bg-erp-surface px-1.5 text-[10px] text-erp-muted disabled:opacity-40"
+          className="h-7 min-w-7 rounded border border-erp-table-border bg-erp-table-bg px-2 text-[0.8125rem] text-erp-muted disabled:opacity-40"
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
           aria-label="Next page"

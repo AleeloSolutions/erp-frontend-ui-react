@@ -20,7 +20,8 @@ function DataRow<TData>({ row }: { row: Row<TData> }) {
       className={cn(
         "odd:[&>td]:bg-erp-table-odd even:[&>td]:bg-erp-table-even",
         "odd:hover:[&>td]:bg-erp-table-odd-hover even:hover:[&>td]:bg-erp-table-even-hover",
-        row.getIsSelected() && "[&>td]:!bg-erp-teal-50 hover:[&>td]:!bg-erp-teal-50"
+        row.getIsSelected() &&
+          "[&>td]:!bg-erp-table-selected hover:[&>td]:!bg-erp-table-selected"
       )}
     >
       {row.getVisibleCells().map((cell) => {
@@ -34,10 +35,10 @@ function DataRow<TData>({ row }: { row: Row<TData> }) {
             key={cell.id}
             style={getColumnCellStyle(cell.column)}
             className={cn(
-              "h-[34px] border-b border-erp-border-soft text-[11px] text-erp-text align-middle",
-              isSelect || isActions ? "p-0" : "px-2",
+              "h-10 overflow-hidden border-b border-erp-table-border text-[0.875rem] text-erp-text align-middle whitespace-nowrap",
+              isSelect || isActions ? "p-0" : "px-4 py-1",
               isSelect && "overflow-visible text-center",
-              alignRight && "text-right tabular-nums tracking-[-0.15px]"
+              alignRight && "text-end tabular-nums"
             )}
           >
             {skipTruncate ? (
@@ -94,19 +95,19 @@ function GroupedRows<TData>({
           <tr className="table-group-row">
             <td
               colSpan={colSpan}
-              className="!border-b !border-erp-border-chip !bg-erp-surface-hover !p-0"
+              className="!border-b !border-erp-table-border !bg-erp-table-header !p-0"
             >
               <div
-                className="flex min-h-[38px] items-center gap-2 px-3"
-                style={{ paddingInlineStart: 12 + pad }}
+                className="flex h-10 items-center gap-2 px-4"
+                style={{ paddingInlineStart: 16 + pad }}
               >
-                <span className="inline-flex h-5 items-center rounded-full bg-erp-blue-50 px-1.5 text-[9px] font-extrabold uppercase tracking-[0.45px] text-erp-blue">
+                <span className="inline-flex items-center rounded-full bg-erp-info-bg px-[0.65em] py-[0.25em] text-[0.75em] font-medium text-erp-info">
                   {columnId}
                 </span>
-                <span className="min-w-0 truncate text-[11px] font-extrabold text-erp-text">
+                <span className="min-w-0 truncate text-[0.875rem] font-medium text-erp-text">
                   {groupName}
                 </span>
-                <span className="ms-auto shrink-0 text-[10px] font-bold text-erp-muted">
+                <span className="ms-auto shrink-0 text-[0.875rem] text-erp-muted">
                   {groupRows.length} item{groupRows.length === 1 ? "" : "s"}
                 </span>
               </div>

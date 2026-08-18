@@ -19,9 +19,15 @@ export interface DataTableHeaderProps<TData> {
 }
 
 function SortIcon({ sorted }: { sorted: false | "asc" | "desc" }) {
-  if (sorted === "asc") return <ArrowUp className="h-3 w-3" aria-hidden />;
-  if (sorted === "desc") return <ArrowDown className="h-3 w-3" aria-hidden />;
-  return <ArrowUpDown className="h-3 w-3 opacity-40" aria-hidden />;
+  const iconClass = "h-3 w-3 shrink-0";
+  if (sorted === "asc") return <ArrowUp className={iconClass} aria-hidden />;
+  if (sorted === "desc") return <ArrowDown className={iconClass} aria-hidden />;
+  return (
+    <ArrowUpDown
+      className={cn(iconClass, "opacity-0 group-hover/th:opacity-100")}
+      aria-hidden
+    />
+  );
 }
 
 function headerLabelText<TData>(header: Header<TData, unknown>): string {
@@ -67,9 +73,9 @@ function HeaderCell<TData>({
         colSpan={header.colSpan}
         style={getColumnCellStyle(header.column)}
         className={cn(
-          "relative h-8 border-b border-erp-border-strong bg-erp-surface-tint p-0 align-middle",
-          isSelect ? "overflow-visible" : "overflow-hidden",
-          padEnd && "pe-10"
+          "group/th sticky top-0 z-10 h-10 border-b border-erp-table-border bg-erp-table-header p-0 align-middle",
+          isSelect ? "overflow-visible pe-1" : "overflow-hidden",
+          padEnd && "pe-9"
         )}
       >
         {isSelect && !header.isPlaceholder
@@ -85,35 +91,43 @@ function HeaderCell<TData>({
       colSpan={header.colSpan}
       style={getColumnCellStyle(header.column)}
       className={cn(
-        "relative h-8 border-b border-erp-border-strong bg-erp-surface-tint px-2 text-left text-[10px] font-bold whitespace-nowrap text-erp-muted align-middle",
-        padEnd ? "overflow-visible pe-10" : "overflow-hidden",
-        alignRight && "text-right"
+        "group/th sticky top-0 z-10 h-10 overflow-hidden border-b border-erp-table-border bg-erp-table-header px-4 py-2 text-start text-[0.875rem] font-medium whitespace-nowrap text-erp-text align-middle",
+        canSort && "cursor-pointer",
+        padEnd && "pe-9",
+        alignRight && "text-end"
       )}
     >
       {header.isPlaceholder ? null : (
-        <div
-          className={cn(
-            "flex min-h-8 min-w-0 items-center justify-between gap-2 overflow-hidden",
-            alignRight && "justify-end"
-          )}
-        >
-          {canSort ? (
-            <button
-              type="button"
-              title={label}
-              className="inline-flex min-w-0 max-w-full items-center gap-1 overflow-hidden hover:text-erp-primary"
-              onClick={header.column.getToggleSortingHandler()}
-            >
-              <span className="min-w-0 truncate">
+        <>
+          <div className="relative flex min-w-0 items-center">
+            {canSort ? (
+              <button
+                type="button"
+                title={label}
+                className="flex min-w-0 max-w-full flex-1 items-center"
+                onClick={header.column.getToggleSortingHandler()}
+              >
+                <span
+                  className={cn(
+                    "block min-w-0 flex-1 truncate",
+                    alignRight && "text-end"
+                  )}
+                >
+                  {flexRender(header.column.columnDef.header, header.getContext())}
+                </span>
+                <span className="ms-2 flex w-3 shrink-0 justify-center">
+                  <SortIcon sorted={sorted} />
+                </span>
+              </button>
+            ) : (
+              <span
+                title={label}
+                className={cn("block min-w-0 flex-1 truncate", alignRight && "text-end")}
+              >
                 {flexRender(header.column.columnDef.header, header.getContext())}
               </span>
-              <SortIcon sorted={sorted} />
-            </button>
-          ) : (
-            <span title={label} className="min-w-0 truncate">
-              {flexRender(header.column.columnDef.header, header.getContext())}
-            </span>
-          )}
+            )}
+          </div>
           {canNeighborResize && neighborId ? (
             <span
               role="separator"
@@ -166,14 +180,12 @@ function HeaderCell<TData>({
                 });
               }}
               className={cn(
-                "absolute inset-y-0 z-10 w-3 cursor-col-resize touch-none select-none",
-                handleOnEndEdge ? "right-0" : "left-0",
-                "after:absolute after:inset-y-1.5 after:left-1/2 after:w-px after:-translate-x-1/2 after:bg-erp-border after:content-['']",
-                "hover:after:w-0.5 hover:after:bg-erp-border-strong"
+                "absolute inset-y-0 z-10 w-1.5 cursor-col-resize touch-none select-none bg-erp-text/25 opacity-0 hover:opacity-50",
+                handleOnEndEdge ? "end-0" : "start-0"
               )}
             />
           ) : null}
-        </div>
+        </>
       )}
     </th>
   );

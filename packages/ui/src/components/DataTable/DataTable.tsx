@@ -259,7 +259,7 @@ export function DataTable<TData, TValue = unknown>({
         enableHiding: false,
         enableResizing: false,
         header: ({ table }) => (
-          <div className="grid h-8 w-full place-items-center">
+          <div className="grid h-10 w-full place-items-center">
             <Checkbox
               aria-label="Select all rows"
               checked={table.getIsAllPageRowsSelected()}
@@ -269,7 +269,7 @@ export function DataTable<TData, TValue = unknown>({
           </div>
         ),
         cell: ({ row }) => (
-          <div className="grid h-[34px] w-full place-items-center">
+          <div className="grid h-10 w-full place-items-center">
             <Checkbox
               aria-label="Select row"
               checked={row.getIsSelected()}
@@ -285,9 +285,9 @@ export function DataTable<TData, TValue = unknown>({
     if (!hasActions && getRowActions) {
       cols.push({
         id: "__actions",
-        size: 52,
-        minSize: 52,
-        maxSize: 52,
+        size: 36,
+        minSize: 36,
+        maxSize: 36,
         enableSorting: false,
         enableHiding: false,
         enableResizing: false,
@@ -296,7 +296,7 @@ export function DataTable<TData, TValue = unknown>({
           const items = getRowActions(row.original);
           if (!items.length) return null;
           return (
-            <div className="grid h-[34px] w-full place-items-center">
+            <div className="grid h-10 w-full place-items-center">
               <Dropdown
                 hideChevron
                 align="right"
@@ -306,7 +306,7 @@ export function DataTable<TData, TValue = unknown>({
                   size: "icon",
                   "aria-label": "Row actions",
                   className:
-                    "text-erp-muted hover:border-erp-border-strong hover:bg-erp-surface-muted",
+                    "h-7 w-7 text-erp-muted hover:bg-erp-table-odd-hover hover:border-transparent",
                 }}
                 items={items}
               />
@@ -321,8 +321,8 @@ export function DataTable<TData, TValue = unknown>({
         return {
           ...column,
           enableResizing: false,
-          minSize: column.minSize ?? column.size ?? 40,
-          maxSize: column.maxSize ?? column.size ?? 52,
+          minSize: column.minSize ?? column.size ?? 36,
+          maxSize: column.maxSize ?? column.size ?? 36,
         };
       }
       return {
@@ -504,40 +504,36 @@ export function DataTable<TData, TValue = unknown>({
 
   filters.forEach((filter) => {
     const value = filterValues[filter.key];
-    if (Array.isArray(value) && value.length > 0) {
-      value.forEach((item) => {
-        const optionLabel =
-          filter.options?.find((option) => option.value === item)?.label ?? item;
-        searchFilterChips.push({
-          id: `${filter.key}:${item}`,
-          label: `${filter.label}: ${optionLabel}`,
-          onRemove: () =>
-            handleFilterChange(
-              filter.key,
-              value.filter((entry) => entry !== item)
-            ),
-        });
-      });
-    } else if (typeof value === "string" && value) {
-      const optionLabel =
-        filter.options?.find((option) => option.value === value)?.label ?? value;
-      searchFilterChips.push({
-        id: filter.key,
-        label: `${filter.label}: ${optionLabel}`,
-        onRemove: () => handleFilterChange(filter.key, ""),
-      });
-    }
+    const selected = Array.isArray(value)
+      ? value
+      : typeof value === "string" && value
+        ? [value]
+        : [];
+    if (selected.length === 0) return;
+
+    const labels = selected.map(
+      (item) => filter.options?.find((option) => option.value === item)?.label ?? item
+    );
+    searchFilterChips.push({
+      id: filter.key,
+      label: labels[0] ?? filter.label,
+      values: labels,
+      kind: "filter",
+      onRemove: () => handleFilterChange(filter.key, Array.isArray(value) ? [] : ""),
+    });
   });
 
   if (grouping.length > 0) {
-    grouping.forEach((groupId) => {
-      const groupLabel =
-        resolvedGroupingOptions.find((item) => item.value === groupId)?.label ?? groupId;
-      searchFilterChips.push({
-        id: `group:${groupId}`,
-        label: `Group: ${groupLabel}`,
-        onRemove: () => setGrouping((prev) => prev.filter((id) => id !== groupId)),
-      });
+    const labels = grouping.map(
+      (groupId) =>
+        resolvedGroupingOptions.find((item) => item.value === groupId)?.label ?? groupId
+    );
+    searchFilterChips.push({
+      id: "group",
+      label: labels[0] ?? "Group",
+      values: labels,
+      kind: "group",
+      onRemove: () => setGrouping([]),
     });
   }
 
@@ -605,7 +601,7 @@ export function DataTable<TData, TValue = unknown>({
         size: "icon",
         "aria-label": "Columns",
         className:
-          "h-6 w-6 rounded-md border-0 bg-transparent p-0 text-erp-text shadow-none hover:bg-erp-surface-muted hover:border-transparent",
+          "h-6 w-6 rounded-md border-0 bg-transparent p-0 text-erp-text shadow-none hover:bg-erp-table-odd-hover hover:border-transparent",
       }}
       items={table
         .getAllLeafColumns()
@@ -623,12 +619,9 @@ export function DataTable<TData, TValue = unknown>({
   ) : null;
 
   return (
-    <div
-      ref={rootRef}
-      className={cn("overflow-hidden border border-erp-border bg-erp-surface", className)}
-    >
+    <div ref={rootRef} className={cn("bg-erp-table-bg", className)}>
       {showSearchSlot ? (
-        <div className="border-b border-erp-border bg-erp-surface-tint px-3 py-2.5">
+        <div className="relative z-20 overflow-visible border-b border-erp-table-border bg-erp-table-header px-4 py-2">
           {hasSelection ? (
             <DataTableBulkActions
               selectedCount={selectedRows.length}
@@ -647,11 +640,7 @@ export function DataTable<TData, TValue = unknown>({
                 }
               }}
               readOnly={!searchable}
-              placeholder={
-                searchable
-                  ? (searchPlaceholder ?? "Search records, names, references, or owners")
-                  : "Filters & grouping"
-              }
+              placeholder={searchable ? (searchPlaceholder ?? "Search...") : "Search..."}
               chips={searchFilterChips}
               filters={panelFilterItems}
               groupBy={panelGroupItems}
@@ -661,7 +650,7 @@ export function DataTable<TData, TValue = unknown>({
       ) : null}
 
       {error ? (
-        <div className="grid min-h-[120px] place-items-center px-3 text-[11px] text-erp-error">
+        <div className="grid min-h-[120px] place-items-center px-4 text-[0.875rem] text-erp-error">
           {error}
         </div>
       ) : loading ? (
@@ -670,10 +659,10 @@ export function DataTable<TData, TValue = unknown>({
         />
       ) : (
         <>
-          <div className="relative">
-            <div ref={scrollRef} className="w-full overflow-x-hidden overflow-y-auto">
+          <div className="relative overflow-hidden">
+            <div ref={scrollRef} className="w-full overflow-auto">
               <table
-                className="w-full table-fixed border-separate border-spacing-0"
+                className="w-full table-fixed border-collapse tabular-nums"
                 style={{
                   width: containerWidth > 0 ? containerWidth : "100%",
                 }}
@@ -702,7 +691,7 @@ export function DataTable<TData, TValue = unknown>({
               </table>
             </div>
             {columnsMenu ? (
-              <div className="absolute end-0 top-0 z-30 grid h-8 w-10 place-items-center">
+              <div className="absolute end-0 top-0 z-30 grid h-10 w-9 place-items-center border-b border-erp-table-border bg-erp-table-header">
                 {columnsMenu}
               </div>
             ) : null}

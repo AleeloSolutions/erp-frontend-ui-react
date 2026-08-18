@@ -304,7 +304,7 @@ export const DirectAction: Story = {
       {
         id: "__actions",
         header: "",
-        size: 52,
+        size: 36,
         enableSorting: false,
         enableResizing: false,
         cell: ({ row }) => (
@@ -434,7 +434,7 @@ export const BulkSelection: Story = {
     docs: {
       description: {
         story:
-          "Check a row: SearchFilter is replaced by a joined “N selected” + Actions control. Hover rows for gray; selected rows stay pale teal. X clears selection and restores search.",
+          "Check a row: SearchFilter is replaced by a joined “N selected” + Actions control. Hover rows for a light overlay; selected rows stay a 5% gray wash. X clears selection and restores search.",
       },
     },
   },

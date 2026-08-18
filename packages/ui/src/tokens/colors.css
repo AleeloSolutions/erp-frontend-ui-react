@@ -25,10 +25,16 @@
   --surface-muted: #f5f8fc;
   --surface-tint: #f8fafc;
   --surface-tint-strong: #fbfcfe;
-  --table-odd: var(--surface);
-  --table-even: #f2f4f7;
-  --table-odd-hover: #e7ebf0; /* e7ebf0 */
-  --table-even-hover: #e1e5ea; /* #eaf4ff */
+  --table-bg: #ffffff;
+  --table-header: #f9fafb;
+  --table-border: #d8dadd;
+  --table-odd: #ffffff;
+  --table-even: rgba(0, 0, 0, 0.01);
+  --table-odd-hover: rgba(0, 0, 0, 0.055);
+  --table-even-hover: rgba(0, 0, 0, 0.055);
+  --table-selected: rgba(0, 0, 0, 0.05);
+  --menu-hover: rgba(0, 0, 0, 0.08);
+  --favourite: #e4a900;
   --text: #1f2937;
   --muted: #6b7280;
   --subtle: #8a94a6;

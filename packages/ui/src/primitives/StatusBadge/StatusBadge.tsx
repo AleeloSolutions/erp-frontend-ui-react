@@ -61,7 +61,7 @@ export function StatusBadge({ status, label, className, ...props }: StatusBadgeP
   return (
     <span
       className={cn(
-        "inline-flex h-[18px] items-center rounded-full px-1.5 text-[9px] font-bold tracking-[0.02em]",
+        "inline-flex items-center rounded-full px-[0.65em] py-[0.25em] text-[0.75em] font-medium leading-none",
         statusClasses[resolved],
         className
       )}

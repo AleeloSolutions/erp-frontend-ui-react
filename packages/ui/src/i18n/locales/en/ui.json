@@ -18,6 +18,20 @@
     "clearSelection": "Clear selection",
     "actions": "Actions"
   },
+  "searchFilter": {
+    "filters": "Filters",
+    "groupBy": "Group By",
+    "favorites": "Favorites",
+    "noFilters": "No filters",
+    "noGroupings": "No groupings",
+    "noFavorites": "No favorites",
+    "saveCurrentSearch": "Save current search",
+    "openPanel": "Open search filters",
+    "closePanel": "Close search filters",
+    "or": "or",
+    "remove": "Remove",
+    "search": "Search..."
+  },
   "confirm": {
     "confirm": "Confirm",
     "cancel": "Cancel"
