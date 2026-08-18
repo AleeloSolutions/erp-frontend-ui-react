@@ -27,8 +27,8 @@
   --surface-tint-strong: #fbfcfe;
   --table-odd: var(--surface);
   --table-even: #f2f4f7;
-  --table-odd-hover: #eef1f4;
-  --table-even-hover: #e7ebf0;
+  --table-odd-hover: #e7ebf0; /* e7ebf0 */
+  --table-even-hover: #e1e5ea; /* #eaf4ff */
   --text: #1f2937;
   --muted: #6b7280;
   --subtle: #8a94a6;

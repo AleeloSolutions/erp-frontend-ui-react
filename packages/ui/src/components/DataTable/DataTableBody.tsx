@@ -18,9 +18,9 @@ function DataRow<TData>({ row }: { row: Row<TData> }) {
   return (
     <tr
       className={cn(
-        "hover:[&>td:nth-child(odd)]:bg-erp-table-odd-hover hover:[&>td:nth-child(even)]:bg-erp-table-even-hover",
-        row.getIsSelected() &&
-          "[&>td]:!bg-erp-teal-50 hover:[&>td]:!bg-erp-teal-50 hover:[&>td:nth-child(odd)]:!bg-erp-teal-50 hover:[&>td:nth-child(even)]:!bg-erp-teal-50"
+        "odd:[&>td]:bg-erp-table-odd even:[&>td]:bg-erp-table-even",
+        "odd:hover:[&>td]:bg-erp-table-odd-hover even:hover:[&>td]:bg-erp-table-even-hover",
+        row.getIsSelected() && "[&>td]:!bg-erp-teal-50 hover:[&>td]:!bg-erp-teal-50"
       )}
     >
       {row.getVisibleCells().map((cell) => {
@@ -34,7 +34,7 @@ function DataRow<TData>({ row }: { row: Row<TData> }) {
             key={cell.id}
             style={getColumnCellStyle(cell.column)}
             className={cn(
-              "h-[34px] border-b border-erp-border-soft text-[11px] text-erp-text align-middle odd:bg-erp-table-odd even:bg-erp-table-even",
+              "h-[34px] border-b border-erp-border-soft text-[11px] text-erp-text align-middle",
               isSelect || isActions ? "p-0" : "px-2",
               isSelect && "overflow-visible text-center",
               alignRight && "text-right tabular-nums tracking-[-0.15px]"
