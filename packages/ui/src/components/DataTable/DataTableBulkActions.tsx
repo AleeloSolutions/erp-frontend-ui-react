@@ -37,7 +37,7 @@ export function DataTableBulkActions<TData>({
       role="status"
       aria-live="polite"
     >
-      <span className="inline-flex h-9 items-center gap-1.5 rounded-md border border-erp-teal bg-erp-teal-50 px-2.5 text-[11px] text-erp-teal">
+      <span className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-erp-teal bg-erp-teal-50 px-2.5 text-[11px] text-erp-teal">
         <span>
           <strong className="font-bold">{selectedCount}</strong> {t("datatable.selected")}
         </span>
@@ -64,7 +64,7 @@ export function DataTableBulkActions<TData>({
           buttonProps={{
             variant: "secondary",
             className: cn(
-              "h-9 rounded-md px-2.5 text-[11px] font-bold text-erp-text shadow-none",
+              "h-9 rounded-sm px-2.5 text-[11px] font-bold text-erp-text shadow-none",
               "border border-transparent bg-erp-secondary hover:bg-erp-secondary-hover",
               "aria-expanded:border-erp-teal aria-expanded:bg-erp-teal-50 aria-expanded:text-erp-text",
               "aria-expanded:hover:border-erp-teal aria-expanded:hover:bg-erp-teal-50"

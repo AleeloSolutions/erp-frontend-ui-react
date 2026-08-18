@@ -11,7 +11,7 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { MoreHorizontal, SlidersHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { cn } from "../../utils";
 import { Checkbox } from "../../primitives/Checkbox";
 import { Dropdown } from "../Dropdown";
@@ -21,6 +21,7 @@ import {
   type SearchFilterItem,
 } from "../SearchFilter";
 import { DataTableBulkActions } from "./DataTableBulkActions";
+import { DataTableColumnsMenu } from "./DataTableColumnsMenu";
 import { DataTableHeader } from "./DataTableHeader";
 import { DataTableBody } from "./DataTableBody";
 import { DataTablePagination } from "./DataTablePagination";
@@ -45,6 +46,7 @@ import type {
 import "../../types/table";
 
 const SIZING_STORAGE_PREFIX = "erp.datatable.sizing.";
+const VISIBILITY_STORAGE_PREFIX = "erp.datatable.visibility.";
 const DEFAULT_COLUMN_MIN_SIZE = 72;
 const DEFAULT_COLUMN_MAX_SIZE = 640;
 
@@ -57,8 +59,9 @@ export interface DataTableProps<TData, TValue = unknown> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   /**
-   * Stable id for this table instance. When set, column widths persist in
-   * localStorage under `erp.datatable.sizing.${tableId}`.
+   * Stable id for this table instance. When set, column widths persist under
+   * `erp.datatable.sizing.${tableId}` and column visibility under
+   * `erp.datatable.visibility.${tableId}`.
    */
   tableId?: string;
   searchable?: boolean;
@@ -127,6 +130,24 @@ function readStoredSizing(tableId: string | undefined): ColumnSizingState {
   }
 }
 
+function readStoredVisibility(tableId: string | undefined): VisibilityState {
+  if (!tableId || typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(`${VISIBILITY_STORAGE_PREFIX}${tableId}`);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const next: VisibilityState = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (key === "__select" || key === "__actions") continue;
+      if (typeof value === "boolean") next[key] = value;
+    }
+    return next;
+  } catch {
+    return {};
+  }
+}
+
 export function DataTable<TData, TValue = unknown>({
   columns,
   data,
@@ -163,7 +184,9 @@ export function DataTable<TData, TValue = unknown>({
   const [internalSorting, setInternalSorting] = useState<SortingState>([]);
   const [internalFilters, setInternalFilters] = useState<DataTableFilterValues>({});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() =>
+    readStoredVisibility(tableId)
+  );
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() => {
     const stored = readStoredSizing(tableId);
     if (Object.keys(stored).length > 0) return stored;
@@ -193,6 +216,14 @@ export function DataTable<TData, TValue = unknown>({
       JSON.stringify(columnSizing)
     );
   }, [tableId, columnSizing]);
+
+  useEffect(() => {
+    if (!tableId || !enableColumnVisibility || typeof window === "undefined") return;
+    window.localStorage.setItem(
+      `${VISIBILITY_STORAGE_PREFIX}${tableId}`,
+      JSON.stringify(columnVisibility)
+    );
+  }, [tableId, enableColumnVisibility, columnVisibility]);
 
   useEffect(() => {
     if (sizingLockedRef.current) return;
@@ -588,48 +619,57 @@ export function DataTable<TData, TValue = unknown>({
   const showSearchFilter =
     searchable || filters.length > 0 || resolvedGroupingOptions.length > 0;
   const hasSelection = selectedRows.length > 0;
-  const showSearchSlot = showSearchFilter || hasSelection;
+  const showSearchSlot = showSearchFilter || hasSelection || enablePagination;
 
-  const columnsMenu = enableColumnVisibility ? (
-    <Dropdown
-      trigger="button"
-      hideChevron
-      label={<SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />}
-      align="right"
-      buttonProps={{
-        variant: "ghost",
-        size: "icon",
-        "aria-label": "Columns",
-        className:
-          "h-6 w-6 rounded-md border-0 bg-transparent p-0 text-erp-text shadow-none hover:bg-erp-table-odd-hover hover:border-transparent",
-      }}
-      items={table
-        .getAllLeafColumns()
-        .filter((column) => column.getCanHide())
-        .map((column) => ({
-          key: column.id,
-          label: `${column.getIsVisible() ? "Hide" : "Show"} ${
-            typeof column.columnDef.header === "string"
-              ? column.columnDef.header
-              : column.id
-          }`,
-          onClick: () => column.toggleVisibility(),
-        }))}
+  const pager = enablePagination ? (
+    <DataTablePagination
+      table={table}
+      totalRows={totalRows}
+      serverMode={isServerPagination}
     />
   ) : null;
+
+  const hideableColumns = table
+    .getAllLeafColumns()
+    .filter((column) => column.getCanHide());
+  const visibleHideableCount = hideableColumns.filter((column) =>
+    column.getIsVisible()
+  ).length;
+
+  const columnsMenu =
+    enableColumnVisibility && hideableColumns.length > 0 ? (
+      <DataTableColumnsMenu
+        items={hideableColumns.map((column) => ({
+          id: column.id,
+          label:
+            typeof column.columnDef.header === "string"
+              ? column.columnDef.header
+              : column.id,
+          isVisible: column.getIsVisible(),
+          isDisabled: column.getIsVisible() && visibleHideableCount <= 1,
+          onToggle: () => column.toggleVisibility(),
+        }))}
+      />
+    ) : null;
 
   return (
     <div ref={rootRef} className={cn("bg-erp-table-bg", className)}>
       {showSearchSlot ? (
         <div className="relative z-20 overflow-visible border-b border-erp-table-border bg-erp-table-header px-4 py-2">
           {hasSelection ? (
-            <DataTableBulkActions
-              selectedCount={selectedRows.length}
-              selectedRows={selectedRows}
-              actions={bulkActions}
-              onClear={() => setRowSelection({})}
-            />
-          ) : (
+            <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,28rem)_minmax(0,1fr)] items-center gap-3">
+              <div />
+              <div className="flex justify-center">
+                <DataTableBulkActions
+                  selectedCount={selectedRows.length}
+                  selectedRows={selectedRows}
+                  actions={bulkActions}
+                  onClear={() => setRowSelection({})}
+                />
+              </div>
+              <div className="flex min-w-0 items-center justify-end">{pager}</div>
+            </div>
+          ) : showSearchFilter ? (
             <SearchFilter
               value={searchable ? search : ""}
               onChange={(value) => {
@@ -644,7 +684,10 @@ export function DataTable<TData, TValue = unknown>({
               chips={searchFilterChips}
               filters={panelFilterItems}
               groupBy={panelGroupItems}
+              endSlot={pager}
             />
+          ) : (
+            <div className="flex w-full justify-end">{pager}</div>
           )}
         </div>
       ) : null}
@@ -662,7 +705,7 @@ export function DataTable<TData, TValue = unknown>({
           <div className="relative overflow-hidden">
             <div ref={scrollRef} className="w-full overflow-auto">
               <table
-                className="w-full table-fixed border-collapse tabular-nums"
+                className="w-full table-fixed border-collapse text-start tabular-nums"
                 style={{
                   width: containerWidth > 0 ? containerWidth : "100%",
                 }}
@@ -696,13 +739,6 @@ export function DataTable<TData, TValue = unknown>({
               </div>
             ) : null}
           </div>
-          {enablePagination ? (
-            <DataTablePagination
-              table={table}
-              totalRows={totalRows}
-              serverMode={isServerPagination}
-            />
-          ) : null}
         </>
       )}
     </div>

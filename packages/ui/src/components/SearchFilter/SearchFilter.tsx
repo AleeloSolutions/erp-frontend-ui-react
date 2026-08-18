@@ -38,6 +38,8 @@ export interface SearchFilterProps {
   onPanelOpenChange?: (open: boolean) => void;
   /** Columns control rendered beside the search shell. */
   columnsSlot?: ReactNode;
+  /** Compact pager (or other control) at the end of the search row. */
+  endSlot?: ReactNode;
   /** When false, hides the Filters / Group By / Favorites panel toggle. Default true. */
   showPanel?: boolean;
   disabled?: boolean;
@@ -61,23 +63,26 @@ function PanelColumn({
   return (
     <div
       className={cn(
-        "min-w-0 w-full shrink-0 px-3 lg:w-[16.5rem] lg:min-w-[14rem]",
+        "min-w-0 w-full shrink-0 px-2 lg:w-48",
         showEndBorder &&
-          "max-lg:border-b max-lg:border-erp-table-border max-lg:pb-3 max-lg:mb-3 lg:border-e lg:border-erp-table-border"
+          "max-lg:mb-2 max-lg:border-b max-lg:border-erp-table-border max-lg:pb-2 lg:border-e lg:border-erp-table-border"
       )}
     >
-      <div className="mb-2 flex items-center gap-2 px-3 text-[0.9625rem] font-medium text-erp-text">
+      <div className="mb-1.5 flex items-center gap-1.5 px-2 text-[13px] font-medium text-erp-text">
         {icon}
-        <h5 className="m-0 inline text-[0.9625rem] font-medium">{title}</h5>
+        <h5 className="m-0 inline text-[13px] font-medium">{title}</h5>
       </div>
       <ul className="m-0 list-none p-0" role="none">
         {items.length === 0 ? (
-          <li className="px-5 py-[3px] text-[0.875rem] text-erp-muted">{emptyLabel}</li>
+          <li className="px-3 py-0.5 text-[12px] text-erp-muted">{emptyLabel}</li>
         ) : (
           items.map((item) => (
             <li key={item.id} role="none">
               {item.dividerBefore ? (
-                <div className="my-2 border-t border-erp-table-border" role="separator" />
+                <div
+                  className="my-1.5 border-t border-erp-table-border"
+                  role="separator"
+                />
               ) : null}
               <button
                 type="button"
@@ -86,16 +91,16 @@ function PanelColumn({
                 disabled={item.disabled}
                 onClick={item.onSelect}
                 className={cn(
-                  "relative block w-full truncate rounded-none border-0 bg-transparent px-5 py-[3px] text-start text-[0.875rem] leading-normal text-erp-text",
+                  "relative block w-full truncate rounded-none border-0 bg-transparent px-3 py-0.5 text-start text-[12px] leading-snug text-erp-text",
                   "hover:bg-erp-menu-hover hover:text-erp-text",
                   (item.active || item.checked) && "bg-erp-menu-hover",
                   item.disabled &&
-                    "cursor-not-allowed text-erp-muted/70 hover:bg-transparent"
+                    "cursor-not-allowed text-erp-muted hover:bg-transparent"
                 )}
               >
                 {item.checked ? (
                   <Check
-                    className="absolute start-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-erp-primary"
+                    className="absolute start-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-erp-primary"
                     aria-hidden
                   />
                 ) : null}
@@ -140,19 +145,19 @@ function SearchFacet({
         aria-hidden
       >
         {kind === "group" ? (
-          <Layers className="h-3.5 w-3.5" />
+          <Layers className="h-3 w-3" />
         ) : (
-          <Filter className="h-3.5 w-3.5" />
+          <Filter className="h-3 w-3" />
         )}
       </span>
       <div className="relative z-[1] flex min-w-0 flex-wrap items-center ps-2">
         {values.map((value, index) => (
           <span key={`${chip.id}:${value}:${index}`} className="contents">
             {index > 0 ? (
-              <em className="mx-1 text-[0.8125rem] font-bold opacity-50">{separator}</em>
+              <em className="mx-1 text-[12px] font-bold opacity-50">{separator}</em>
             ) : null}
             <small
-              className="max-w-[11rem] truncate text-[0.8125rem] leading-none text-erp-text"
+              className="max-w-[11rem] truncate text-[12px] leading-none text-erp-text"
               title={value}
             >
               {value}
@@ -188,6 +193,7 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
       defaultPanelOpen = false,
       onPanelOpenChange,
       columnsSlot,
+      endSlot,
       showPanel = true,
       disabled = false,
       readOnly = false,
@@ -255,137 +261,148 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
     return (
       <div
         ref={rootRef}
-        className={cn("relative mx-auto w-full min-w-0 max-w-[600px]", className)}
+        className={cn(
+          "relative grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,28rem)_minmax(0,1fr)] items-center gap-3",
+          className
+        )}
       >
-        <div className="flex w-full max-w-full items-stretch gap-2">
-          <div
-            className={cn(
-              "flex min-w-0 flex-1 items-stretch",
-              disabled && "cursor-not-allowed opacity-60"
-            )}
-            role="search"
-          >
+        <div />
+        <div className="relative w-full min-w-0">
+          <div className="flex w-full max-w-full items-stretch">
             <div
               className={cn(
-                "flex min-h-9 min-w-0 flex-1 items-center rounded-s border border-erp-table-border bg-erp-table-bg py-1 ps-2 pe-1",
-                showPanel ? "border-e-0" : "rounded-e",
-                open && "border-erp-primary"
+                "flex min-w-0 flex-1 items-stretch",
+                disabled && "cursor-not-allowed opacity-60"
+              )}
+              role="search"
+            >
+              <div
+                className={cn(
+                  "flex min-h-8 min-w-0 flex-1 items-center rounded-s border border-erp-table-border bg-erp-table-bg py-0.5 ps-2 pe-1",
+                  showPanel ? "border-e-0" : "rounded-e",
+                  open && "border-erp-primary"
+                )}
+              >
+                <button
+                  type="button"
+                  className="me-2 shrink-0 border-0 bg-transparent p-0 text-erp-muted"
+                  aria-label={searchPlaceholder}
+                  title={searchPlaceholder}
+                  disabled={disabled}
+                  onClick={() => {
+                    inputRef.current?.focus();
+                    if (!disabled && !readOnly) setOpen(true);
+                  }}
+                >
+                  <Search className="h-3.5 w-3.5" aria-hidden />
+                </button>
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+                  {chips.map((chip) => (
+                    <SearchFacet
+                      key={chip.id}
+                      chip={chip}
+                      disabled={disabled}
+                      orLabel={t("searchFilter.or")}
+                      removeLabel={t("searchFilter.remove")}
+                    />
+                  ))}
+                  <input
+                    ref={assignInputRef}
+                    value={value}
+                    disabled={disabled}
+                    readOnly={readOnly}
+                    placeholder={searchPlaceholder}
+                    aria-label={searchPlaceholder}
+                    className={cn(
+                      "h-6 min-w-[5rem] flex-1 border-0 bg-transparent px-0.5 text-[13px] text-erp-text",
+                      "placeholder:text-erp-placeholder",
+                      "outline-none ring-0 focus:outline-none focus:ring-0",
+                      "disabled:cursor-not-allowed"
+                    )}
+                    onFocus={() => {
+                      if (!disabled && !readOnly) setOpen(true);
+                    }}
+                    onChange={(event) => {
+                      const next = event.target.value;
+                      onChange(next);
+                      if (!disabled && !readOnly) setOpen(true);
+                    }}
+                  />
+                </div>
+              </div>
+              {showPanel ? (
+                <button
+                  type="button"
+                  disabled={disabled}
+                  aria-expanded={open}
+                  aria-controls={panelId}
+                  title={
+                    open ? t("searchFilter.closePanel") : t("searchFilter.openPanel")
+                  }
+                  aria-label={
+                    open ? t("searchFilter.closePanel") : t("searchFilter.openPanel")
+                  }
+                  className={cn(
+                    "grid w-8 shrink-0 place-items-center self-stretch rounded-e border border-erp-table-border bg-erp-table-bg text-erp-muted",
+                    "hover:bg-erp-secondary hover:text-erp-text",
+                    "disabled:cursor-not-allowed disabled:opacity-60",
+                    open && "border-erp-primary bg-erp-secondary text-erp-text"
+                  )}
+                  onClick={() => setOpen(!open)}
+                >
+                  <ChevronDown
+                    className={cn(
+                      "h-3.5 w-3.5 transition-transform duration-150",
+                      open && "rotate-180"
+                    )}
+                    aria-hidden
+                  />
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {open ? (
+            <div
+              id={panelId}
+              role="menu"
+              aria-label={t("searchFilter.filters")}
+              className={cn(
+                "absolute left-1/2 z-50 mt-1.5 flex w-max max-h-[min(50vh,20rem)] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-auto",
+                "flex-col py-2.5 lg:flex-row lg:flex-nowrap",
+                "rounded border border-erp-table-border bg-erp-table-bg text-[12px] text-erp-text",
+                "shadow-[0_0.3rem_1rem_rgba(0,0,0,0.1)]"
               )}
             >
-              <button
-                type="button"
-                className="me-2 shrink-0 border-0 bg-transparent p-0 text-erp-muted"
-                aria-label={searchPlaceholder}
-                title={searchPlaceholder}
-                disabled={disabled}
-                onClick={() => {
-                  inputRef.current?.focus();
-                  if (!disabled && !readOnly) setOpen(true);
-                }}
-              >
-                <Search className="h-4 w-4" aria-hidden />
-              </button>
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-                {chips.map((chip) => (
-                  <SearchFacet
-                    key={chip.id}
-                    chip={chip}
-                    disabled={disabled}
-                    orLabel={t("searchFilter.or")}
-                    removeLabel={t("searchFilter.remove")}
-                  />
-                ))}
-                <input
-                  ref={assignInputRef}
-                  value={value}
-                  disabled={disabled}
-                  readOnly={readOnly}
-                  placeholder={searchPlaceholder}
-                  aria-label={searchPlaceholder}
-                  className={cn(
-                    "h-7 min-w-[6rem] flex-1 border-0 bg-transparent px-0.5 text-[0.875rem] text-erp-text",
-                    "placeholder:text-erp-placeholder",
-                    "outline-none ring-0 focus:outline-none focus:ring-0",
-                    "disabled:cursor-not-allowed"
-                  )}
-                  onFocus={() => {
-                    if (!disabled && !readOnly) setOpen(true);
-                  }}
-                  onChange={(event) => {
-                    const next = event.target.value;
-                    onChange(next);
-                    if (!disabled && !readOnly) setOpen(true);
-                  }}
-                />
-              </div>
+              <PanelColumn
+                title={t("searchFilter.filters")}
+                icon={<Filter className="h-3.5 w-3.5 text-erp-primary" aria-hidden />}
+                items={filters}
+                emptyLabel={t("searchFilter.noFilters")}
+                showEndBorder
+              />
+              <PanelColumn
+                title={t("searchFilter.groupBy")}
+                icon={<Layers className="h-3.5 w-3.5 text-erp-teal" aria-hidden />}
+                items={groupBy}
+                emptyLabel={t("searchFilter.noGroupings")}
+                showEndBorder
+              />
+              <PanelColumn
+                title={t("searchFilter.favorites")}
+                icon={<Star className="h-3.5 w-3.5 text-erp-favourite" aria-hidden />}
+                items={favoriteItems}
+                emptyLabel={t("searchFilter.noFavorites")}
+              />
             </div>
-            {showPanel ? (
-              <button
-                type="button"
-                disabled={disabled}
-                aria-expanded={open}
-                aria-controls={panelId}
-                title={open ? t("searchFilter.closePanel") : t("searchFilter.openPanel")}
-                aria-label={
-                  open ? t("searchFilter.closePanel") : t("searchFilter.openPanel")
-                }
-                className={cn(
-                  "grid w-9 shrink-0 place-items-center self-stretch rounded-e border border-erp-table-border bg-erp-table-bg text-erp-muted",
-                  "hover:bg-erp-secondary hover:text-erp-text",
-                  "disabled:cursor-not-allowed disabled:opacity-60",
-                  open && "border-erp-primary bg-erp-secondary text-erp-text"
-                )}
-                onClick={() => setOpen(!open)}
-              >
-                <ChevronDown
-                  className={cn(
-                    "h-3.5 w-3.5 transition-transform duration-150",
-                    open && "rotate-180"
-                  )}
-                  aria-hidden
-                />
-              </button>
-            ) : null}
-          </div>
+          ) : null}
+        </div>
+        <div className="flex min-w-0 items-center justify-end gap-3">
           {columnsSlot ? (
             <div className="flex shrink-0 items-center">{columnsSlot}</div>
           ) : null}
+          {endSlot}
         </div>
-
-        {open ? (
-          <div
-            id={panelId}
-            role="menu"
-            aria-label={t("searchFilter.filters")}
-            className={cn(
-              "absolute left-1/2 z-50 mt-2 flex w-[min(49.5rem,calc(100vw-2rem))] max-h-[min(70vh,40rem)] -translate-x-1/2 overflow-auto",
-              "flex-col py-4 lg:flex-row lg:flex-nowrap",
-              "rounded border border-erp-table-border bg-erp-table-bg text-[0.875rem] text-erp-text",
-              "shadow-[0_0.3rem_1rem_rgba(0,0,0,0.1)]"
-            )}
-          >
-            <PanelColumn
-              title={t("searchFilter.filters")}
-              icon={<Filter className="h-4 w-4 text-erp-primary" aria-hidden />}
-              items={filters}
-              emptyLabel={t("searchFilter.noFilters")}
-              showEndBorder
-            />
-            <PanelColumn
-              title={t("searchFilter.groupBy")}
-              icon={<Layers className="h-4 w-4 text-erp-teal" aria-hidden />}
-              items={groupBy}
-              emptyLabel={t("searchFilter.noGroupings")}
-              showEndBorder
-            />
-            <PanelColumn
-              title={t("searchFilter.favorites")}
-              icon={<Star className="h-4 w-4 text-erp-favourite" aria-hidden />}
-              items={favoriteItems}
-              emptyLabel={t("searchFilter.noFavorites")}
-            />
-          </div>
-        ) : null}
       </div>
     );
   }

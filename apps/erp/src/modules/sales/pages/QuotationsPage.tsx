@@ -4,18 +4,9 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { FileText, Plus, Trash2 } from "lucide-react";
 import { AppShell, PageHeader, PageSubmenu } from "@/app";
 import { DataTable } from "@erp/ui";
-import {
-  Button,
-  ConfirmDialog,
-  Drawer,
-  StatusBadge,
-  useToast,
-} from "@erp/ui";
+import { Button, ConfirmDialog, Drawer, StatusBadge, useToast } from "@erp/ui";
 import { salesSubmenu } from "@/modules/sales/manifest";
-import {
-  useDeleteQuotationMutation,
-  useQuotationsQuery,
-} from "@/modules/sales/api";
+import { useDeleteQuotationMutation, useQuotationsQuery } from "@/modules/sales/api";
 import { useDebounce } from "@erp/ui";
 import type { Quotation, QuotationStatus } from "@/modules/sales/api";
 import type { DataTableFilter, DataTableFilterValues } from "@erp/ui";
@@ -31,9 +22,7 @@ export default function QuotationsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([]);
-  const [detailQuotation, setDetailQuotation] = useState<Quotation | null>(
-    null
-  );
+  const [detailQuotation, setDetailQuotation] = useState<Quotation | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
   const statusFilter = String(filterValues.status ?? "");
@@ -137,10 +126,7 @@ export default function QuotationsPage() {
         await deleteMutation.mutateAsync(id);
       }
       toast({
-        title:
-          pendingDeleteIds.length > 1
-            ? "Quotations deleted"
-            : "Quotation deleted",
+        title: pendingDeleteIds.length > 1 ? "Quotations deleted" : "Quotation deleted",
         description: `${pendingDeleteIds.length} record(s) removed.`,
         variant: "success",
       });
@@ -148,9 +134,7 @@ export default function QuotationsPage() {
       setDetailQuotation(null);
     } catch (error) {
       const message =
-        error instanceof MockApiError
-          ? error.message
-          : "Could not delete quotation.";
+        error instanceof MockApiError ? error.message : "Could not delete quotation.";
       toast({ title: "Delete failed", description: message, variant: "error" });
     }
   }
@@ -164,23 +148,17 @@ export default function QuotationsPage() {
         description="Manage quotations with Query-backed list, confirm delete, and drawer detail."
         icon={<FileText className="h-4 w-4" aria-hidden />}
         actions={
-          <Button
-            variant="primary"
-            onClick={() => navigate("/sales/quotations/new")}
-          >
+          <Button variant="primary" onClick={() => navigate("/sales/quotations/new")}>
             <Plus className="h-3.5 w-3.5" aria-hidden />
             Create Quotation
           </Button>
         }
       />
 
-      <PageSubmenu
-        module="Sales"
-        items={salesSubmenu}
-        activeKey="quotations"
-      />
+      <PageSubmenu module="Sales" items={salesSubmenu} activeKey="quotations" />
 
       <DataTable
+        tableId="sales-quotations"
         columns={columns}
         data={quotationsQuery.data?.data ?? []}
         searchable
@@ -257,10 +235,7 @@ export default function QuotationsPage() {
         description="Quotation detail drawer (mock)"
         footer={
           <>
-            <Button
-              variant="secondary"
-              onClick={() => setDetailQuotation(null)}
-            >
+            <Button variant="secondary" onClick={() => setDetailQuotation(null)}>
               Close
             </Button>
             <Button
@@ -280,15 +255,11 @@ export default function QuotationsPage() {
           <dl className="m-0 grid gap-2 text-[12px]">
             <div>
               <dt className="text-erp-subtle">Customer</dt>
-              <dd className="m-0 font-bold text-erp-text">
-                {detailQuotation.customer}
-              </dd>
+              <dd className="m-0 font-bold text-erp-text">{detailQuotation.customer}</dd>
             </div>
             <div>
               <dt className="text-erp-subtle">Date</dt>
-              <dd className="m-0 font-bold text-erp-text">
-                {detailQuotation.date}
-              </dd>
+              <dd className="m-0 font-bold text-erp-text">{detailQuotation.date}</dd>
             </div>
             <div>
               <dt className="text-erp-subtle">Valid until</dt>
@@ -304,9 +275,7 @@ export default function QuotationsPage() {
             </div>
             <div>
               <dt className="text-erp-subtle">Amount</dt>
-              <dd className="m-0 font-bold text-erp-text">
-                {detailQuotation.amount}
-              </dd>
+              <dd className="m-0 font-bold text-erp-text">{detailQuotation.amount}</dd>
             </div>
             <p className="m-0 mt-2 text-[11px] text-erp-muted">
               Need a new record?{" "}

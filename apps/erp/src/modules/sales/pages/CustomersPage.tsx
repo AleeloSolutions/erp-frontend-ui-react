@@ -4,18 +4,9 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Plus, Trash2, Users } from "lucide-react";
 import { AppShell, PageHeader } from "@/app";
 import { DataTable } from "@erp/ui";
-import {
-  Button,
-  ConfirmDialog,
-  Drawer,
-  StatusBadge,
-  useToast,
-} from "@erp/ui";
+import { Button, ConfirmDialog, Drawer, StatusBadge, useToast } from "@erp/ui";
 import { salesSubmenu } from "@/modules/sales/manifest";
-import {
-  useCustomersQuery,
-  useDeleteCustomerMutation,
-} from "@/modules/sales/api";
+import { useCustomersQuery, useDeleteCustomerMutation } from "@/modules/sales/api";
 import { useDebounce } from "@erp/ui";
 import type { Customer } from "@/modules/sales/api";
 import type { DataTableFilter, DataTableFilterValues } from "@erp/ui";
@@ -34,9 +25,7 @@ export default function CustomersPage() {
   const debouncedSearch = useDebounce(search, 300);
   const statusFilter = String(filterValues.status ?? "");
   const status =
-    statusFilter === "Active" || statusFilter === "Inactive"
-      ? statusFilter
-      : "all";
+    statusFilter === "Active" || statusFilter === "Inactive" ? statusFilter : "all";
 
   const listParams = useMemo(
     () => ({
@@ -136,10 +125,7 @@ export default function CustomersPage() {
         await deleteMutation.mutateAsync(id);
       }
       toast({
-        title:
-          pendingDeleteIds.length > 1
-            ? "Customers deleted"
-            : "Customer deleted",
+        title: pendingDeleteIds.length > 1 ? "Customers deleted" : "Customer deleted",
         description: `${pendingDeleteIds.length} record(s) removed.`,
         variant: "success",
       });
@@ -147,9 +133,7 @@ export default function CustomersPage() {
       setDetailCustomer(null);
     } catch (error) {
       const message =
-        error instanceof MockApiError
-          ? error.message
-          : "Could not delete customer.";
+        error instanceof MockApiError ? error.message : "Could not delete customer.";
       toast({ title: "Delete failed", description: message, variant: "error" });
     }
   }
@@ -163,10 +147,7 @@ export default function CustomersPage() {
         description="Manage customers with Query-backed list, confirm delete, and drawer detail."
         icon={<Users className="h-4 w-4" aria-hidden />}
         actions={
-          <Button
-            variant="primary"
-            onClick={() => navigate("/sales/customers/new")}
-          >
+          <Button variant="primary" onClick={() => navigate("/sales/customers/new")}>
             <Plus className="h-3.5 w-3.5" aria-hidden />
             Create Customer
           </Button>
@@ -179,6 +160,7 @@ export default function CustomersPage() {
       />
 
       <DataTable
+        tableId="sales-customers"
         columns={columns}
         data={customersQuery.data?.data ?? []}
         searchable
@@ -231,9 +213,7 @@ export default function CustomersPage() {
       <ConfirmDialog
         open={pendingDeleteIds.length > 0}
         title={
-          pendingDeleteIds.length > 1
-            ? "Delete selected customers?"
-            : "Delete customer?"
+          pendingDeleteIds.length > 1 ? "Delete selected customers?" : "Delete customer?"
         }
         description="This mock action removes records from the in-memory store."
         confirmLabel="Delete"

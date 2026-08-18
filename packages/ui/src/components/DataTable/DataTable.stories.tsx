@@ -258,7 +258,8 @@ export const Default: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Baseline list: client search, column sort, and column visibility only.",
+        story:
+          "Baseline list: client search, column sort, and the header columns checkbox menu. Visibility persists under `erp.datatable.visibility.${tableId}`.",
       },
     },
   },
@@ -382,7 +383,7 @@ export const SearchFilterPanel: Story = {
     docs: {
       description: {
         story:
-          "SearchFilter integration only — open the panel for Filters (conditions) and Group By (dimensions). Sort/Columns stay on the strip below.",
+          "SearchFilter with compact pager at the end of the search row. Open the panel for Filters and Group By. Sort/Columns stay on the table header.",
       },
     },
   },

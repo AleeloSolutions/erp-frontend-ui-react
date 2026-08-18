@@ -12,6 +12,11 @@ export {
   type DataTableFilterBarProps,
   type DataTableToolbarProps,
 } from "./DataTableFilterBar";
+export {
+  DataTableColumnsMenu,
+  type DataTableColumnsMenuItem,
+  type DataTableColumnsMenuProps,
+} from "./DataTableColumnsMenu";
 export { DataTableHeader, type DataTableHeaderProps } from "./DataTableHeader";
 export { DataTableLoading } from "./DataTableLoading";
 export {

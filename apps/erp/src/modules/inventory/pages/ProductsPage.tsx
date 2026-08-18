@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Package, Pencil, Plus, Trash2 } from "lucide-react";
+import { Package, Plus } from "lucide-react";
 import { AppShell, PageHeader } from "@/app";
 import {
   Button,
@@ -34,7 +34,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState<DataTableFilterValues>({});
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([]);
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
 
@@ -101,12 +101,12 @@ export default function ProductsPage() {
       {
         accessorKey: "sku",
         header: "SKU",
-        size: 110,
+        // size: 110,
       },
       {
         accessorKey: "name",
         header: "Product",
-        meta: { fill: true },
+        // meta: { fill: true },
         size: 220,
         cell: ({ row, getValue }) => (
           <button
@@ -121,37 +121,31 @@ export default function ProductsPage() {
       {
         accessorKey: "category",
         header: "Category",
-        size: 130,
+        // size: 130,
       },
       {
         accessorKey: "unit",
         header: "Unit",
-        size: 70,
+        // size: 70,
       },
       {
         accessorKey: "unitPrice",
         header: "Unit price",
-        size: 110,
+        // size: 110,
         cell: ({ getValue }) => (
-          <span className="tabular-nums">
-            {formatCurrency(Number(getValue()))}
-          </span>
+          <span className="tabular-nums">{formatCurrency(Number(getValue()))}</span>
         ),
       },
       {
         accessorKey: "stockQty",
         header: "Stock",
-        size: 80,
+        // size: 80,
         cell: ({ row, getValue }) => {
           const qty = Number(getValue());
           const low = qty <= row.original.reorderLevel;
           return (
             <span
-              className={
-                low
-                  ? "font-bold tabular-nums text-erp-error"
-                  : "tabular-nums"
-              }
+              className={low ? "font-bold tabular-nums text-erp-error" : "tabular-nums"}
             >
               {qty}
             </span>
@@ -162,35 +156,7 @@ export default function ProductsPage() {
         accessorKey: "status",
         header: "Status",
         cell: ({ getValue }) => <StatusBadge status={String(getValue())} />,
-        size: 120,
-      },
-      {
-        id: "__actions",
-        header: "",
-        enableSorting: false,
-        size: 88,
-        cell: ({ row }) => (
-          <div className="flex items-center gap-0.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`Edit ${row.original.name}`}
-              onClick={() =>
-                navigate(`/inventory/products/${row.original.id}/edit`)
-              }
-            >
-              <Pencil className="h-3.5 w-3.5 text-erp-muted" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`Delete ${row.original.name}`}
-              onClick={() => setPendingDeleteIds([row.original.id])}
-            >
-              <Trash2 className="h-3.5 w-3.5 text-erp-error" />
-            </Button>
-          </div>
-        ),
+        // size: 120,
       },
     ],
     [navigate]
@@ -202,8 +168,7 @@ export default function ProductsPage() {
         await deleteMutation.mutateAsync(id);
       }
       toast({
-        title:
-          pendingDeleteIds.length > 1 ? "Products deleted" : "Product deleted",
+        title: pendingDeleteIds.length > 1 ? "Products deleted" : "Product deleted",
         description: `${pendingDeleteIds.length} record(s) removed.`,
         variant: "success",
       });
@@ -211,9 +176,7 @@ export default function ProductsPage() {
       setDetailProduct(null);
     } catch (error) {
       const message =
-        error instanceof MockApiError
-          ? error.message
-          : "Could not delete product.";
+        error instanceof MockApiError ? error.message : "Could not delete product.";
       toast({ title: "Delete failed", description: message, variant: "error" });
     }
   }
@@ -227,10 +190,7 @@ export default function ProductsPage() {
         description="Manage products with stock levels, pricing, filters, and full create/edit/delete flows."
         icon={<Package className="h-4 w-4" aria-hidden />}
         actions={
-          <Button
-            variant="primary"
-            onClick={() => navigate("/inventory/products/new")}
-          >
+          <Button variant="primary" onClick={() => navigate("/inventory/products/new")}>
             <Plus className="h-3.5 w-3.5" aria-hidden />
             Create Product
           </Button>
@@ -243,6 +203,7 @@ export default function ProductsPage() {
       />
 
       <DataTable
+        tableId="inventory-products"
         columns={columns}
         data={productsQuery.data?.data ?? []}
         searchable
@@ -288,6 +249,12 @@ export default function ProductsPage() {
             variant: "danger",
             onClick: (rows) => setPendingDeleteIds(rows.map((row) => row.id)),
           },
+          {
+            key: "export",
+            label: "Export",
+            variant: "danger",
+            onClick: (rows) => setPendingDeleteIds(rows.map((row) => row.id)),
+          },
         ]}
         emptyMessage="No products found. Try adjusting filters or create a new product."
       />
@@ -295,9 +262,7 @@ export default function ProductsPage() {
       <ConfirmDialog
         open={pendingDeleteIds.length > 0}
         title={
-          pendingDeleteIds.length > 1
-            ? "Delete selected products?"
-            : "Delete product?"
+          pendingDeleteIds.length > 1 ? "Delete selected products?" : "Delete product?"
         }
         description="This mock action removes records from the in-memory store."
         confirmLabel="Delete"
@@ -344,9 +309,7 @@ export default function ProductsPage() {
           <dl className="m-0 grid gap-2 text-[12px]">
             <div>
               <dt className="text-erp-subtle">Category</dt>
-              <dd className="m-0 font-bold text-erp-text">
-                {detailProduct.category}
-              </dd>
+              <dd className="m-0 font-bold text-erp-text">{detailProduct.category}</dd>
             </div>
             <div>
               <dt className="text-erp-subtle">Unit</dt>
@@ -379,9 +342,7 @@ export default function ProductsPage() {
             {detailProduct.barcode ? (
               <div>
                 <dt className="text-erp-subtle">Barcode</dt>
-                <dd className="m-0 font-bold text-erp-text">
-                  {detailProduct.barcode}
-                </dd>
+                <dd className="m-0 font-bold text-erp-text">{detailProduct.barcode}</dd>
               </div>
             ) : null}
             {detailProduct.description ? (
@@ -392,15 +353,11 @@ export default function ProductsPage() {
             ) : null}
             <div>
               <dt className="text-erp-subtle">Created</dt>
-              <dd className="m-0 font-bold text-erp-text">
-                {detailProduct.created}
-              </dd>
+              <dd className="m-0 font-bold text-erp-text">{detailProduct.created}</dd>
             </div>
             <div>
               <dt className="text-erp-subtle">Updated</dt>
-              <dd className="m-0 font-bold text-erp-text">
-                {detailProduct.updated}
-              </dd>
+              <dd className="m-0 font-bold text-erp-text">{detailProduct.updated}</dd>
             </div>
             <p className="m-0 mt-2 text-[11px] text-erp-muted">
               Need a new record?{" "}

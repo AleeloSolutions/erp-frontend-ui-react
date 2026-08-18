@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState, type ReactNode } from "react";
-import { AlignJustify } from "lucide-react";
+import { AlignJustify, ChevronLeft, ChevronRight } from "lucide-react";
 import { SearchFilter, type SearchFilterChip } from "./SearchFilter";
 import { Button } from "../../primitives/Button";
 import { Select } from "../../primitives/Select";
@@ -21,7 +21,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Matches DataTable search strip — SearchFilter is centered, up to 600px. */
+/** Matches DataTable search strip — search field centered, optional pager at the row end. */
 function ListSearchStrip({ children }: { children: ReactNode }) {
   return (
     <div className="relative z-20 overflow-visible border-b border-erp-table-border bg-erp-table-header px-4 py-2">
@@ -37,6 +37,56 @@ export const Default: Story = {
     return (
       <ListSearchStrip>
         <SearchFilter value={value} onChange={setValue} />
+      </ListSearchStrip>
+    );
+  },
+};
+
+/** Compact `start-end / total` pager at the end of the search row. */
+export const WithPager: Story = {
+  render: function WithPagerStory() {
+    const [value, setValue] = useState("");
+    const total = 3;
+    const pageSize = 3;
+    const [pageIndex, setPageIndex] = useState(0);
+    const start = pageIndex * pageSize + 1;
+    const end = Math.min((pageIndex + 1) * pageSize, total);
+    const canPrev = pageIndex > 0;
+    const canNext = end < total;
+
+    return (
+      <ListSearchStrip>
+        <SearchFilter
+          value={value}
+          onChange={setValue}
+          endSlot={
+            <div className="flex items-center gap-3 text-[13px] text-erp-text">
+              <span className="whitespace-nowrap tabular-nums">
+                {start}-{end} / {total}
+              </span>
+              <div className="flex gap-0.5">
+                <button
+                  type="button"
+                  className="grid h-7 w-7 place-items-center rounded bg-erp-secondary text-erp-muted hover:bg-erp-secondary-hover disabled:opacity-40"
+                  disabled={!canPrev}
+                  aria-label="Previous page"
+                  onClick={() => setPageIndex((page) => page - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  className="grid h-7 w-7 place-items-center rounded bg-erp-secondary text-erp-muted hover:bg-erp-secondary-hover disabled:opacity-40"
+                  disabled={!canNext}
+                  aria-label="Next page"
+                  onClick={() => setPageIndex((page) => page + 1)}
+                >
+                  <ChevronRight className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+            </div>
+          }
+        />
       </ListSearchStrip>
     );
   },

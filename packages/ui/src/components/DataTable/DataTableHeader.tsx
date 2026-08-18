@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import type { Header, Table } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { cn } from "../../utils";
 import { getColumnCellStyle, startNeighborColumnResize } from "./column-width";
 import type { ColumnSizingState } from "@tanstack/react-table";
@@ -18,15 +17,26 @@ export interface DataTableHeaderProps<TData> {
   columnsMenu?: ReactNode;
 }
 
+/** Font Awesome `fa-sort` / `fa-sort-up` / `fa-sort-down` glyph. */
 function SortIcon({ sorted }: { sorted: false | "asc" | "desc" }) {
-  const iconClass = "h-3 w-3 shrink-0";
-  if (sorted === "asc") return <ArrowUp className={iconClass} aria-hidden />;
-  if (sorted === "desc") return <ArrowDown className={iconClass} aria-hidden />;
   return (
-    <ArrowUpDown
-      className={cn(iconClass, "opacity-0 group-hover/th:opacity-100")}
+    <svg
+      viewBox="0 0 320 512"
+      className="h-3 w-2.5 shrink-0"
       aria-hidden
-    />
+      focusable="false"
+    >
+      <path
+        fill="currentColor"
+        opacity={sorted === "desc" ? 0.25 : sorted === "asc" ? 1 : 0.45}
+        d="M182.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-128 128c-9.2 9.2-11.9 22.9-6.9 34.9S19.8 224 32 224h256c12.2 0 23.3-7.2 28.2-18.3s2.3-25.7-6.9-34.9l-128-128z"
+      />
+      <path
+        fill="currentColor"
+        opacity={sorted === "asc" ? 0.25 : sorted === "desc" ? 1 : 0.45}
+        d="M182.6 470.6c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-9.2-9.2-11.9-22.9-6.9-34.9S19.8 288 32 288h256c12.2 0 23.3 7.2 28.2 18.3s2.3 25.7-6.9 34.9l-128 128z"
+      />
+    </svg>
   );
 }
 
@@ -91,38 +101,39 @@ function HeaderCell<TData>({
       colSpan={header.colSpan}
       style={getColumnCellStyle(header.column)}
       className={cn(
-        "group/th sticky top-0 z-10 h-10 overflow-hidden border-b border-erp-table-border bg-erp-table-header px-4 py-2 text-start text-[0.875rem] font-medium whitespace-nowrap text-erp-text align-middle",
+        "group/th relative sticky top-0 z-10 h-10 overflow-hidden border-b border-erp-table-border bg-erp-table-header px-4 py-2 text-[13px] font-medium whitespace-nowrap text-erp-text align-middle !text-start",
         canSort && "cursor-pointer",
         padEnd && "pe-9",
-        alignRight && "text-end"
+        alignRight && "!text-end"
       )}
     >
       {header.isPlaceholder ? null : (
         <>
-          <div className="relative flex min-w-0 items-center">
+          <div className="flex w-full min-w-0 items-center">
             {canSort ? (
               <button
                 type="button"
                 title={label}
-                className="flex min-w-0 max-w-full flex-1 items-center"
+                className="flex w-full min-w-0 items-center gap-1 hover:text-erp-primary"
                 onClick={header.column.getToggleSortingHandler()}
               >
                 <span
                   className={cn(
-                    "block min-w-0 flex-1 truncate",
-                    alignRight && "text-end"
+                    "min-w-0 flex-1 truncate",
+                    alignRight ? "text-end" : "text-start"
                   )}
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
                 </span>
-                <span className="ms-2 flex w-3 shrink-0 justify-center">
-                  <SortIcon sorted={sorted} />
-                </span>
+                <SortIcon sorted={sorted} />
               </button>
             ) : (
               <span
                 title={label}
-                className={cn("block min-w-0 flex-1 truncate", alignRight && "text-end")}
+                className={cn(
+                  "min-w-0 flex-1 truncate",
+                  alignRight ? "text-end" : "text-start"
+                )}
               >
                 {flexRender(header.column.columnDef.header, header.getContext())}
               </span>
