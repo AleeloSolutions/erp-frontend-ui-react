@@ -4,6 +4,7 @@ import { SlidersHorizontal } from "lucide-react";
 import { cn } from "../../utils";
 import { useDisclosure } from "../../hooks";
 import { useUiTranslation } from "../../i18n";
+import { Checkbox } from "../../primitives/Checkbox";
 
 export interface DataTableColumnsMenuItem {
   id: string;
@@ -31,36 +32,42 @@ export function DataTableColumnsMenu({
   const menuRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState({
     top: 0,
-    right: 0,
     left: 0,
     maxHeight: 240,
-    rtl: false,
+    isCentered: true,
   });
 
   const updatePosition = useCallback(() => {
     const trigger = triggerRef.current;
     if (!trigger) return;
     const rect = trigger.getBoundingClientRect();
-    const rtl = document.documentElement.dir === "rtl";
+    const width = menuRef.current?.offsetWidth ?? 0;
+    const center = rect.left + rect.width / 2;
+    const pad = 8;
+    let left = width > 0 ? center - width / 2 : center;
+    if (width > 0) {
+      left = Math.max(pad, Math.min(left, window.innerWidth - width - pad));
+    }
     setCoords({
       top: rect.bottom + 4,
-      right: window.innerWidth - rect.right,
-      left: rect.left,
+      left,
       maxHeight: Math.max(120, window.innerHeight - rect.bottom - 8),
-      rtl,
+      isCentered: width === 0,
     });
   }, []);
 
   useLayoutEffect(() => {
     if (!isOpen) return;
     updatePosition();
+    const frame = window.requestAnimationFrame(updatePosition);
     window.addEventListener("resize", updatePosition);
     window.addEventListener("scroll", updatePosition, true);
     return () => {
+      window.cancelAnimationFrame(frame);
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [isOpen, updatePosition]);
+  }, [isOpen, items, updatePosition]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -94,40 +101,38 @@ export function DataTableColumnsMenu({
           role="menu"
           aria-label={t("datatable.columns")}
           className={cn(
-            "z-[70] min-w-[10rem] max-w-[276px] overflow-y-auto py-2",
-            "rounded border border-erp-table-border bg-erp-table-bg text-[0.875rem] text-erp-text",
+            "z-[70] w-max min-w-[10rem] overflow-y-auto py-2",
+            "rounded border border-erp-table-border bg-erp-table-bg text-[12px] text-erp-text",
             "shadow-[0_0.5rem_1rem_rgba(0,0,0,0.15)] [scrollbar-width:thin]"
           )}
           style={{
             position: "fixed",
             top: coords.top,
+            left: coords.left,
             maxHeight: coords.maxHeight,
-            ...(coords.rtl ? { left: coords.left } : { right: coords.right }),
+            transform: coords.isCentered ? "translateX(-50%)" : undefined,
           }}
         >
           {items.map((item) => (
-            <label
+            <Checkbox
               key={item.id}
+              hasHalo={false}
               role="menuitemcheckbox"
               aria-checked={item.isVisible}
+              label={item.label}
+              checked={item.isVisible}
+              disabled={item.isDisabled}
+              tabIndex={-1}
+              onChange={() => {
+                if (!item.isDisabled) item.onToggle();
+              }}
               className={cn(
-                "flex w-full cursor-pointer items-center gap-2 px-5 py-[3px] text-erp-text",
+                "flex w-full whitespace-nowrap px-5 py-[3px] text-[12px] text-erp-text",
+                "[&>span:last-child]:overflow-visible [&>span:last-child]:whitespace-nowrap",
                 "hover:bg-erp-menu-hover hover:text-erp-text",
-                item.isDisabled && "cursor-not-allowed opacity-60 hover:bg-transparent"
+                item.isDisabled && "hover:bg-transparent"
               )}
-            >
-              <input
-                type="checkbox"
-                className="size-3.5 shrink-0 accent-erp-teal disabled:cursor-not-allowed"
-                checked={item.isVisible}
-                disabled={item.isDisabled}
-                tabIndex={-1}
-                onChange={() => {
-                  if (!item.isDisabled) item.onToggle();
-                }}
-              />
-              <span className="min-w-0 truncate">{item.label}</span>
-            </label>
+            />
           ))}
         </div>,
         document.body

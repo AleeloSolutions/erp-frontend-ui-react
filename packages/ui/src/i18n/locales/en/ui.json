@@ -32,6 +32,20 @@
     "remove": "Remove",
     "search": "Search..."
   },
+  "dropdown": {
+    "noResults": "No results",
+    "searchMore": "Search more..."
+  },
+  "datepicker": {
+    "chooseDate": "Choose date",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "previousYear": "Previous year",
+    "nextYear": "Next year",
+    "selectMonth": "Select month",
+    "weekNumbers": "Week numbers",
+    "clear": "Clear date"
+  },
   "confirm": {
     "confirm": "Confirm",
     "cancel": "Cancel"

@@ -39,7 +39,7 @@ export function FormShell({
       )}
       noValidate
     >
-      <div className="flex min-h-11 flex-wrap items-center gap-2 border-b border-erp-border bg-erp-surface-alt px-3">
+      <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-t-lg border-b border-erp-border bg-erp-surface-alt px-3">
         <div className="min-w-0 py-2">
           <h2 className="m-0 text-[15px] font-bold text-erp-text">{title}</h2>
           {description ? (
@@ -68,7 +68,13 @@ export function FormShell({
         {summary}
       </div>
 
-      {actions ?? (actionProps ? <FormActions {...actionProps} /> : null)}
+      {actions ??
+        (actionProps ? (
+          <FormActions
+            {...actionProps}
+            className={cn("rounded-b-lg", actionProps.className)}
+          />
+        ) : null)}
     </form>
   );
 }

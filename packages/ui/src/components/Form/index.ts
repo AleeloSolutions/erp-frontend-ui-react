@@ -11,5 +11,6 @@ export { FormFileUpload, type FormFileUploadProps } from "./fields/FormFileUploa
 export { FormInput, type FormInputProps } from "./fields/FormInput";
 export { FormRadio, type FormRadioProps } from "./fields/FormRadio";
 export { FormSelect, type FormSelectProps } from "./fields/FormSelect";
+export { FormDropdown, type FormDropdownProps } from "./fields/FormDropdown";
 export { FormSwitch, type FormSwitchProps } from "./fields/FormSwitch";
 export { FormTextarea, type FormTextareaProps } from "./fields/FormTextarea";

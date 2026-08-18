@@ -75,7 +75,7 @@ const TICK_FOCUS_WITHIN_ERROR =
  * Side chrome uses logical edges (`border-e` / `border-s`) so it flips in RTL.
  */
 export function fieldChromeClasses({
-  chrome = "corner",
+  chrome = "underline",
   chromeEdge = "end",
   error = false,
   within = false,

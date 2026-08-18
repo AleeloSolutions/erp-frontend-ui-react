@@ -11,12 +11,28 @@ export interface CheckboxProps extends Omit<
 > {
   label?: string;
   indeterminate?: boolean;
+  /**
+   * Table row selection uses a teal halo. Column menus and form lists
+   * match Odoo (`hasHalo={false}`): teal fill + white check, no glow.
+   */
+  hasHalo?: boolean;
   /** Ignored — all checkboxes use the teal selected look. */
   variant?: CheckboxVariant;
 }
 
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ className, label, id, indeterminate = false, variant: _variant, ...props }, ref) => {
+  (
+    {
+      className,
+      label,
+      id,
+      indeterminate = false,
+      hasHalo = true,
+      variant: _variant,
+      ...props
+    },
+    ref
+  ) => {
     const localRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
@@ -29,7 +45,8 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
       <label
         htmlFor={id}
         className={cn(
-          "inline-flex cursor-pointer items-center justify-center gap-2 text-[11px] text-erp-text",
+          "inline-flex cursor-pointer items-center gap-2 text-[11px] text-erp-text",
+          label ? "min-w-0 justify-start" : "justify-center",
           props.disabled && "cursor-not-allowed opacity-60",
           className
         )}
@@ -51,9 +68,11 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           />
           <span
             className={cn(
-              "pointer-events-none absolute inset-0 rounded-[4px] border border-erp-border-control bg-erp-surface",
-              "peer-checked:border-erp-teal peer-checked:bg-erp-teal peer-checked:shadow-[0_0_0_4px_var(--teal-50)]",
-              "group-data-[indeterminate]/cb:border-erp-teal group-data-[indeterminate]/cb:bg-erp-teal group-data-[indeterminate]/cb:shadow-[0_0_0_4px_var(--teal-50)]",
+              "pointer-events-none absolute inset-0 rounded-[4px] border border-erp-table-border bg-erp-table-bg",
+              "peer-checked:border-erp-teal peer-checked:bg-erp-teal",
+              "group-data-[indeterminate]/cb:border-erp-teal group-data-[indeterminate]/cb:bg-erp-teal",
+              hasHalo &&
+                "peer-checked:shadow-[0_0_0_4px_var(--teal-50)] group-data-[indeterminate]/cb:shadow-[0_0_0_4px_var(--teal-50)]",
               "peer-focus-visible:ring-2 peer-focus-visible:ring-erp-teal/20"
             )}
             aria-hidden
@@ -69,7 +88,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             className="pointer-events-none absolute z-[1] size-2.5 text-white opacity-0 group-data-[indeterminate]/cb:opacity-100"
           />
         </span>
-        {label ? <span>{label}</span> : null}
+        {label ? <span className="min-w-0 truncate">{label}</span> : null}
       </label>
     );
   }

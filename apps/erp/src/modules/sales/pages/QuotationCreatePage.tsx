@@ -6,6 +6,7 @@ import { FileText } from "lucide-react";
 import { AppShell, PageHeader, PageSubmenu } from "@/app";
 import {
   FormDatePicker,
+  FormDropdown,
   FormField,
   FormGrid,
   FormInput,
@@ -118,11 +119,15 @@ export default function QuotationCreatePage() {
               error={errors.customer?.message}
               span={6}
             >
-              <FormSelect
+              <FormDropdown
                 id="quotation-customer"
+                searchable
+                placeholder="Search customer..."
                 error={Boolean(errors.customer)}
-                options={[{ label: "Select customer", value: "" }, ...customerOptions]}
-                {...register("customer")}
+                items={customerOptions.map((option) => ({
+                  key: option.value,
+                  label: option.label,
+                }))}
               />
             </FormField>
             <FormField

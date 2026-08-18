@@ -30,3 +30,8 @@ export const Disabled: Story = {
 export const DisabledUnchecked: Story = {
   args: { disabled: true, label: "Unavailable option" },
 };
+
+/** Odoo optional-columns list: teal fill, no halo. */
+export const Menu: Story = {
+  args: { hasHalo: false, defaultChecked: true, label: "Tax Excluded" },
+};
