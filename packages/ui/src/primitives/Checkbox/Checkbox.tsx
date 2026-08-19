@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useRef, type InputHTMLAttributes } from "react";
 import { Check, Minus } from "lucide-react";
 import { cn } from "../../utils";
 
-/** @deprecated One visual only — teal fill + halo. Kept so existing `accent` callers compile. */
+/** @deprecated One visual only — primary fill + halo. Kept so existing `accent` callers compile. */
 export type CheckboxVariant = "default" | "accent";
 
 export interface CheckboxProps extends Omit<
@@ -12,11 +12,11 @@ export interface CheckboxProps extends Omit<
   label?: string;
   indeterminate?: boolean;
   /**
-   * Table row selection uses a teal halo. Column menus and form lists
-   * match Odoo (`hasHalo={false}`): teal fill + white check, no glow.
+   * Table row selection uses a primary halo. Column menus and form lists
+   * match Odoo (`hasHalo={false}`): primary fill + white check, no glow.
    */
   hasHalo?: boolean;
-  /** Ignored — all checkboxes use the teal selected look. */
+  /** Ignored — all checkboxes use the primary selected look. */
   variant?: CheckboxVariant;
 }
 
@@ -69,11 +69,13 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           <span
             className={cn(
               "pointer-events-none absolute inset-0 rounded-[4px] border border-erp-table-border bg-erp-table-bg",
-              "peer-checked:border-erp-teal peer-checked:bg-erp-teal",
-              "group-data-[indeterminate]/cb:border-erp-teal group-data-[indeterminate]/cb:bg-erp-teal",
+              "transition-[border-color,background-color,box-shadow] duration-150 ease-out",
+              "peer-hover:border-erp-primary",
+              "peer-checked:border-erp-primary peer-checked:bg-erp-primary",
+              "group-data-[indeterminate]/cb:border-erp-primary group-data-[indeterminate]/cb:bg-erp-primary",
               hasHalo &&
-                "peer-checked:shadow-[0_0_0_4px_var(--teal-50)] group-data-[indeterminate]/cb:shadow-[0_0_0_4px_var(--teal-50)]",
-              "peer-focus-visible:ring-2 peer-focus-visible:ring-erp-teal/20"
+                "peer-checked:shadow-[0_0_0_4px_var(--primary-50)] group-data-[indeterminate]/cb:shadow-[0_0_0_4px_var(--primary-50)]",
+              "peer-focus-visible:ring-2 peer-focus-visible:ring-erp-primary/20"
             )}
             aria-hidden
           />

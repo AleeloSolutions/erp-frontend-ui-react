@@ -112,7 +112,7 @@ export default function ProductsPage() {
         cell: ({ row, getValue }) => (
           <button
             type="button"
-            className="font-bold text-[#2E5FA7] hover:underline"
+            className="font-bold text-erp-primary hover:underline"
             onClick={() => setDetailProduct(row.original)}
           >
             {String(getValue())}

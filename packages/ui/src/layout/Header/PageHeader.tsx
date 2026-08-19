@@ -53,15 +53,15 @@ export function PageHeader({
     <section
       className={cn(
         "mb-2 overflow-hidden rounded-[10px] border border-erp-border-strong",
-        "bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_28%),linear-gradient(180deg,var(--surface)_0%,var(--surface-alt)_100%)]",
-        "shadow-[0_4px_14px_rgba(16,42,67,0.05),0_1px_3px_rgba(16,42,67,0.03)]",
+        "bg-[radial-gradient(circle_at_top_right,rgba(194,67,22,0.12),transparent_28%),linear-gradient(180deg,var(--surface)_0%,var(--surface-alt)_100%)]",
+        "shadow-[0_4px_14px_rgba(90,28,13,0.08),0_1px_3px_rgba(90,28,13,0.04)]",
         className
       )}
     >
       <div className="grid min-h-[68px] grid-cols-1 items-center gap-3 px-3 py-2.5 min-[721px]:grid-cols-[minmax(0,1fr)_minmax(320px,auto)]">
         <div className="grid min-w-0 grid-cols-[38px_minmax(0,1fr)] items-center gap-2.5">
           {icon ? (
-            <div className="relative grid h-[38px] w-[38px] place-items-center rounded-[10px] bg-gradient-to-br from-erp-blue-soft to-erp-blue text-white shadow-[0_5px_12px_rgba(30,78,140,0.16)]">
+            <div className="relative grid h-[38px] w-[38px] place-items-center rounded-[10px] bg-gradient-to-br from-erp-blue-soft to-erp-blue text-white shadow-[0_5px_12px_rgba(90,28,13,0.22)]">
               {icon}
               <span
                 aria-hidden

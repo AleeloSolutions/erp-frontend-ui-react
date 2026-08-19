@@ -44,7 +44,7 @@ export function Sidebar({
       )}
     >
       <div className="flex h-[58px] items-center gap-2.5 border-b border-white/8 px-3.5 max-[980px]:justify-center max-[980px]:px-0">
-        <div className="grid h-[30px] w-[30px] place-items-center rounded-lg bg-erp-teal text-xs font-extrabold">
+        <div className="grid h-[30px] w-[30px] place-items-center rounded-lg bg-erp-primary text-xs font-extrabold">
           {brandMark}
         </div>
         <div className="min-w-0 max-[980px]:hidden">

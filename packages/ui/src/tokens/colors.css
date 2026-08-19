@@ -1,7 +1,7 @@
 :root {
   /* Brand primitives */
-  --brand-primary: #0e2e54;
-  --brand-primary-hover: #032349;
+  --brand-primary: #5a1c0d;
+  --brand-primary-hover: #c24316;
   --brand-secondary: #e7e9ed;
   --brand-secondary-hover: #d8dadd;
 
@@ -10,12 +10,12 @@
   --nav-hover: var(--brand-primary-hover);
   --nav-active: var(--brand-primary-hover);
   --blue: var(--brand-primary);
-  --blue-50: #e8eef4;
-  --blue-100: #d2dce8;
-  --blue-soft: #1a4570;
-  --blue-mid: #0e2e54;
-  --blue-bright: #184a7a;
-  --blue-light: #2a5f8f;
+  --blue-50: #f6e8e3;
+  --blue-100: #ead4cc;
+  --blue-soft: var(--brand-primary-hover);
+  --blue-mid: var(--brand-primary);
+  --blue-bright: var(--brand-primary-hover);
+  --blue-light: #d45a2a;
   --teal: #0d8a7c;
   --teal-50: #e5f5f8;
   --bg: #f5f7fa;
@@ -57,14 +57,14 @@
   --error-bg: #fef2f2;
   --error-border: #fecaca;
   --info: var(--brand-primary);
-  --info-bg: #e8eef4;
-  --info-border: #d2dce8;
+  --info-bg: var(--blue-50);
+  --info-border: var(--blue-100);
   --purple: #6d28d9;
   --purple-bg: #f3e8ff;
   --input-border: #d7e1eb;
-  --focus-ring: #c5d3e3;
-  --overlay: rgba(14, 46, 84, 0.45);
-  --shadow-color: 14, 46, 84;
+  --focus-ring: #e8cfc6;
+  --overlay: rgba(90, 28, 13, 0.45);
+  --shadow-color: 90, 28, 13;
 
   /* Semantic roles — change these to retheme the product */
   --primary: var(--nav);

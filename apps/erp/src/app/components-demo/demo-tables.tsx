@@ -1,14 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@erp/ui";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  StatusBadge,
-} from "@erp/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, StatusBadge } from "@erp/ui";
 import {
   mockCustomers,
   mockInvoices,
@@ -50,7 +43,7 @@ export function DataTableDemos() {
         accessorKey: "name",
         header: "Customer",
         cell: ({ getValue }) => (
-          <span className="font-bold text-[#2E5FA7]">{String(getValue())}</span>
+          <span className="font-bold text-erp-primary">{String(getValue())}</span>
         ),
         size: 220,
       },
@@ -85,7 +78,7 @@ export function DataTableDemos() {
         accessorKey: "number",
         header: "Invoice number",
         cell: ({ getValue }) => (
-          <span className="font-bold text-[#2E5FA7]">{String(getValue())}</span>
+          <span className="font-bold text-erp-primary">{String(getValue())}</span>
         ),
         size: 140,
       },
@@ -198,14 +191,12 @@ export function DataTableDemos() {
             {
               key: "export",
               label: "Export",
-              onClick: (rows) =>
-                setBulkMessage(`Exported ${rows.length} customer(s)`),
+              onClick: (rows) => setBulkMessage(`Exported ${rows.length} customer(s)`),
             },
             {
               key: "assign",
               label: "Assign",
-              onClick: (rows) =>
-                setBulkMessage(`Assigned ${rows.length} customer(s)`),
+              onClick: (rows) => setBulkMessage(`Assigned ${rows.length} customer(s)`),
             },
             {
               key: "delete",
@@ -242,14 +233,12 @@ export function DataTableDemos() {
             {
               key: "approve",
               label: "Approve",
-              onClick: (rows) =>
-                setBulkMessage(`Approved ${rows.length} invoice(s)`),
+              onClick: (rows) => setBulkMessage(`Approved ${rows.length} invoice(s)`),
             },
             {
               key: "export",
               label: "Export",
-              onClick: (rows) =>
-                setBulkMessage(`Exported ${rows.length} invoice(s)`),
+              onClick: (rows) => setBulkMessage(`Exported ${rows.length} invoice(s)`),
             },
           ]}
           className="rounded-none border-0"

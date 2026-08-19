@@ -97,6 +97,8 @@ export default function CustomerCreatePage() {
               span={6}
             >
               <FormInput
+                chrome="tick"
+                chromeEdge="end"
                 id="customer-name"
                 error={Boolean(errors.name)}
                 {...register("name")}

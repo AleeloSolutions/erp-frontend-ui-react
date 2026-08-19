@@ -55,7 +55,7 @@ export function DataTableFilterBar({
             <span className="mb-1.5 block text-[9.5px] font-extrabold uppercase tracking-[0.45px] text-erp-label">
               Search
             </span>
-            <div className="flex h-10 min-w-[260px] items-center gap-2.5 rounded-[10px] border border-erp-border-strong bg-gradient-to-b from-white to-erp-surface-tint-strong px-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.88),0_1px_2px_rgba(16,42,67,0.03)] focus-within:border-erp-primary max-[720px]:min-w-full">
+            <div className="flex h-10 min-w-[260px] items-center gap-2.5 rounded-[10px] border border-erp-border-strong bg-gradient-to-b from-white to-erp-surface-tint-strong px-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.88),0_1px_2px_rgba(90,28,13,0.06)] focus-within:border-erp-primary max-[720px]:min-w-full">
               <Search className="h-3.5 w-3.5 shrink-0 text-erp-subtle" aria-hidden />
               <Input
                 value={search}

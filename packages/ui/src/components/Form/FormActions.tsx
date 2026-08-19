@@ -39,7 +39,12 @@ export function FormActions({
     >
       {left}
       {!customOnly && onCancel ? (
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onCancel}
+          disabled={submitting}
+        >
           {cancelLabel}
         </Button>
       ) : null}
@@ -59,7 +64,7 @@ export function FormActions({
             ) : null}
             <Button
               type="submit"
-              variant="teal"
+              variant="primary"
               loading={submitting}
               disabled={disabled}
             >
