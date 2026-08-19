@@ -5,6 +5,8 @@ import { Button } from "../../primitives/Button";
 export interface PageActionsProps {
   /** Page/view title displayed next to the New button */
   title: string;
+  /** Active sub-view label shown after the title (e.g. the clicked submenu child) */
+  breadcrumb?: string;
   /** Callback when the "New" button is clicked */
   onCreate?: () => void;
   /** Callback when the gear/actions menu is clicked */
@@ -18,6 +20,7 @@ export interface PageActionsProps {
 
 export function PageActions({
   title,
+  breadcrumb,
   onCreate,
   onActionsClick,
   hideCreate = false,
@@ -35,6 +38,11 @@ export function PageActions({
       <span className="text-lg font-normal text-erp-text whitespace-nowrap truncate">
         {title}
       </span>
+      {breadcrumb ? (
+        <span className="text-[13px] font-normal text-erp-muted whitespace-nowrap truncate">
+          {breadcrumb}
+        </span>
+      ) : null}
       {!hideActions ? (
         <button
           type="button"

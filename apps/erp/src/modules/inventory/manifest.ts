@@ -3,8 +3,16 @@ import type { ErpModule } from "../types";
 import { InventoryRoutes } from "./routes";
 
 export const inventorySubmenu = [
-  { key: "products", label: "Products", href: "/inventory/products" },
-  { key: "movements", label: "Stock movements", href: "/inventory/movements" },
+  {
+    key: "products",
+    label: "Products",
+    href: "/inventory/products",
+    children: [
+      { key: "products", label: "Products", href: "/inventory/products" },
+      { key: "movements", label: "Stock Movements", href: "/inventory/movements" },
+    ],
+  },
+  { key: "movements", label: "Stock Movements", href: "/inventory/movements" },
 ];
 
 export const inventoryManifest: ErpModule = {

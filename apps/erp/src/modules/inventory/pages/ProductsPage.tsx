@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import { AppShell, useNavbarDefaults } from "@/app";
 import { inventorySubmenu } from "@/modules/inventory/manifest";
@@ -182,6 +182,17 @@ export default function ProductsPage() {
     }
   }
 
+  const location = useLocation();
+  const activeBreadcrumb = useMemo(() => {
+    for (const item of inventorySubmenu) {
+      if (item.children) {
+        const child = item.children.find((c) => location.pathname.startsWith(c.href));
+        if (child) return child.label;
+      }
+    }
+    return undefined;
+  }, [location.pathname]);
+
   const navbar = useNavbarDefaults({
     brandLabel: "Products",
     submenuItems: inventorySubmenu,
@@ -197,6 +208,7 @@ export default function ProductsPage() {
             pageActions={
               <PageActions
                 title="Products"
+                breadcrumb={activeBreadcrumb}
                 onCreate={() => navigate("/inventory/products/new")}
               />
             }

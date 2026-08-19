@@ -12,6 +12,7 @@ export interface SubmenuItem {
   key: string;
   label: string;
   href: string;
+  children?: SubmenuItem[];
 }
 
 export interface MobileNavItem {
