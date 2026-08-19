@@ -162,7 +162,7 @@ export function normalizeSizingToWidth(
     targetWidth - fixedSum
   );
 
-  let flexSum = flexible.reduce((sum, col) => sum + (next[col.id] ?? col.minSize), 0);
+  const flexSum = flexible.reduce((sum, col) => sum + (next[col.id] ?? col.minSize), 0);
   if (flexSum <= 0) {
     const each = Math.floor(available / flexible.length);
     let used = 0;
@@ -198,7 +198,7 @@ export function normalizeSizingToWidth(
   );
 
   // If fill hit a clamp, nudge other flexible columns slightly
-  let finalFlex = flexible.reduce((sum, col) => sum + (next[col.id] ?? 0), 0);
+  const finalFlex = flexible.reduce((sum, col) => sum + (next[col.id] ?? 0), 0);
   let drift = available - finalFlex;
   if (drift !== 0) {
     for (const col of flexible) {

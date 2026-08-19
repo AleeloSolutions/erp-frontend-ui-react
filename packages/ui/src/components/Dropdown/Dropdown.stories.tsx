@@ -54,6 +54,19 @@ function DropdownDemo({
   );
 }
 
+export const Default: Story = {
+  render: () => <DropdownDemo />,
+};
+
+export const AlignRight: Story = {
+  render: () => <DropdownDemo align="right" />,
+};
+
+export const WithDisabledItem: Story = {
+  name: "Danger + disabled items",
+  render: () => <DropdownDemo withDisabled />,
+};
+
 export const FieldChrome: Story = {
   render: () => (
     <div className="flex flex-col items-start gap-4">
