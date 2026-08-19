@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import { AppShell, useNavbarDefaults } from "@/app";
-import { inventorySubmenu } from "@/modules/inventory/manifest";
+import { inventoryNavbar, inventorySubmenu } from "@/modules/inventory/manifest";
 import {
   Button,
   ConfirmDialog,
@@ -194,8 +194,7 @@ export default function ProductsPage() {
   }, [location.pathname]);
 
   const navbar = useNavbarDefaults({
-    brandLabel: "Products",
-    submenuItems: inventorySubmenu,
+    ...inventoryNavbar,
     submenuActiveKey: "products",
   });
 
@@ -207,9 +206,23 @@ export default function ProductsPage() {
           <ControlPanel
             pageActions={
               <PageActions
-                title="Products"
                 breadcrumb={activeBreadcrumb}
-                onCreate={() => navigate("/inventory/products/new")}
+                buttons={[
+                  {
+                    key: "new",
+                    children: "New Product",
+                    variant: "primary",
+                    size: "sm",
+                    onClick: () => navigate("/inventory/products/new"),
+                  },
+                  {
+                    key: "upload",
+                    children: "Upload",
+                    variant: "secondary",
+                    size: "sm",
+                    onClick: () => console.log("Export"),
+                  },
+                ]}
               />
             }
             endSlot={pagination}
@@ -372,15 +385,6 @@ export default function ProductsPage() {
               <dt className="text-erp-subtle">Updated</dt>
               <dd className="m-0 font-bold text-erp-text">{detailProduct.updated}</dd>
             </div>
-            <p className="m-0 mt-2 text-[11px] text-erp-muted">
-              Need a new record?{" "}
-              <Link
-                to="/inventory/products/new"
-                className="font-bold text-erp-blue hover:underline"
-              >
-                Create product
-              </Link>
-            </p>
           </dl>
         ) : null}
       </Drawer>

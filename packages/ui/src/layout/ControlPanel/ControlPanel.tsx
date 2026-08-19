@@ -26,7 +26,9 @@ export function ControlPanel({
     >
       <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-3">
         <div className="flex min-w-0 items-center">{pageActions}</div>
-        <div className="flex min-w-0 items-center justify-center">{children}</div>
+        <div className="flex min-w-0 items-center justify-center overflow-visible">
+          {children}
+        </div>
         <div className="flex min-w-0 items-center justify-end">{endSlot}</div>
       </div>
     </div>

@@ -6,7 +6,7 @@ This is an **npm workspaces** monorepo: Vite + React + TypeScript SPA (React Rou
 - Design system: `packages/ui` (import from `@erp/ui` only — public surface is `packages/ui/src/index.ts`)
 - Standards: `docs/ERP_UI_STANDARDS.md`, registry: `docs/REGISTRY.md`, RTL: `docs/RTL.md`
 - Storybook (UI review surface): `npm run storybook` — `/components-demo` is temporary
-- ERP pages live in `apps/erp/src/modules/{accounting,sales,procurement,hr}/pages/`
+- ERP pages live in `apps/erp/src/modules/{inventory,sales}/pages/`
 - Module-specific compositions stay in that module’s `components/`
 - Module API + React Query hooks stay in that module’s `api/`
 - App wiring (providers, ERP `AppShell` defaults, navigation, i18n): `apps/erp/src/app/`

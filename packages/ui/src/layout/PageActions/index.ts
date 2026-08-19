@@ -1,1 +1,1 @@
-export { PageActions, type PageActionsProps } from "./PageActions";
+export { PageActions, type PageActionsProps, type PageActionButton } from "./PageActions";

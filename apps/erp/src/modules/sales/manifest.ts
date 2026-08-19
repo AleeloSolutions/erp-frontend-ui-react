@@ -1,15 +1,13 @@
 import { ShoppingCart } from "lucide-react";
-import type { ErpModule } from "../types";
 import { SalesRoutes } from "./routes";
-
 export const salesSubmenu = [
   { key: "customers", label: "Customers", href: "/sales/customers" },
   { key: "quotations", label: "Quotations", href: "/sales/quotations" },
   { key: "contracts", label: "Contracts", href: "/sales/contracts" },
-  { key: "orders", label: "Sales orders", href: "/components-demo" },
+  { key: "orders", label: "Sales orders", href: "/sales/orders" },
 ];
 
-export const salesManifest: ErpModule = {
+export const salesManifest = {
   id: "sales",
   label: "Sales",
   version: "0.1.0",

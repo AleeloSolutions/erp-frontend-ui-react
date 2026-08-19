@@ -89,7 +89,7 @@ export default function QuotationCreatePage() {
   }
 
   return (
-    <AppShell activeNavKey="sales" activeMobileKey="create">
+    <AppShell activeNavKey="sales" activeMobileKey="tasks">
       <PageHeader
         module="Sales"
         section="Quotations"

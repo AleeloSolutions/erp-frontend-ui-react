@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { ControlPanel, PageActions } from "@erp/ui";
 import { AppShell, useNavbarDefaults } from "@/app";
-import { inventorySubmenu } from "@/modules/inventory/manifest";
+import { inventoryNavbar, inventorySubmenu } from "@/modules/inventory/manifest";
 
 export default function StockMovementsPage() {
   const location = useLocation();
@@ -17,18 +17,13 @@ export default function StockMovementsPage() {
   }, [location.pathname]);
 
   const navbar = useNavbarDefaults({
-    brandLabel: "Stock Movements",
-    submenuItems: inventorySubmenu,
+    ...inventoryNavbar,
     submenuActiveKey: "products",
   });
 
   return (
     <AppShell activeNavKey="inventory" activeMobileKey="tasks" navbar={navbar}>
-      <ControlPanel
-        pageActions={
-          <PageActions title="Inventory" breadcrumb={activeBreadcrumb} hideCreate />
-        }
-      />
+      <ControlPanel pageActions={<PageActions breadcrumb={activeBreadcrumb} />} />
       <div className="rounded-[10px] border border-dashed border-erp-border bg-erp-surface p-6 text-[12px] text-erp-muted">
         No stock movement workflows yet. Use Products to manage catalog and on-hand
         quantities.

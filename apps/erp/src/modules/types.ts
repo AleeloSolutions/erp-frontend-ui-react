@@ -9,8 +9,6 @@ export interface ErpModule {
   description?: string;
   icon: LucideIcon;
   path: string;
-  required?: boolean;
-  dependsOn?: string[];
   nav: NavigationItem;
   submenu?: SubmenuItem[];
   Routes: ComponentType;

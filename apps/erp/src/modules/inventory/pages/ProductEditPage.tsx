@@ -107,7 +107,7 @@ export default function ProductEditPage() {
   const notFound = productQuery.isError;
 
   return (
-    <AppShell activeNavKey="inventory" activeMobileKey="create">
+    <AppShell activeNavKey="inventory" activeMobileKey="tasks">
       <PageHeader
         module="Inventory"
         section="Products"

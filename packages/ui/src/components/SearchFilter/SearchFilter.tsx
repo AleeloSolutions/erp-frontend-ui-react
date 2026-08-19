@@ -1,4 +1,13 @@
-import { forwardRef, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import { Check, ChevronDown, Filter, Layers, Search, Star, X } from "lucide-react";
 import { cn } from "../../utils";
 import { useUiTranslation } from "../../i18n";
@@ -63,7 +72,7 @@ function PanelColumn({
   return (
     <div
       className={cn(
-        "min-w-0 w-full shrink-0 px-2 lg:w-48",
+        "w-48 shrink-0 px-2",
         showEndBorder &&
           "max-lg:mb-2 max-lg:border-b max-lg:border-erp-table-border max-lg:pb-2 lg:border-e lg:border-erp-table-border"
       )}
@@ -204,8 +213,11 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
     const { t } = useUiTranslation("ui");
     const panelId = useId();
     const rootRef = useRef<HTMLDivElement>(null);
+    const shellRef = useRef<HTMLDivElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultPanelOpen);
+    const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
     const isControlled = controlledOpen !== undefined;
     const open = showPanel && (isControlled ? controlledOpen : uncontrolledOpen);
     const searchPlaceholder = placeholder ?? t("searchFilter.search");
@@ -232,15 +244,30 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
         },
       ] satisfies SearchFilterItem[]);
 
+    useLayoutEffect(() => {
+      if (!open || !showPanel) {
+        setPanelPos(null);
+        return;
+      }
+      const shell = shellRef.current;
+      if (!shell) return;
+      const rect = shell.getBoundingClientRect();
+      setPanelPos({
+        top: rect.bottom + 6,
+        left: rect.left + rect.width / 2,
+      });
+    }, [open, showPanel, chips.length, value]);
+
     useEffect(() => {
       if (!open || !showPanel) return;
 
       function onPointerDown(event: MouseEvent) {
         const target = event.target as Node;
-        if (rootRef.current && !rootRef.current.contains(target)) {
-          if (!isControlled) setUncontrolledOpen(false);
-          onPanelOpenChange?.(false);
+        if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
+          return;
         }
+        if (!isControlled) setUncontrolledOpen(false);
+        onPanelOpenChange?.(false);
       }
 
       function onKeyDown(event: KeyboardEvent) {
@@ -250,24 +277,86 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
         }
       }
 
+      function onReposition() {
+        const shell = shellRef.current;
+        if (!shell) return;
+        const rect = shell.getBoundingClientRect();
+        setPanelPos({
+          top: rect.bottom + 6,
+          left: rect.left + rect.width / 2,
+        });
+      }
+
       document.addEventListener("mousedown", onPointerDown);
       document.addEventListener("keydown", onKeyDown);
+      window.addEventListener("resize", onReposition);
+      window.addEventListener("scroll", onReposition, true);
       return () => {
         document.removeEventListener("mousedown", onPointerDown);
         document.removeEventListener("keydown", onKeyDown);
+        window.removeEventListener("resize", onReposition);
+        window.removeEventListener("scroll", onReposition, true);
       };
     }, [open, showPanel, isControlled, onPanelOpenChange]);
+
+    const hasSideSlots = Boolean(columnsSlot || endSlot);
+    const panel =
+      open && panelPos && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              ref={menuRef}
+              id={panelId}
+              role="menu"
+              aria-label={t("searchFilter.filters")}
+              className={cn(
+                "fixed z-[1070] flex w-max flex-row flex-nowrap overflow-auto py-2.5",
+                "rounded border border-erp-table-border bg-erp-table-bg text-[12px] text-erp-text",
+                "shadow-[0_0.3rem_1rem_rgba(0,0,0,0.1)]"
+              )}
+              style={{
+                top: panelPos.top,
+                left: panelPos.left,
+                transform: "translateX(-50%)",
+                maxHeight: "min(50vh, 20rem)",
+              }}
+            >
+              <PanelColumn
+                title={t("searchFilter.filters")}
+                icon={<Filter className="h-3.5 w-3.5 text-erp-primary" aria-hidden />}
+                items={filters}
+                emptyLabel={t("searchFilter.noFilters")}
+                showEndBorder
+              />
+              <PanelColumn
+                title={t("searchFilter.groupBy")}
+                icon={<Layers className="h-3.5 w-3.5 text-erp-teal" aria-hidden />}
+                items={groupBy}
+                emptyLabel={t("searchFilter.noGroupings")}
+                showEndBorder
+              />
+              <PanelColumn
+                title={t("searchFilter.favorites")}
+                icon={<Star className="h-3.5 w-3.5 text-erp-favourite" aria-hidden />}
+                items={favoriteItems}
+                emptyLabel={t("searchFilter.noFavorites")}
+              />
+            </div>,
+            document.body
+          )
+        : null;
 
     return (
       <div
         ref={rootRef}
         className={cn(
-          "relative grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,28rem)_minmax(0,1fr)] items-center gap-3",
+          "relative w-full min-w-0",
+          hasSideSlots &&
+            "grid grid-cols-[minmax(0,1fr)_minmax(0,28rem)_minmax(0,1fr)] items-center gap-3",
           className
         )}
       >
-        <div />
-        <div className="relative w-full min-w-0">
+        {hasSideSlots ? <div /> : null}
+        <div ref={shellRef} className="relative w-full min-w-0 max-w-md mx-auto">
           <div className="flex w-full max-w-full items-stretch">
             <div
               className={cn(
@@ -361,48 +450,16 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
               ) : null}
             </div>
           </div>
-
-          {open ? (
-            <div
-              id={panelId}
-              role="menu"
-              aria-label={t("searchFilter.filters")}
-              className={cn(
-                "absolute left-1/2 z-50 mt-1.5 flex w-max max-h-[min(50vh,20rem)] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-auto",
-                "flex-col py-2.5 lg:flex-row lg:flex-nowrap",
-                "rounded border border-erp-table-border bg-erp-table-bg text-[12px] text-erp-text",
-                "shadow-[0_0.3rem_1rem_rgba(0,0,0,0.1)]"
-              )}
-            >
-              <PanelColumn
-                title={t("searchFilter.filters")}
-                icon={<Filter className="h-3.5 w-3.5 text-erp-primary" aria-hidden />}
-                items={filters}
-                emptyLabel={t("searchFilter.noFilters")}
-                showEndBorder
-              />
-              <PanelColumn
-                title={t("searchFilter.groupBy")}
-                icon={<Layers className="h-3.5 w-3.5 text-erp-teal" aria-hidden />}
-                items={groupBy}
-                emptyLabel={t("searchFilter.noGroupings")}
-                showEndBorder
-              />
-              <PanelColumn
-                title={t("searchFilter.favorites")}
-                icon={<Star className="h-3.5 w-3.5 text-erp-favourite" aria-hidden />}
-                items={favoriteItems}
-                emptyLabel={t("searchFilter.noFavorites")}
-              />
-            </div>
-          ) : null}
+          {panel}
         </div>
-        <div className="flex min-w-0 items-center justify-end gap-3">
-          {columnsSlot ? (
-            <div className="flex shrink-0 items-center">{columnsSlot}</div>
-          ) : null}
-          {endSlot}
-        </div>
+        {hasSideSlots ? (
+          <div className="flex min-w-0 items-center justify-end gap-3">
+            {columnsSlot ? (
+              <div className="flex shrink-0 items-center">{columnsSlot}</div>
+            ) : null}
+            {endSlot}
+          </div>
+        ) : null}
       </div>
     );
   }

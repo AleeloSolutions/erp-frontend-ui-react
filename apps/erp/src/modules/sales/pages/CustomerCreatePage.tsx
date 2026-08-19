@@ -66,7 +66,7 @@ export default function CustomerCreatePage() {
   }
 
   return (
-    <AppShell activeNavKey="sales" activeMobileKey="create">
+    <AppShell activeNavKey="sales" activeMobileKey="tasks">
       <PageHeader
         module="Sales"
         section="Customers"

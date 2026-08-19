@@ -79,7 +79,7 @@ export default function ProductCreatePage() {
   }
 
   return (
-    <AppShell activeNavKey="inventory" activeMobileKey="create">
+    <AppShell activeNavKey="inventory" activeMobileKey="tasks">
       <PageHeader
         module="Inventory"
         section="Products"

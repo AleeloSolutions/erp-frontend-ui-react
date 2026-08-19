@@ -8,13 +8,17 @@ export const inventorySubmenu = [
     label: "Products",
     href: "/inventory/products",
     children: [
-      { key: "products", label: "Products", href: "/inventory/products" },
+      { key: "expirations", label: "Expirations", href: "/inventory/products" },
       { key: "movements", label: "Stock Movements", href: "/inventory/movements" },
     ],
   },
   { key: "movements", label: "Stock Movements", href: "/inventory/movements" },
 ];
 
+export const inventoryNavbar = {
+  brandLabel: "Inventory",
+  submenuItems: inventorySubmenu,
+};
 export const inventoryManifest: ErpModule = {
   id: "inventory",
   label: "Inventory",

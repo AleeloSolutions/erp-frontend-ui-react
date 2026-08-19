@@ -112,7 +112,7 @@ apps/erp/src/
   app/                  # providers, ERP AppShell defaults, navigation, home/demo
   lib/                  # api-client, query-client, mock delay
   modules/
-    accounting|sales|procurement|hr/
+    inventory|sales/
       pages/
       components/       # module-specific compositions ONLY
       api/              # DRF/mock functions + React Query hooks
@@ -509,25 +509,25 @@ Today APIs use an in-memory store + `mockDelay()` (`apps/erp/src/lib/mock.ts`). 
 
 ## 9. Build a new module page (step by step)
 
-Example: **Suppliers** list + create.
+Example: **Products** list + create.
 
 1. **Route**
-   - `apps/erp/src/modules/procurement/pages/SuppliersPage.tsx`
-   - `apps/erp/src/modules/procurement/pages/SupplierCreatePage.tsx`
-   - Register routes in `apps/erp/src/modules/procurement/routes.tsx`
-   - Mount the module in `apps/erp/src/routes.tsx` as `<Route path="/procurement/*" element={<ProcurementRoutes />} />` (once)
+   - `apps/erp/src/modules/inventory/pages/ProductsPage.tsx`
+   - `apps/erp/src/modules/inventory/pages/ProductCreatePage.tsx`
+   - Register routes in `apps/erp/src/modules/inventory/routes.tsx`
+   - Mount the module in `apps/erp/src/routes.tsx` as `<Route path="/inventory/*" element={<InventoryRoutes />} />` (once)
 
 2. **Nav** — update `apps/erp/src/app/navigation.ts` (`href` + submenu)
 
-3. **Types / mock API** — `apps/erp/src/modules/procurement/api/suppliers.ts`
+3. **Types / mock API** — `apps/erp/src/modules/inventory/api/products.ts`
 
-4. **Hooks** — `apps/erp/src/modules/procurement/api/useSuppliers.ts`
+4. **Hooks** — `apps/erp/src/modules/inventory/api/useProducts.ts`
 
-5. **Schema** — `apps/erp/src/modules/procurement/suppliers/schema.ts`
+5. **Schema** — `apps/erp/src/modules/inventory/products/schema.ts`
 
-6. **List page** — copy `sales/customers/page.tsx`, rename types/hooks
+6. **List page** — copy an existing list page, rename types/hooks
 
-7. **Create page** — copy `sales/customers/new/page.tsx`
+7. **Create page** — copy an existing create page
 
 8. **Feedback** — toast on success/error; `ConfirmDialog` on delete; optional `Drawer` for detail
 

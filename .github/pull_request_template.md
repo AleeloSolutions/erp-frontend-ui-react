@@ -5,10 +5,8 @@
 ## Module / package
 
 - [ ] `packages/ui` (design system)
-- [ ] `apps/erp` accounting
+- [ ] `apps/erp` inventory
 - [ ] `apps/erp` sales
-- [ ] `apps/erp` procurement
-- [ ] `apps/erp` hr
 - [ ] `apps/erp` app wiring / routes
 
 ## Design system checklist (when touching `@erp/ui`)
