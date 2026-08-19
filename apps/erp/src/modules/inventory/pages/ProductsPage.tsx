@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Package, Plus } from "lucide-react";
-import { AppShell, PageHeader } from "@/app";
+import { AppShell, useNavbarDefaults } from "@/app";
+import { inventorySubmenu } from "@/modules/inventory/manifest";
 import {
   Button,
   ConfirmDialog,
+  ControlPanel,
   DataTable,
   Drawer,
+  PageActions,
   StatusBadge,
   formatCurrency,
   useDebounce,
@@ -15,7 +17,6 @@ import {
   type DataTableFilter,
   type DataTableFilterValues,
 } from "@erp/ui";
-import { inventorySubmenu } from "@/modules/inventory/manifest";
 import {
   useDeleteProductMutation,
   useProductsQuery,
@@ -181,29 +182,29 @@ export default function ProductsPage() {
     }
   }
 
-  return (
-    <AppShell activeNavKey="inventory" activeMobileKey="tasks">
-      <PageHeader
-        module="Inventory"
-        section="Products"
-        title="Products"
-        description="Manage products with stock levels, pricing, filters, and full create/edit/delete flows."
-        icon={<Package className="h-4 w-4" aria-hidden />}
-        actions={
-          <Button variant="primary" onClick={() => navigate("/inventory/products/new")}>
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            Create Product
-          </Button>
-        }
-        submenu={{
-          module: "Inventory",
-          items: inventorySubmenu,
-          activeKey: "products",
-        }}
-      />
+  const navbar = useNavbarDefaults({
+    brandLabel: "Products",
+    submenuItems: inventorySubmenu,
+    submenuActiveKey: "products",
+  });
 
+  return (
+    <AppShell activeNavKey="inventory" activeMobileKey="tasks" navbar={navbar}>
       <DataTable
         tableId="inventory-products"
+        renderToolbar={({ searchFilter, pagination, bulkActions }) => (
+          <ControlPanel
+            pageActions={
+              <PageActions
+                title="Products"
+                onCreate={() => navigate("/inventory/products/new")}
+              />
+            }
+            endSlot={pagination}
+          >
+            {bulkActions ?? searchFilter}
+          </ControlPanel>
+        )}
         columns={columns}
         data={productsQuery.data?.data ?? []}
         searchable

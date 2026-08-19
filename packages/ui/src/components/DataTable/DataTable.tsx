@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -109,6 +109,16 @@ export interface DataTableProps<TData, TValue = unknown> {
    */
   filtering?: DataTableFilteringConfig;
   className?: string;
+  /**
+   * Render-prop that receives pre-built toolbar nodes. The page places these
+   * inside a ControlPanel or any layout it wants. When omitted, no toolbar is
+   * rendered and the table starts directly with headers.
+   */
+  renderToolbar?: (slots: {
+    searchFilter: ReactNode;
+    pagination: ReactNode;
+    bulkActions: ReactNode;
+  }) => ReactNode;
 }
 
 function getCellSearchText(value: unknown): string {
@@ -173,6 +183,7 @@ export function DataTable<TData, TValue = unknown>({
   sorting: controlledSorting,
   filtering: controlledFiltering,
   className,
+  renderToolbar,
 }: DataTableProps<TData, TValue>) {
   const isServerPagination = typeof pagination === "object";
   const enablePagination = pagination !== false;
@@ -619,7 +630,6 @@ export function DataTable<TData, TValue = unknown>({
   const showSearchFilter =
     searchable || filters.length > 0 || resolvedGroupingOptions.length > 0;
   const hasSelection = selectedRows.length > 0;
-  const showSearchSlot = showSearchFilter || hasSelection || enablePagination;
 
   const pager = enablePagination ? (
     <DataTablePagination
@@ -652,56 +662,50 @@ export function DataTable<TData, TValue = unknown>({
       />
     ) : null;
 
-  return (
-    <div ref={rootRef} className={cn("bg-erp-table-bg", className)}>
-      {showSearchSlot ? (
-        <div className="relative z-20 overflow-visible border-b border-erp-table-border bg-erp-table-header px-4 py-2">
-          {hasSelection ? (
-            <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,28rem)_minmax(0,1fr)] items-center gap-3">
-              <div />
-              <div className="flex justify-center">
-                <DataTableBulkActions
-                  selectedCount={selectedRows.length}
-                  selectedRows={selectedRows}
-                  actions={bulkActions}
-                  onClear={() => setRowSelection({})}
-                />
-              </div>
-              <div className="flex min-w-0 items-center justify-end">{pager}</div>
-            </div>
-          ) : showSearchFilter ? (
-            <SearchFilter
-              value={searchable ? search : ""}
-              onChange={(value) => {
-                if (!searchable) return;
-                setSearch(value);
-                if (!isServerPagination) {
-                  setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
-                }
-              }}
-              readOnly={!searchable}
-              placeholder={searchable ? (searchPlaceholder ?? "Search...") : "Search..."}
-              chips={searchFilterChips}
-              filters={panelFilterItems}
-              groupBy={panelGroupItems}
-              endSlot={pager}
-            />
-          ) : (
-            <div className="flex w-full justify-end">{pager}</div>
-          )}
-        </div>
-      ) : null}
+  const searchFilterNode = showSearchFilter ? (
+    <SearchFilter
+      value={searchable ? search : ""}
+      onChange={(value) => {
+        if (!searchable) return;
+        setSearch(value);
+        if (!isServerPagination) {
+          setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
+        }
+      }}
+      readOnly={!searchable}
+      placeholder={searchable ? (searchPlaceholder ?? "Search...") : "Search..."}
+      chips={searchFilterChips}
+      filters={panelFilterItems}
+      groupBy={panelGroupItems}
+    />
+  ) : null;
 
-      {error ? (
-        <div className="grid min-h-[120px] place-items-center px-4 text-[0.875rem] text-erp-error">
-          {error}
-        </div>
-      ) : loading ? (
-        <DataTableLoading
-          columns={table.getVisibleLeafColumns().length || columns.length + 1}
-        />
-      ) : (
-        <>
+  const bulkActionsNode = hasSelection ? (
+    <DataTableBulkActions
+      selectedCount={selectedRows.length}
+      selectedRows={selectedRows}
+      actions={bulkActions}
+      onClear={() => setRowSelection({})}
+    />
+  ) : null;
+
+  return (
+    <>
+      {renderToolbar?.({
+        searchFilter: searchFilterNode,
+        pagination: pager,
+        bulkActions: bulkActionsNode,
+      })}
+      <div ref={rootRef} className={cn("bg-erp-table-bg", className)}>
+        {error ? (
+          <div className="grid min-h-[120px] place-items-center px-4 text-[0.875rem] text-erp-error">
+            {error}
+          </div>
+        ) : loading ? (
+          <DataTableLoading
+            columns={table.getVisibleLeafColumns().length || columns.length + 1}
+          />
+        ) : (
           <div className="relative overflow-hidden">
             <div ref={scrollRef} className="w-full overflow-auto">
               <table
@@ -739,8 +743,8 @@ export function DataTable<TData, TValue = unknown>({
               </div>
             ) : null}
           </div>
-        </>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }

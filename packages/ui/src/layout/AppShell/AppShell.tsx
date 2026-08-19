@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "../../utils";
 import { Sidebar } from "../Sidebar";
 import { MobileNav } from "../MobileNav";
+import { Navbar, type NavbarProps } from "../Navbar";
 import { PageContainer } from "../PageContainer";
 import type { MobileNavItem, NavigationItem } from "../../types/navigation";
 
@@ -11,6 +12,8 @@ export interface AppShellProps {
   mobileNavItems?: MobileNavItem[];
   activeNavKey?: string;
   activeMobileKey?: string;
+  /** Navbar configuration. When provided, renders at the top of the page container. */
+  navbar?: NavbarProps;
   className?: string;
   contentClassName?: string;
 }
@@ -21,6 +24,7 @@ export function AppShell({
   mobileNavItems = [],
   activeNavKey,
   activeMobileKey,
+  navbar,
   className,
   contentClassName,
 }: AppShellProps) {
@@ -33,6 +37,7 @@ export function AppShell({
     >
       <Sidebar items={navigationItems} activeKey={activeNavKey} />
       <main className="min-w-0">
+        {navbar ? <Navbar {...navbar} /> : null}
         <PageContainer className={contentClassName}>{children}</PageContainer>
       </main>
       <MobileNav items={mobileNavItems} activeKey={activeMobileKey} />
