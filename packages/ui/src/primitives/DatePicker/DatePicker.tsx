@@ -151,13 +151,27 @@ function emitChange(
   } as ChangeEvent<HTMLInputElement>);
 }
 
+type PopoverPlacement = "bottom" | "top" | "left";
+
+type PopoverCoords = {
+  top: number;
+  left: number;
+  placement: PopoverPlacement;
+  arrowOffset: number;
+};
+
 function usePopoverCoords(
   open: boolean,
   anchorRef: RefObject<HTMLElement | null>,
   popoverRef: RefObject<HTMLElement | null>,
   view: CalendarView
-) {
-  const [coords, setCoords] = useState({ top: 0, left: 0 });
+): PopoverCoords {
+  const [coords, setCoords] = useState<PopoverCoords>({
+    top: 0,
+    left: 0,
+    placement: "bottom",
+    arrowOffset: 16,
+  });
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -166,17 +180,45 @@ function usePopoverCoords(
       const anchor = anchorRef.current;
       const popover = popoverRef.current;
       if (!anchor) return;
+
       const rect = anchor.getBoundingClientRect();
       const width = popover?.offsetWidth ?? 272;
       const height = popover?.offsetHeight ?? 300;
       const pad = 8;
-      let top = rect.bottom + 4;
-      if (top + height > window.innerHeight - pad && rect.top - height - 4 >= pad) {
-        top = rect.top - height - 4;
+      const gap = 6;
+      const spaceBelow = window.innerHeight - rect.bottom - pad;
+      const spaceAbove = rect.top - pad;
+      const spaceLeft = rect.left - pad;
+      const openLeft =
+        spaceBelow < height + gap && spaceAbove < height + gap && spaceLeft > width + gap;
+
+      if (openLeft) {
+        const top = Math.max(
+          pad,
+          Math.min(
+            rect.top + rect.height / 2 - height / 2,
+            window.innerHeight - height - pad
+          )
+        );
+        setCoords({
+          top,
+          left: rect.left - width - gap,
+          placement: "left",
+          arrowOffset: rect.top + rect.height / 2 - top,
+        });
+        return;
       }
+
+      const openUp = spaceBelow < height + gap && spaceAbove > spaceBelow;
+      const top = openUp ? rect.top - height - gap : rect.bottom + gap;
       setCoords({
         top,
         left: Math.max(pad, Math.min(rect.left, window.innerWidth - width - pad)),
+        placement: openUp ? "top" : "bottom",
+        arrowOffset:
+          rect.left +
+          rect.width / 2 -
+          Math.max(pad, Math.min(rect.left, window.innerWidth - width - pad)),
       });
     }
 
@@ -194,6 +236,45 @@ function usePopoverCoords(
   return coords;
 }
 
+function PopoverArrow({
+  placement,
+  offset,
+}: {
+  placement: PopoverPlacement;
+  offset: number;
+}) {
+  const base =
+    "pointer-events-none absolute z-[-1] size-2 rotate-45 border border-erp-datepicker-popover-border bg-erp-datepicker-popover-bg";
+
+  if (placement === "left") {
+    return (
+      <span
+        aria-hidden
+        className={cn(base, "end-[-4px] border-t-0 border-e-0")}
+        style={{ top: Math.max(12, Math.min(offset, 280)) }}
+      />
+    );
+  }
+
+  if (placement === "top") {
+    return (
+      <span
+        aria-hidden
+        className={cn(base, "-bottom-1 border-s-0 border-b-0")}
+        style={{ left: Math.max(12, offset - 4) }}
+      />
+    );
+  }
+
+  return (
+    <span
+      aria-hidden
+      className={cn(base, "-top-1 border-e-0 border-t-0")}
+      style={{ left: Math.max(12, offset - 4) }}
+    />
+  );
+}
+
 function NavButton({
   label,
   onClick,
@@ -209,10 +290,64 @@ function NavButton({
       tabIndex={-1}
       aria-label={label}
       title={label}
-      className="grid size-7 shrink-0 place-items-center rounded border-0 bg-transparent text-erp-text opacity-75 hover:bg-erp-menu-hover hover:opacity-100"
+      className={cn(
+        "grid size-7 shrink-0 place-items-center rounded-sm border border-transparent bg-transparent",
+        "text-erp-text opacity-75 hover:border-erp-teal hover:bg-erp-menu-hover hover:opacity-100"
+      )}
       onClick={onClick}
     >
       {children}
+    </button>
+  );
+}
+
+function DayCell({
+  date,
+  monthCursor,
+  selected,
+  isDisabledDay,
+  onSelect,
+}: {
+  date: Date;
+  monthCursor: Date;
+  selected: Date | null;
+  isDisabledDay: (date: Date) => boolean;
+  onSelect: (date: Date) => void;
+}) {
+  const isSelected = selected ? sameDay(date, selected) : false;
+  const isToday = sameDay(date, new Date());
+  const isOutside = date.getMonth() !== monthCursor.getMonth();
+  const dayDisabled = isDisabledDay(date);
+
+  return (
+    <button
+      type="button"
+      role="gridcell"
+      aria-selected={isSelected}
+      disabled={dayDisabled}
+      className={cn(
+        "flex h-8 cursor-pointer items-center justify-center border-0 bg-transparent p-0",
+        dayDisabled && "cursor-not-allowed opacity-50"
+      )}
+      onClick={() => onSelect(date)}
+    >
+      <div className="relative flex size-8 items-center justify-center">
+        {isSelected ? (
+          <span aria-hidden className="absolute inset-0 rounded-full bg-erp-primary-50" />
+        ) : null}
+        <div
+          className={cn(
+            "relative z-[1] flex w-3/4 min-h-[1.35rem] items-center justify-center rounded-full text-center text-[0.675rem] leading-none",
+            isOutside && "text-erp-datepicker-day-outside",
+            !isOutside && !isSelected && "text-erp-text",
+            isSelected && "bg-erp-primary font-semibold text-erp-primary-foreground",
+            isToday && !isSelected && "font-bold text-erp-text",
+            !isSelected && !dayDisabled && "hover:bg-erp-menu-hover"
+          )}
+        >
+          {date.getDate()}
+        </div>
+      </div>
     </button>
   );
 }
@@ -384,12 +519,13 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
               aria-modal="false"
               aria-label={t("datepicker.chooseDate")}
               className={cn(
-                "z-[70] select-none rounded border border-erp-table-border bg-erp-table-bg p-2",
-                "text-[13px] text-erp-text shadow-[0_0.5rem_1rem_rgba(0,0,0,0.15)]"
+                "relative z-[70] max-w-full select-none rounded border border-erp-datepicker-popover-border",
+                "bg-erp-datepicker-popover-bg text-[0.875rem] text-erp-text",
+                "shadow-[0_0.5rem_1rem_rgba(0,0,0,0.15)]"
               )}
               style={{ position: "fixed", top: coords.top, left: coords.left }}
             >
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 p-2">
                 <nav className="flex items-center">
                   <NavButton
                     label={
@@ -415,7 +551,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
                     type="button"
                     tabIndex={-1}
                     title={t("datepicker.selectMonth")}
-                    className="min-w-0 flex-1 truncate border-0 bg-transparent px-1 text-start text-[13px] text-erp-text opacity-75 hover:opacity-100"
+                    className="min-w-0 flex-1 truncate border-0 bg-transparent px-1 text-start text-[0.675rem] text-erp-text opacity-75 hover:opacity-100"
                     onClick={() =>
                       setView((current) => (current === "days" ? "months" : "days"))
                     }
@@ -425,7 +561,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
                 </nav>
 
                 {view === "months" ? (
-                  <div className="grid w-[248px] grid-cols-3 gap-0.5">
+                  <div className="grid w-[17rem] grid-cols-3 gap-0.5">
                     {Array.from({ length: 12 }, (_, month) => {
                       const isCurrentMonth = monthCursor.getMonth() === month;
                       const isSelectedMonth =
@@ -436,7 +572,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
                           key={month}
                           type="button"
                           className={cn(
-                            "h-9 rounded border-0 bg-transparent text-[13px] text-erp-text hover:bg-erp-menu-hover",
+                            "h-9 rounded border-0 bg-transparent text-[0.875rem] text-erp-text hover:bg-erp-menu-hover",
                             isCurrentMonth && "font-bold",
                             isSelectedMonth &&
                               "bg-erp-primary font-bold text-erp-primary-foreground hover:bg-erp-primary"
@@ -454,66 +590,58 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
                     })}
                   </div>
                 ) : (
-                  <div className="grid w-[248px] grid-cols-8">
+                  <div
+                    className="grid w-[17rem] overflow-hidden rounded"
+                    style={{ gridTemplateColumns: "repeat(8, minmax(0, 1fr))" }}
+                    role="grid"
+                  >
                     <div
-                      className="grid h-7 place-items-center text-[11px] font-bold text-erp-label"
-                      title={t("datepicker.weekNumbers")}
-                    />
-                    {weekdayLabels.map((label, index) => (
+                      className="col-span-8 grid bg-erp-datepicker-weekday-bg"
+                      style={{ gridTemplateColumns: "subgrid" }}
+                    >
                       <div
-                        key={`${label}-${index}`}
-                        className="grid h-7 place-items-center text-[11px] font-bold text-erp-text"
+                        className="flex h-7 items-center justify-center overflow-hidden font-bold text-erp-label"
+                        title={t("datepicker.weekNumbers")}
                       >
-                        {label}
+                        <div className="truncate text-[0.8125rem]" />
                       </div>
-                    ))}
+                      {weekdayLabels.map((label, index) => (
+                        <div
+                          key={`${label}-${index}`}
+                          className="flex h-7 items-center justify-center overflow-hidden font-bold text-erp-text"
+                        >
+                          <div className="truncate text-[0.8125rem]">{label}</div>
+                        </div>
+                      ))}
+                    </div>
                     {Array.from({ length: 6 }, (_, week) => {
                       const weekDays = days.slice(week * 7, week * 7 + 7);
                       return (
-                        <div key={week} className="contents">
-                          <div className="grid h-8 place-items-center text-[12px] font-bold text-erp-text">
+                        <div
+                          key={week}
+                          className="col-span-8 grid"
+                          style={{ gridTemplateColumns: "subgrid" }}
+                        >
+                          <div className="flex h-8 items-center justify-center bg-erp-datepicker-week-bg text-[0.675rem] font-semibold text-erp-text">
                             {isoWeek(weekDays[0]!)}
                           </div>
-                          {weekDays.map((date) => {
-                            const iso = toISODate(date);
-                            const isSelected = selected ? sameDay(date, selected) : false;
-                            const isToday = sameDay(date, new Date());
-                            const isOutside = date.getMonth() !== monthCursor.getMonth();
-                            const dayDisabled = isDisabledDay(date);
-                            return (
-                              <button
-                                key={iso}
-                                type="button"
-                                role="gridcell"
-                                aria-selected={isSelected}
-                                disabled={dayDisabled}
-                                className="grid h-8 place-items-center border-0 bg-transparent p-0"
-                                onClick={() => selectDay(date)}
-                              >
-                                <span
-                                  className={cn(
-                                    "flex size-[1.35rem] items-center justify-center text-[13px] text-erp-text",
-                                    isOutside && "text-erp-muted",
-                                    isToday && "rounded-full font-bold",
-                                    isSelected &&
-                                      "rounded-full bg-erp-primary font-bold text-erp-primary-foreground",
-                                    !isSelected &&
-                                      !dayDisabled &&
-                                      "hover:rounded-full hover:bg-erp-menu-hover",
-                                    dayDisabled && "cursor-not-allowed opacity-50"
-                                  )}
-                                >
-                                  {date.getDate()}
-                                </span>
-                              </button>
-                            );
-                          })}
+                          {weekDays.map((date) => (
+                            <DayCell
+                              key={toISODate(date)}
+                              date={date}
+                              monthCursor={monthCursor}
+                              selected={selected}
+                              isDisabledDay={isDisabledDay}
+                              onSelect={selectDay}
+                            />
+                          ))}
                         </div>
                       );
                     })}
                   </div>
                 )}
               </div>
+              <PopoverArrow placement={coords.placement} offset={coords.arrowOffset} />
             </div>,
             document.body
           )

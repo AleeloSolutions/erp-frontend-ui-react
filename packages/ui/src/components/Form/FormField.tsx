@@ -73,17 +73,19 @@ export function FormField({
         )}
       >
         {label ? (
-          <label
-            htmlFor={htmlFor}
-            className="shrink-0 text-[10.5px] font-semibold whitespace-nowrap text-erp-text"
-          >
-            {label}
-            {required ? (
-              <span className="ms-0.5 text-erp-error" aria-hidden>
-                *
-              </span>
-            ) : null}
-          </label>
+          <div className="min-w-0 break-words text-erp-form-label">
+            <label
+              htmlFor={htmlFor}
+              className="m-0 block text-[length:var(--text-form-label)] font-normal leading-[var(--leading-form-label)] text-erp-form-label"
+            >
+              {label}
+              {required ? (
+                <span className="ms-0.5 text-erp-error" aria-hidden>
+                  *
+                </span>
+              ) : null}
+            </label>
+          </div>
         ) : null}
         <div className="min-w-0">
           {Children.map(children, (child) => withLabelPlaceholder(child, label))}

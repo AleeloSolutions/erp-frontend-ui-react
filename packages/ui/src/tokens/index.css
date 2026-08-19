@@ -36,6 +36,7 @@
   --color-erp-muted: var(--muted);
   --color-erp-subtle: var(--subtle);
   --color-erp-label: var(--label);
+  --color-erp-form-label: var(--form-label);
   --color-erp-placeholder: var(--placeholder);
   --color-erp-border: var(--border);
   --color-erp-border-soft: var(--border-soft);
@@ -75,6 +76,13 @@
   --color-erp-danger-bg: var(--danger-bg);
   --color-erp-danger-border: var(--danger-border);
   --color-erp-danger-foreground: var(--danger-foreground);
+  --color-erp-datepicker-popover-bg: var(--datepicker-popover-bg);
+  --color-erp-datepicker-popover-border: var(--datepicker-popover-border);
+  --color-erp-datepicker-weekday-bg: var(--datepicker-weekday-bg);
+  --color-erp-datepicker-week-bg: var(--datepicker-week-bg);
+  --color-erp-datepicker-day-selected: var(--datepicker-day-selected);
+  --color-erp-datepicker-day-selected-halo: var(--datepicker-day-selected-halo);
+  --color-erp-datepicker-day-outside: var(--datepicker-day-outside);
   --font-sans: var(--font-inter);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);

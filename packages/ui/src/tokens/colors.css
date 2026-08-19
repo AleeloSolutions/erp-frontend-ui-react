@@ -39,6 +39,7 @@
   --muted: #6b7280;
   --subtle: #8a94a6;
   --label: #7a869a;
+  --form-label: #111827;
   --placeholder: #94a3b8;
   --border: #dce2e8;
   --border-soft: #e9edf2;
@@ -83,4 +84,13 @@
   --danger-foreground: #ffffff;
   --accent-teal: var(--teal);
   --accent-teal-bg: var(--teal-50);
+
+  /* DatePicker — Odoo datetime popover */
+  --datepicker-popover-bg: var(--table-bg);
+  --datepicker-popover-border: var(--table-border);
+  --datepicker-weekday-bg: var(--surface);
+  --datepicker-week-bg: var(--surface-alt);
+  --datepicker-day-selected: var(--primary);
+  --datepicker-day-selected-halo: var(--primary-50);
+  --datepicker-day-outside: var(--muted);
 }
