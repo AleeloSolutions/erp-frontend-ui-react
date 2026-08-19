@@ -35,7 +35,7 @@ function DataRow<TData>({ row }: { row: Row<TData> }) {
             key={cell.id}
             style={getColumnCellStyle(cell.column)}
             className={cn(
-              "h-10 overflow-hidden border-b border-erp-table-border text-[11px] text-erp-text align-middle whitespace-nowrap",
+              "h-10 overflow-hidden border-b border-erp-table-border text-[14px] text-erp-text align-middle whitespace-nowrap",
               isSelect || isActions ? "p-0" : "px-4 py-1",
               isSelect && "overflow-visible text-center",
               alignRight && "text-end tabular-nums"
@@ -104,10 +104,10 @@ function GroupedRows<TData>({
                 <span className="inline-flex items-center rounded-full bg-erp-info-bg px-[0.65em] py-[0.25em] text-[0.75em] font-medium text-erp-info">
                   {columnId}
                 </span>
-                <span className="min-w-0 truncate text-[11px] font-medium text-erp-text">
+                <span className="min-w-0 truncate text-[14px] font-medium text-erp-text">
                   {groupName}
                 </span>
-                <span className="ms-auto shrink-0 text-[11px] text-erp-muted">
+                <span className="ms-auto shrink-0 text-[14px] text-erp-muted">
                   {groupRows.length} item{groupRows.length === 1 ? "" : "s"}
                 </span>
               </div>

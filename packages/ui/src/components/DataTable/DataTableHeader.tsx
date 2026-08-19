@@ -101,7 +101,7 @@ function HeaderCell<TData>({
       colSpan={header.colSpan}
       style={getColumnCellStyle(header.column)}
       className={cn(
-        "group/th relative sticky top-0 z-10 h-10 overflow-hidden border-b border-erp-table-border bg-erp-table-header px-4 py-2 text-[13px] font-medium whitespace-nowrap text-erp-text align-middle !text-start",
+        "group/th relative sticky top-0 z-10 h-10 overflow-hidden border-b border-erp-table-border bg-erp-table-header px-4 py-2 text-[14px] font-weight-500 whitespace-nowrap text-erp-text align-middle !text-start",
         canSort && "cursor-pointer",
         padEnd && "pe-9",
         alignRight && "!text-end"

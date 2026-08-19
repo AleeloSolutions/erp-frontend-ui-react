@@ -52,7 +52,7 @@ export type FieldChromeOptions = FieldChromeProps & {
  * Hover = neutral gray; focus/active = primary; error = error red.
  * Side chrome uses logical edges (`border-e` / `border-s`) so it flips in RTL.
  *
- * `tick` = full bottom + half-height end stem + small outer arc, one color (see `.erp-field-tick`).
+ * `tick` = 1px bottom + half-height 1px end tick, same color, 2px join radius.
  */
 export function fieldChromeClasses({
   chrome = "underline",
@@ -72,7 +72,8 @@ export function fieldChromeClasses({
     "text-erp-text",
     "border-0 border-solid border-b border-t-0",
     !isTick && "border-b-erp-border-soft",
-    isTick && "border-b-transparent",
+    isTick && "erp-field-tick",
+    isTick && (isEnd ? "erp-field-tick-end" : "erp-field-tick-start"),
     "placeholder:text-erp-placeholder placeholder:opacity-100",
     "transition-[border-color,border-radius,background-image] duration-150",
     "outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0",
@@ -82,8 +83,6 @@ export function fieldChromeClasses({
     isCorner && !isEnd && "rounded-none rounded-es-[2px] hover:rounded-es-[3px]",
     isCorner && isEnd && "border-e border-s-0 border-e-erp-border-soft",
     isCorner && !isEnd && "border-s border-e-0 border-s-erp-border-soft",
-    isTick && "erp-field-tick rounded-none",
-    isTick && (isEnd ? "erp-field-tick-end" : "erp-field-tick-start"),
     isTick && within && "erp-field-tick-within",
     isTick && active && "erp-field-tick-active",
     isTick && error && "erp-field-tick-error",

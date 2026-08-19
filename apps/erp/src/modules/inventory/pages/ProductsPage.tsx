@@ -110,11 +110,7 @@ export default function ProductsPage() {
         // meta: { fill: true },
         size: 220,
         cell: ({ row, getValue }) => (
-          <button
-            type="button"
-            className="font-bold text-erp-primary hover:underline"
-            onClick={() => setDetailProduct(row.original)}
-          >
+          <button type="button" onClick={() => setDetailProduct(row.original)}>
             {String(getValue())}
           </button>
         ),

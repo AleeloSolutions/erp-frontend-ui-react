@@ -157,65 +157,62 @@ button {
 }
 
 /*
- * Tick chrome: 1px bottom + half-height end stem + 3px outer arc.
- * Painted as backgrounds (native inputs cannot use ::after).
- * Do not use border-radius here — it clips the join into a notch.
+ * Tick chrome: 1px L — full bottom + half-height end tick + rounded join.
+ * Three layers: bottom bar, tick stem, corner arc. All use --field-line.
  */
 .erp-field-tick {
-  --field-tick-r: 3px;
   --field-line: var(--border-soft);
-  border-radius: 0;
-  border-inline-width: 0;
-  border-bottom-color: transparent;
+  --field-tick-w: 1px;
+  --field-tick-r: 4px;
   background-color: transparent;
-  background-repeat: no-repeat;
-  background-origin: border-box;
-  background-clip: border-box;
-  /* Win over Tailwind `bg-*` utilities that can reset the shorthand. */
+  border-width: 0 !important;
   background-image:
     linear-gradient(var(--field-line), var(--field-line)),
     linear-gradient(var(--field-line), var(--field-line)),
     radial-gradient(
       circle at var(--field-tick-arc-at),
-      transparent calc(var(--field-tick-r) - 1px),
-      var(--field-line) calc(var(--field-tick-r) - 1px),
+      transparent calc(var(--field-tick-r) - var(--field-tick-w)),
+      var(--field-line) calc(var(--field-tick-r) - var(--field-tick-w)),
       var(--field-line) var(--field-tick-r),
       transparent calc(var(--field-tick-r) + 0.5px)
     ) !important;
   background-size:
-    calc(100% - var(--field-tick-r)) 1px,
-    1px calc(50% - var(--field-tick-r)),
+    calc(100% - var(--field-tick-r)) var(--field-tick-w),
+    var(--field-tick-w) calc(50% - var(--field-tick-r)),
     var(--field-tick-r) var(--field-tick-r) !important;
-  background-position:
-    var(--field-tick-bar-pos), var(--field-tick-stem-pos), var(--field-tick-arc-pos) !important;
+  background-repeat: no-repeat !important;
 }
 
 .erp-field-tick-end {
-  --field-tick-bar-pos: 0 100%;
-  --field-tick-stem-pos: 100% calc(100% - var(--field-tick-r));
-  --field-tick-arc-pos: 100% 100%;
   --field-tick-arc-at: 0 0;
+  background-position:
+    left 0 bottom 0,
+    right 0 bottom var(--field-tick-r),
+    right 0 bottom 0 !important;
 }
 
 .erp-field-tick-start {
-  --field-tick-bar-pos: 100% 100%;
-  --field-tick-stem-pos: 0 calc(100% - var(--field-tick-r));
-  --field-tick-arc-pos: 0 100%;
   --field-tick-arc-at: 100% 0;
+  background-position:
+    right 0 bottom 0,
+    left 0 bottom var(--field-tick-r),
+    left 0 bottom 0 !important;
 }
 
 [dir="rtl"] .erp-field-tick-end {
-  --field-tick-bar-pos: 100% 100%;
-  --field-tick-stem-pos: 0 calc(100% - var(--field-tick-r));
-  --field-tick-arc-pos: 0 100%;
   --field-tick-arc-at: 100% 0;
+  background-position:
+    right 0 bottom 0,
+    left 0 bottom var(--field-tick-r),
+    left 0 bottom 0 !important;
 }
 
 [dir="rtl"] .erp-field-tick-start {
-  --field-tick-bar-pos: 0 100%;
-  --field-tick-stem-pos: 100% calc(100% - var(--field-tick-r));
-  --field-tick-arc-pos: 100% 100%;
   --field-tick-arc-at: 0 0;
+  background-position:
+    left 0 bottom 0,
+    right 0 bottom var(--field-tick-r),
+    right 0 bottom 0 !important;
 }
 
 .erp-field-tick:hover:not(:disabled):not(.erp-field-tick-error) {
