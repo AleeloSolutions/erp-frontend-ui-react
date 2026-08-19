@@ -2,7 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import HomePage from "@/app/HomePage";
 import ComponentsDemoPage from "@/app/components-demo/ComponentsDemoPage";
 import AppsPage from "@/app/AppsPage";
-import { useModuleRegistry } from "@/modules/ModuleRegistryProvider";
+import { useModuleRegistry } from "@/modules";
 
 /**
  * App-level route table.

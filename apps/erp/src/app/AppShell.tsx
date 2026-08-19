@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { AppShell as UiAppShell, type AppShellProps } from "@erp/ui";
 import { coreNavigation, mobileNavigation } from "./navigation";
-import { useModuleRegistry } from "@/modules/ModuleRegistryProvider";
+import { useModuleRegistry } from "@/modules";
 
 export function AppShell({
   navigationItems,
