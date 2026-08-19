@@ -10,7 +10,8 @@ export {
   getMissingDependencies,
   DEFAULT_INSTALLED_MODULES,
 } from "./registry";
+export { ModuleRegistryProvider } from "./ModuleRegistryProvider";
 export {
-  ModuleRegistryProvider,
   useModuleRegistry,
-} from "./ModuleRegistryProvider";
+  type ModuleRegistryContextValue,
+} from "./moduleRegistryContext";

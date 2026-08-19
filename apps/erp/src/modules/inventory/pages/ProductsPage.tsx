@@ -159,7 +159,7 @@ export default function ProductsPage() {
         // size: 120,
       },
     ],
-    [navigate]
+    []
   );
 
   async function confirmDelete() {

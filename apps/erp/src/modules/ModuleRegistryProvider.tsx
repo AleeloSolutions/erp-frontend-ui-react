@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
-import type { ErpModule } from "./types";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   canInstall as checkCanInstall,
   canUninstall as checkCanUninstall,
@@ -16,27 +8,13 @@ import {
   readInstalledIds,
   writeInstalledIds,
 } from "./registry";
-
-export interface ModuleRegistryContextValue {
-  catalog: ErpModule[];
-  installedIds: string[];
-  installedModules: ErpModule[];
-  isInstalled: (id: string) => boolean;
-  install: (id: string) => void;
-  uninstall: (id: string) => void;
-  getModule: typeof getModule;
-  canInstall: (id: string) => ReturnType<typeof checkCanInstall>;
-  canUninstall: (id: string) => ReturnType<typeof checkCanUninstall>;
-}
-
-const ModuleRegistryContext = createContext<ModuleRegistryContextValue | null>(
-  null
-);
+import {
+  ModuleRegistryContext,
+  type ModuleRegistryContextValue,
+} from "./moduleRegistryContext";
 
 export function ModuleRegistryProvider({ children }: { children: ReactNode }) {
-  const [installedIds, setInstalledIds] = useState<string[]>(() =>
-    readInstalledIds()
-  );
+  const [installedIds, setInstalledIds] = useState<string[]>(() => readInstalledIds());
 
   const installedModules = useMemo(
     () => getInstalledModules(installedIds),
@@ -94,14 +72,4 @@ export function ModuleRegistryProvider({ children }: { children: ReactNode }) {
       {children}
     </ModuleRegistryContext.Provider>
   );
-}
-
-export function useModuleRegistry(): ModuleRegistryContextValue {
-  const ctx = useContext(ModuleRegistryContext);
-  if (!ctx) {
-    throw new Error(
-      "useModuleRegistry must be used within ModuleRegistryProvider"
-    );
-  }
-  return ctx;
 }
