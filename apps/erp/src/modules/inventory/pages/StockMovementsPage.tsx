@@ -18,7 +18,6 @@ export default function StockMovementsPage() {
 
   const navbar = useNavbarDefaults({
     ...inventoryNavbar,
-    submenuActiveKey: "products",
   });
 
   return (

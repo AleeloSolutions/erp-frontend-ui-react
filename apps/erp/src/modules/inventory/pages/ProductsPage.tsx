@@ -195,7 +195,7 @@ export default function ProductsPage() {
 
   const navbar = useNavbarDefaults({
     ...inventoryNavbar,
-    submenuActiveKey: "products",
+    // submenuActiveKey: "products",
   });
 
   return (

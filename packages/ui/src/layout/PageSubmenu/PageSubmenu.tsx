@@ -97,9 +97,12 @@ function SubmenuDropdown({
         aria-haspopup="true"
         className={cn(
           "inline-flex h-8 shrink-0 items-center rounded px-2.5 text-[13px] font-normal text-erp-muted whitespace-nowrap transition-colors",
+          "border border-transparent",
           "hover:bg-black/[0.06] hover:text-erp-text",
           "max-[720px]:h-9 max-[720px]:px-3 max-[720px]:text-sm",
-          (active || hasActiveChild) && "bg-black/[0.06] font-medium text-erp-text"
+          (active || hasActiveChild) && !open && "bg-black/[0.06] font-medium text-black",
+          open &&
+            "border-erp-teal bg-erp-teal-50 font-medium text-erp-text hover:bg-erp-teal-50 hover:text-erp-text"
         )}
       >
         {item.label}
