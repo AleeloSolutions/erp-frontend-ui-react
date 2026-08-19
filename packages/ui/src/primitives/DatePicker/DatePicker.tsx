@@ -239,19 +239,27 @@ function usePopoverCoords(
 function PopoverArrow({
   placement,
   offset,
+  size = 16,
 }: {
   placement: PopoverPlacement;
   offset: number;
+  size?: number;
 }) {
+  const hang = size / 2;
   const base =
-    "pointer-events-none absolute z-[-1] size-2 rotate-45 border border-erp-datepicker-popover-border bg-erp-datepicker-popover-bg";
+    "pointer-events-none absolute z-[-1] rotate-45 bg-erp-datepicker-popover-bg";
 
   if (placement === "left") {
     return (
       <span
         aria-hidden
-        className={cn(base, "end-[-4px] border-t-0 border-e-0")}
-        style={{ top: Math.max(12, Math.min(offset, 280)) }}
+        className={cn(base)}
+        style={{
+          width: size,
+          height: size,
+          right: -hang,
+          top: Math.max(12, Math.min(offset, 280)),
+        }}
       />
     );
   }
@@ -260,8 +268,13 @@ function PopoverArrow({
     return (
       <span
         aria-hidden
-        className={cn(base, "-bottom-1 border-s-0 border-b-0")}
-        style={{ left: Math.max(12, offset - 4) }}
+        className={cn(base)}
+        style={{
+          width: size,
+          height: size,
+          bottom: -hang,
+          left: Math.max(12, offset - hang),
+        }}
       />
     );
   }
@@ -269,8 +282,13 @@ function PopoverArrow({
   return (
     <span
       aria-hidden
-      className={cn(base, "-top-1 border-e-0 border-t-0")}
-      style={{ left: Math.max(12, offset - 4) }}
+      className={cn(base)}
+      style={{
+        width: size,
+        height: size,
+        top: -hang,
+        left: Math.max(12, offset - hang),
+      }}
     />
   );
 }
