@@ -32,6 +32,7 @@
   --color-erp-table-odd-hover: var(--table-odd-hover);
   --color-erp-table-even-hover: var(--table-even-hover);
   --color-erp-table-selected: var(--table-selected);
+  --color-erp-table-active: var(--table-active);
   --color-erp-menu-hover: var(--menu-hover);
   --color-erp-favourite: var(--favourite);
   --color-erp-text: var(--text);
