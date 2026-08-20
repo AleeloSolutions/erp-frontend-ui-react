@@ -74,7 +74,8 @@ export function Sidebar({
               "flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-xs text-white/85 transition-colors",
               "hover:bg-sidebar-hover",
               active && [
-                "relative bg-nav-active text-white",
+                // Keep hover behavior even for the active item.
+                "relative bg-nav-active text-white hover:bg-nav-hover",
                 "before:absolute before:inset-y-1.5 before:-start-2 before:w-[3px] before:rounded-[2px] before:bg-[var(--brand-primary-hover)] before:content-['']",
                 "max-[980px]:before:hidden",
               ],
