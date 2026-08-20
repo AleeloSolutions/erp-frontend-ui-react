@@ -195,6 +195,8 @@ export function DataTable<TData, TValue = unknown>({
   const [internalSorting, setInternalSorting] = useState<SortingState>([]);
   const [internalFilters, setInternalFilters] = useState<DataTableFilterValues>({});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  /** Last unchecked row — keeps hover-style checkbox + row emphasis until another row is unchecked. */
+  const [activeRowId, setActiveRowId] = useState<string | null>(null);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() =>
     readStoredVisibility(tableId)
   );
@@ -316,7 +318,16 @@ export function DataTable<TData, TValue = unknown>({
               aria-label="Select row"
               checked={row.getIsSelected()}
               disabled={!row.getCanSelect()}
-              onChange={row.getToggleSelectedHandler()}
+              active={!row.getIsSelected() && row.id === activeRowId}
+              onChange={(event) => {
+                const rowId = row.id;
+                if (!event.target.checked) {
+                  setActiveRowId(rowId);
+                } else {
+                  setActiveRowId((current) => (current === rowId ? null : current));
+                }
+                row.getToggleSelectedHandler()(event);
+              }}
             />
           </div>
         ),
@@ -373,7 +384,7 @@ export function DataTable<TData, TValue = unknown>({
         maxSize: column.maxSize ?? DEFAULT_COLUMN_MAX_SIZE,
       };
     });
-  }, [columns, selectable, getRowActions]);
+  }, [columns, selectable, getRowActions, activeRowId]);
 
   const filteredBySearch = useMemo(() => {
     if (manualFiltering) return data;
@@ -685,7 +696,10 @@ export function DataTable<TData, TValue = unknown>({
       selectedCount={selectedRows.length}
       selectedRows={selectedRows}
       actions={bulkActions}
-      onClear={() => setRowSelection({})}
+      onClear={() => {
+        setRowSelection({});
+        setActiveRowId(null);
+      }}
     />
   ) : null;
 
@@ -734,6 +748,8 @@ export function DataTable<TData, TValue = unknown>({
                   table={table}
                   emptyMessage={emptyMessage}
                   groupingColumnIds={grouping}
+                  activeRowId={activeRowId}
+                  onClearActiveRow={() => setActiveRowId(null)}
                 />
               </table>
             </div>

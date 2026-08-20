@@ -12,16 +12,35 @@ export interface DataTableBodyProps<TData> {
   emptyMessage?: string;
   /** One or more column ids — nested group headers in order. */
   groupingColumnIds?: string[];
+  /** Last unchecked row — persistent hover-style row background. */
+  activeRowId?: string | null;
+  /** Clear last-unchecked emphasis when another row is clicked. */
+  onClearActiveRow?: () => void;
 }
 
-function DataRow<TData>({ row }: { row: Row<TData> }) {
+function DataRow<TData>({
+  row,
+  activeRowId,
+  onClearActiveRow,
+}: {
+  row: Row<TData>;
+  activeRowId?: string | null;
+  onClearActiveRow?: () => void;
+}) {
+  const isActive = activeRowId != null && row.id === activeRowId;
+
   return (
     <tr
+      onClick={() => {
+        if (activeRowId != null && row.id !== activeRowId) {
+          onClearActiveRow?.();
+        }
+      }}
       className={cn(
         "odd:[&>td]:bg-erp-table-odd even:[&>td]:bg-erp-table-even",
         "odd:hover:[&>td]:bg-erp-table-odd-hover even:hover:[&>td]:bg-erp-table-even-hover",
-        row.getIsSelected() &&
-          "[&>td]:!bg-erp-table-selected hover:[&>td]:!bg-erp-table-selected"
+        isActive &&
+          "odd:[&>td]:!bg-erp-table-odd-hover even:[&>td]:!bg-erp-table-even-hover"
       )}
     >
       {row.getVisibleCells().map((cell) => {
@@ -60,17 +79,26 @@ function GroupedRows<TData>({
   columnIds,
   colSpan,
   depth = 0,
+  activeRowId,
+  onClearActiveRow,
 }: {
   rows: Row<TData>[];
   columnIds: string[];
   colSpan: number;
   depth?: number;
+  activeRowId?: string | null;
+  onClearActiveRow?: () => void;
 }) {
   if (columnIds.length === 0) {
     return (
       <>
         {rows.map((row) => (
-          <DataRow key={row.id} row={row} />
+          <DataRow
+            key={row.id}
+            row={row}
+            activeRowId={activeRowId}
+            onClearActiveRow={onClearActiveRow}
+          />
         ))}
       </>
     );
@@ -118,6 +146,8 @@ function GroupedRows<TData>({
             columnIds={rest}
             colSpan={colSpan}
             depth={depth + 1}
+            activeRowId={activeRowId}
+            onClearActiveRow={onClearActiveRow}
           />
         </Fragment>
       ))}
@@ -129,6 +159,8 @@ export function DataTableBody<TData>({
   table,
   emptyMessage,
   groupingColumnIds = [],
+  activeRowId = null,
+  onClearActiveRow,
 }: DataTableBodyProps<TData>) {
   const rows = table.getRowModel().rows;
   const colSpan = Math.max(table.getVisibleLeafColumns().length, 1);
@@ -144,7 +176,13 @@ export function DataTableBody<TData>({
   if (groupingColumnIds.length > 0) {
     return (
       <tbody>
-        <GroupedRows rows={rows} columnIds={groupingColumnIds} colSpan={colSpan} />
+        <GroupedRows
+          rows={rows}
+          columnIds={groupingColumnIds}
+          colSpan={colSpan}
+          activeRowId={activeRowId}
+          onClearActiveRow={onClearActiveRow}
+        />
       </tbody>
     );
   }
@@ -152,7 +190,12 @@ export function DataTableBody<TData>({
   return (
     <tbody>
       {rows.map((row) => (
-        <DataRow key={row.id} row={row} />
+        <DataRow
+          key={row.id}
+          row={row}
+          activeRowId={activeRowId}
+          onClearActiveRow={onClearActiveRow}
+        />
       ))}
     </tbody>
   );

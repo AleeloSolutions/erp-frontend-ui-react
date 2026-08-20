@@ -16,6 +16,11 @@ export interface CheckboxProps extends Omit<
    * match Odoo (`hasHalo={false}`): primary fill + white check, no glow.
    */
   hasHalo?: boolean;
+  /**
+   * Persistent hover-style emphasis for the last unchecked row in DataTable
+   * (primary border + halo while the checkbox stays unchecked).
+   */
+  active?: boolean;
   /** Ignored — all checkboxes use the primary selected look. */
   variant?: CheckboxVariant;
 }
@@ -28,6 +33,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
       id,
       indeterminate = false,
       hasHalo = true,
+      active = false,
       variant: _variant,
       ...props
     },
@@ -53,6 +59,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
       >
         <span
           data-indeterminate={indeterminate ? "" : undefined}
+          data-active={active ? "" : undefined}
           className="group/cb relative grid size-4 shrink-0 place-items-center"
         >
           <input
@@ -73,8 +80,13 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
               "peer-hover:border-erp-primary",
               "peer-checked:border-erp-primary peer-checked:bg-erp-primary",
               "group-data-[indeterminate]/cb:border-erp-primary group-data-[indeterminate]/cb:bg-erp-primary",
-              hasHalo &&
-                "peer-checked:shadow-[0_0_0_4px_var(--primary-50)] group-data-[indeterminate]/cb:shadow-[0_0_0_4px_var(--primary-50)]",
+              "group-data-[active]/cb:border-erp-primary",
+              hasHalo && [
+                "peer-hover:shadow-[0_0_0_4px_var(--primary-50)]",
+                "peer-checked:shadow-[0_0_0_4px_var(--primary-50)]",
+                "group-data-[indeterminate]/cb:shadow-[0_0_0_4px_var(--primary-50)]",
+                "group-data-[active]/cb:shadow-[0_0_0_4px_var(--primary-50)]",
+              ],
               "peer-focus-visible:ring-2 peer-focus-visible:ring-erp-primary/20"
             )}
             aria-hidden

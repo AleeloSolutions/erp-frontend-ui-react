@@ -35,3 +35,8 @@ export const DisabledUnchecked: Story = {
 export const Menu: Story = {
   args: { hasHalo: false, defaultChecked: true, label: "Tax Excluded" },
 };
+
+/** Last unchecked row in a table: hover-style border + halo, stays on while unchecked. */
+export const Active: Story = {
+  args: { active: true, label: "Last unchecked row" },
+};

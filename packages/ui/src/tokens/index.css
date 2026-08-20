@@ -5,6 +5,8 @@
 @theme inline {
   --color-nav: var(--nav);
   --color-nav-hover: var(--nav-hover);
+  --color-btn-hover: var(--btn-hover);
+  --color-sidebar-hover: var(--sidebar-hover);
   --color-nav-active: var(--nav-active);
   --color-erp-blue: var(--blue);
   --color-erp-blue-50: var(--blue-50);

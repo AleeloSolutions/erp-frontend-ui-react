@@ -71,9 +71,13 @@ export function Sidebar({
             );
 
             const classNameLink = cn(
-              "my-0.5 flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-xs text-white/85 transition-colors",
-              "hover:bg-nav-hover",
-              active && "bg-nav-active text-white",
+              "flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-xs text-white/85 transition-colors",
+              "hover:bg-sidebar-hover",
+              active && [
+                "relative bg-nav-active text-white",
+                "before:absolute before:inset-y-1.5 before:-start-2 before:w-[3px] before:rounded-[2px] before:bg-[var(--brand-primary-hover)] before:content-['']",
+                "max-[980px]:before:hidden",
+              ],
               "max-[980px]:justify-center max-[980px]:px-0"
             );
 

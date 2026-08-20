@@ -8,6 +8,7 @@
   /* Primitive palette — aligned to brand */
   --nav: var(--brand-primary);
   --nav-hover: var(--brand-primary-hover);
+  --btn-hover: var(--brand-primary-hover);
   --nav-active: var(--brand-primary-hover);
   --blue: var(--brand-primary);
   --blue-50: #f6e8e3;
@@ -25,6 +26,7 @@
   --surface-muted: #f5f8fc;
   --surface-tint: #f8fafc;
   --surface-tint-strong: #fbfcfe;
+  --sidebar-hover: rgba(255, 255, 255, 0.1);
   --table-bg: #ffffff;
   --table-header: #f9fafb;
   --table-border: #d8dadd;
