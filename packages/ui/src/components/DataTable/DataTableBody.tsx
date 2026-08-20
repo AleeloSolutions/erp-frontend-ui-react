@@ -27,7 +27,8 @@ function DataRow<TData>({
   activeRowId?: string | null;
   onClearActiveRow?: () => void;
 }) {
-  const isActive = activeRowId != null && row.id === activeRowId;
+  const isSelected = row.getIsSelected();
+  const isActive = !isSelected && activeRowId != null && row.id === activeRowId;
 
   return (
     <tr
@@ -39,8 +40,8 @@ function DataRow<TData>({
       className={cn(
         "odd:[&>td]:bg-erp-table-odd even:[&>td]:bg-erp-table-even",
         "odd:hover:[&>td]:bg-erp-table-odd-hover even:hover:[&>td]:bg-erp-table-even-hover",
-        isActive &&
-          "odd:[&>td]:!bg-erp-table-odd-hover even:[&>td]:!bg-erp-table-even-hover"
+        isActive && "[&>td]:!bg-erp-table-active",
+        isSelected && "[&>td]:!bg-erp-table-selected"
       )}
     >
       {row.getVisibleCells().map((cell) => {

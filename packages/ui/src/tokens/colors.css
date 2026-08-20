@@ -34,7 +34,8 @@
   --table-even: rgba(0, 0, 0, 0.01);
   --table-odd-hover: rgba(0, 0, 0, 0.055);
   --table-even-hover: rgba(0, 0, 0, 0.055);
-  --table-selected: rgba(0, 0, 0, 0.05);
+  --table-selected: #faede7;
+  --table-active: #fdf5f1;
   --menu-hover: rgba(0, 0, 0, 0.08);
   --favourite: #e4a900;
   --text: #1f2937;
