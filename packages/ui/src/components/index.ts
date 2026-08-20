@@ -6,4 +6,5 @@ export * from "./FilterBar";
 export * from "./Form";
 export * from "./Modal";
 export * from "./SearchFilter";
+export * from "./Tabs";
 export * from "./Toast";
