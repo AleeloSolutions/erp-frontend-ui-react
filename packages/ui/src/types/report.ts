@@ -26,6 +26,8 @@ export type AccountReportNode = {
   showActions?: boolean;
   /** Level-0 bar header with optional amount (e.g. LIABILITIES + EQUITY). */
   sectionHeader?: boolean;
+  /** Force a blank spacer row before this node. Ignored for the first node in its list. */
+  spacerBefore?: boolean;
   children?: AccountReportNode[];
 };
 

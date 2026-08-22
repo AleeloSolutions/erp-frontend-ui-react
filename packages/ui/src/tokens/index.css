@@ -95,6 +95,7 @@
   --color-erp-report-row-hover: var(--report-row-hover);
   --color-erp-report-zero: var(--report-zero);
   --color-erp-report-text: var(--report-text);
+  --color-erp-report-title: var(--report-title);
   --font-sans: var(--font-inter);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
@@ -286,6 +287,15 @@ button {
   padding-inline-end: calc(var(--report-header-pe-offset) + var(--report-header-px));
   vertical-align: middle;
   white-space: nowrap;
+}
+
+/* Statement title rendered in the leading header cell (e.g. "BALANCE SHEET"). */
+.erp-account-report thead#table_header th.report-title {
+  font-size: var(--report-title-size);
+  font-weight: 700;
+  color: var(--report-title);
+  text-align: center;
+  white-space: normal;
 }
 
 .erp-account-report thead#table_header th:first-child {

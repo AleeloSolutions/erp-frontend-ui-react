@@ -107,6 +107,8 @@
   --report-row-hover: rgba(0, 0, 0, 0.04);
   --report-zero: #adb5bd;
   --report-text: #374151;
+  --report-title: var(--text);
+  --report-title-size: 1.375rem;
   --report-table-font-size: 0.8rem;
   --report-header-weight: 500;
   --report-header-py: 0.25rem;

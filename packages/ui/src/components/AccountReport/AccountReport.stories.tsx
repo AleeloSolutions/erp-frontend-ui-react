@@ -217,7 +217,7 @@ export const BalanceSheet: Story = {
   name: "Balance Sheet (Odoo)",
   decorators: [
     (Story) => (
-      <div className="rounded-sm border border-erp-report-row-border bg-white p-1">
+      <div className="w-fit rounded-sm border border-erp-report-row-border bg-white p-1">
         <Story />
       </div>
     ),
@@ -276,4 +276,42 @@ export const FlatRows: Story = {
       },
     ],
   },
+};
+
+export const WithTitle: Story = {
+  name: "Statement title in header",
+  args: {
+    title: "BALANCE SHEET",
+  },
+  decorators: BalanceSheet.decorators,
+};
+
+export const ExplicitSpacers: Story = {
+  name: "Subtotal bars with spacerBefore",
+  args: {
+    title: "PROFIT AND LOSS",
+    spacerBetweenSections: false,
+    nodes: [
+      { id: "revenue", label: "Revenue", level: 0, amounts: { balance: 120_810 } },
+      { id: "costs", label: "Costs of Revenue", level: 0, amounts: { balance: 0 } },
+      {
+        id: "gross-profit",
+        label: "Gross Profit",
+        level: 0,
+        sectionHeader: true,
+        spacerBefore: true,
+        amounts: { balance: 120_810 },
+      },
+      { id: "opex", label: "Operating Expenses", level: 0, amounts: { balance: 0 } },
+      {
+        id: "net-profit",
+        label: "Net Profit",
+        level: 0,
+        sectionHeader: true,
+        spacerBefore: true,
+        amounts: { balance: 120_810 },
+      },
+    ],
+  },
+  decorators: BalanceSheet.decorators,
 };

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import HomePage from "@/app/HomePage";
 import { InventoryRoutes } from "./modules/inventory/routes";
 import { SalesRoutes } from "./modules/sales/routes";
+import { ReportsRoutes } from "./modules/reports/routes";
 
 export function AppRoutes() {
   return (
@@ -10,6 +11,7 @@ export function AppRoutes() {
       <Route path="/dashboard" element={<HomePage />} />
       <Route path="/inventory/*" element={<InventoryRoutes />} />
       <Route path="/sales/*" element={<SalesRoutes />} />
+      <Route path="/reports/*" element={<ReportsRoutes />} />
       <Route path="*" element={<Navigate to="/inventory/products" replace />} />
     </Routes>
   );

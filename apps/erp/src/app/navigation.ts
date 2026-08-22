@@ -2,6 +2,7 @@ import { LayoutDashboard, BarChart3, Home, ListTodo, MoreHorizontal } from "luci
 import type { MobileNavItem, NavigationItem } from "@erp/ui";
 import { inventoryManifest } from "@/modules/inventory/manifest";
 import { salesManifest } from "@/modules/sales/manifest";
+import { reportsManifest } from "@/modules/reports/manifest";
 
 export const coreNavigation: NavigationItem[] = [
   {
@@ -17,6 +18,7 @@ export const coreNavigation: NavigationItem[] = [
   },
   inventoryManifest.nav,
   salesManifest.nav,
+  reportsManifest.nav,
 ];
 
 export const navigation: NavigationItem[] = coreNavigation;
@@ -32,6 +34,6 @@ export const financeSubmenu = [
 export const mobileNavigation: MobileNavItem[] = [
   { key: "home", label: "Home", href: "/inventory/products", icon: Home },
   { key: "tasks", label: "Tasks", href: "/dashboard", icon: ListTodo },
-  { key: "reports", label: "Reports", href: "/dashboard", icon: BarChart3 },
+  { key: "reports", label: "Reports", href: "/reports/balance-sheet", icon: BarChart3 },
   { key: "more", label: "More", href: "/dashboard", icon: MoreHorizontal },
 ];

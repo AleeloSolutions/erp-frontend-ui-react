@@ -6,4 +6,5 @@ export { Navbar, type NavbarProps } from "./Navbar";
 export { PageActions, type PageActionsProps, type PageActionButton } from "./PageActions";
 export { PageContainer, type PageContainerProps } from "./PageContainer";
 export { PageSubmenu, type PageSubmenuProps } from "./PageSubmenu";
+export { SideMenu, type SideMenuProps } from "./SideMenu";
 export { Sidebar, type SidebarProps } from "./Sidebar";

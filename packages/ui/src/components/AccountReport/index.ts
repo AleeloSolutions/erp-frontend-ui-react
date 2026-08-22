@@ -1,7 +1,7 @@
-export {
-  AccountReport,
-  flattenAccountReportNodes,
-  type AccountReportDensity,
-  type AccountReportProps,
-  type AccountReportRowSpacing,
-} from "./AccountReport";
+export { AccountReport } from "./AccountReport";
+export { flattenAccountReportNodes } from "./accountReport.utils";
+export type {
+  AccountReportDensity,
+  AccountReportProps,
+  AccountReportRowSpacing,
+} from "./accountReport.types";
