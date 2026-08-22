@@ -42,6 +42,7 @@ export function StatementReportPage({
         />
         <div className="min-w-0 flex-1 overflow-x-auto p-4">
           {/* w-fit keeps the card hugging the report's fixed 768px width. */}
+          {/* w-fit keeps the card hugging the report's fixed 768px width. */}
           <div className="w-fit rounded-sm border border-erp-report-row-border bg-white p-1">
             <AccountReport
               title={reportTitle}
