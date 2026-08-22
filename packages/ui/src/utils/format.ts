@@ -26,3 +26,11 @@ export function formatCurrency(
     currency,
   }).format(value);
 }
+
+/** Odoo account report figures: `120,810.00` (no currency symbol). */
+export function formatReportAmount(value: number, locale = "en-US"): string {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}

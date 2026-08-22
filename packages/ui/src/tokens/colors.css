@@ -33,9 +33,10 @@
   --table-odd: #ffffff;
   --table-even: rgba(0, 0, 0, 0.01);
   --table-odd-hover: rgba(0, 0, 0, 0.055);
-  --table-even-hover: rgba(0, 0, 0, 0.055);
+  --table-even-hover: rgba(0, 0, 0, 0.06);
   --table-selected: #faede7;
   --table-active: #fdf5f1;
+  --table-checked-active: rgba(0, 0, 0, 0.1); /* checked active for the checkbox */
   --menu-hover: rgba(0, 0, 0, 0.08);
   --favourite: #e4a900;
   --text: #1f2937;
@@ -96,4 +97,29 @@
   --datepicker-day-selected: var(--primary);
   --datepicker-day-selected-halo: var(--primary-50);
   --datepicker-day-outside: var(--muted);
+
+  /* Account report — Odoo balance sheet */
+  --report-section-bg: #e9ecef;
+  --report-section-header: #d8dadd;
+  --report-section-header-hover: #caced3;
+  --report-section-header-amount: var(--muted);
+  --report-row-border: #dee2e6;
+  --report-row-hover: rgba(0, 0, 0, 0.04);
+  --report-zero: #adb5bd;
+  --report-text: #374151;
+  --report-table-font-size: 0.8rem;
+  --report-header-weight: 500;
+  --report-header-py: 0.25rem;
+  --report-header-px: 0.75rem;
+  --report-header-pe-offset: 20px;
+  --report-header-gap: 1.2rem;
+  --report-row-py: 5px;
+  --report-row-px: 0.75rem;
+  --report-row-pe-offset: 20px;
+  --report-fold-size: 1rem;
+  --report-line-height: 1.25;
+  --report-section-spacer-height: 1.5rem;
+  --report-subgroup-spacer-height: 0.5rem;
+  --report-spacer-height: var(--report-subgroup-spacer-height);
+  --report-muted-data: #d8dadd;
 }

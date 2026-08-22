@@ -11,4 +11,4 @@ export {
   type FieldChromeProps,
   type FieldSize,
 } from "./fieldChrome";
-export { formatCurrency, formatDate } from "./format";
+export { formatCurrency, formatDate, formatReportAmount } from "./format";

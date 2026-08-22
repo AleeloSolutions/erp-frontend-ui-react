@@ -40,7 +40,7 @@ function DataRow<TData>({
       className={cn(
         "odd:[&>td]:bg-erp-table-odd even:[&>td]:bg-erp-table-even",
         "odd:hover:[&>td]:bg-erp-table-odd-hover even:hover:[&>td]:bg-erp-table-even-hover",
-        isActive && "[&>td]:!bg-erp-table-active",
+        isActive && "[&>td]:!bg-erp-table-checked-active",
         isSelected && "[&>td]:!bg-erp-table-selected"
       )}
     >

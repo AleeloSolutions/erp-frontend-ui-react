@@ -31,6 +31,7 @@
   --color-erp-table-even: var(--table-even);
   --color-erp-table-odd-hover: var(--table-odd-hover);
   --color-erp-table-even-hover: var(--table-even-hover);
+  --color-erp-table-checked-active: var(--table-checked-active);
   --color-erp-table-selected: var(--table-selected);
   --color-erp-table-active: var(--table-active);
   --color-erp-menu-hover: var(--menu-hover);
@@ -86,6 +87,14 @@
   --color-erp-datepicker-day-selected: var(--datepicker-day-selected);
   --color-erp-datepicker-day-selected-halo: var(--datepicker-day-selected-halo);
   --color-erp-datepicker-day-outside: var(--datepicker-day-outside);
+  --color-erp-report-section: var(--report-section-bg);
+  --color-erp-report-section-header: var(--report-section-header);
+  --color-erp-report-section-header-hover: var(--report-section-header-hover);
+  --color-erp-report-section-header-amount: var(--report-section-header-amount);
+  --color-erp-report-row-border: var(--report-row-border);
+  --color-erp-report-row-hover: var(--report-row-hover);
+  --color-erp-report-zero: var(--report-zero);
+  --color-erp-report-text: var(--report-text);
   --font-sans: var(--font-inter);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
@@ -245,4 +254,85 @@ button {
 .erp-field-tick-error.erp-field-tick-within:focus-within,
 .erp-field-tick-error.erp-field-tick-active {
   --field-line: var(--error);
+}
+
+/* Account report — Odoo numeric-header / table chrome */
+.erp-account-report table {
+  font-size: var(--report-table-font-size);
+  line-height: var(--report-line-height);
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.erp-account-report td.line_name,
+.erp-account-report td.line_cell.numeric,
+.erp-account-report td.line_name .name,
+.erp-account-report td.line_cell .name {
+  line-height: var(--report-line-height);
+}
+
+.erp-account-report thead#table_header th {
+  background-color: var(--table-bg);
+}
+
+.erp-account-report thead#table_header th.numeric-header {
+  font-weight: var(--report-header-weight);
+  text-align: right;
+  background-color: var(--table-bg);
+  border-bottom-width: 0;
+  color: inherit;
+  padding: var(--report-header-py) var(--report-header-px);
+  padding-bottom: calc(var(--report-header-py) + var(--report-header-gap));
+  padding-inline-end: calc(var(--report-header-pe-offset) + var(--report-header-px));
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.erp-account-report thead#table_header th:first-child {
+  padding-bottom: calc(var(--report-header-py) + var(--report-header-gap));
+}
+
+.erp-account-report td.line_cell.numeric {
+  padding-block: var(--report-row-py);
+  padding-inline: var(--report-row-px);
+  padding-inline-end: calc(var(--report-row-pe-offset) + var(--report-row-px));
+}
+
+.erp-account-report td.line_name {
+  padding-block: var(--report-row-py);
+  padding-inline-end: var(--report-row-px);
+}
+
+.erp-account-report .btn_foldable,
+.erp-account-report .btn_foldable_empty {
+  width: var(--report-fold-size);
+  height: var(--report-fold-size);
+  min-height: 0;
+  line-height: 1;
+}
+
+.erp-account-report td.line_name .wrapper,
+.erp-account-report td.line_cell .wrapper {
+  min-height: 0;
+}
+
+.erp-account-report tr.empty td {
+  padding: 0;
+  border: 0;
+  line-height: 0;
+  font-size: 0;
+  height: var(--report-subgroup-spacer-height);
+}
+
+.erp-account-report tr.empty.empty--section td {
+  height: var(--report-section-spacer-height);
+}
+
+/* Tighter rows — add density="compact" on AccountReport */
+.erp-account-report--compact {
+  --report-row-py: 0;
+  --report-fold-size: 0.875rem;
+  --report-line-height: 1.15;
+  --report-section-spacer-height: 0.5rem;
+  --report-subgroup-spacer-height: 0.25rem;
 }
