@@ -30,6 +30,7 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <div
+      data-app-shell
       className={cn(
         "min-h-screen min-[721px]:grid min-[721px]:grid-cols-[220px_1fr] max-[980px]:min-[721px]:grid-cols-[64px_1fr]",
         className

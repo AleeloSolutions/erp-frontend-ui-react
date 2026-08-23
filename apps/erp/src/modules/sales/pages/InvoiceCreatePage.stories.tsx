@@ -20,6 +20,13 @@ const meta = {
     (Story) => (
       <MemoryRouter initialEntries={["/sales/invoices/new"]}>
         <AppProviders>
+          {/* Storybook previews just the page content — the app's own
+           * left nav sidebar (rendered as part of AppShell) is redundant
+           * chrome here, so it's hidden for this story only. */}
+          <style>{`
+            [data-app-shell] { grid-template-columns: 1fr !important; }
+            [data-app-shell] > aside { display: none !important; }
+          `}</style>
           <Story />
         </AppProviders>
       </MemoryRouter>
