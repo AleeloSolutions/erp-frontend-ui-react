@@ -1,8 +1,12 @@
 :root {
   --font-inter: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --text-body: 13px;
+  /** App base text size — set once here, cascades to <body> and to the
+   * Tailwind `text-base` utility (see the `--text-base` mapping in
+   * tokens/index.css) so both "just inherit" and "opt into it explicitly"
+   * read from the same source. */
+  --text-body: 0.875rem;
   --text-control: 14px;
-  --text-form-label: 0.6875rem;
+  --text-form-label: 0.875rem;
   --leading-body: 1.4;
   --leading-form-label: 1.5;
 }

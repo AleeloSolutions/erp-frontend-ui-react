@@ -16,7 +16,7 @@ export interface TabsProps {
 }
 
 const tabListClass =
-  "m-0 flex list-none flex-row flex-wrap border-b border-erp-secondary-border bg-erp-table-bg p-0 [scrollbar-width:thin]";
+  "m-0 -mx-12 px-12 flex list-none flex-row flex-wrap border-b border-erp-secondary-border bg-erp-table-bg p-0 [scrollbar-width:thin]";
 
 const tabButtonBase =
   "mb-[-1px] block border border-transparent px-4 py-2 text-sm leading-normal whitespace-nowrap text-erp-form-label transition-[border-color,color,background-color] duration-150";
@@ -32,7 +32,7 @@ export function Tabs({
   "aria-label": ariaLabel = "Tabs",
 }: TabsProps) {
   return (
-    <nav aria-label={ariaLabel} className={cn("min-w-0", className)}>
+    <nav aria-label={ariaLabel} className={cn("min-w-0 ", className)}>
       <ul className={tabListClass} role="tablist">
         {items.map((item) => {
           const active = item.key === activeKey;

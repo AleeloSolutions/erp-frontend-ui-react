@@ -76,7 +76,7 @@ export function FormField({
           <div className="min-w-0 break-words text-erp-form-label">
             <label
               htmlFor={htmlFor}
-              className="m-0 block text-[length:var(--text-form-label)] font-normal leading-[var(--leading-form-label)] text-erp-form-label"
+              className="m-0 block text-base font-normal leading-[var(--leading-form-label)] text-erp-form-label"
             >
               {label}
               {required ? (

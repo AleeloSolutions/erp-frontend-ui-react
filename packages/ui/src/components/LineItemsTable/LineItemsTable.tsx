@@ -73,7 +73,7 @@ export interface LineItemsTableProps<T extends { id: string }> {
   "aria-label"?: string;
 }
 
-const footerLinkClass = "text-[10.5px] font-bold text-erp-blue hover:underline";
+const footerLinkClass = "text-base font-[400] text-erp-primary";
 const SIZING_STORAGE_PREFIX = "erp.lineitemstable.sizing.";
 const VISIBILITY_STORAGE_PREFIX = "erp.lineitemstable.visibility.";
 const DEFAULT_MIN_SIZE = 60;
@@ -295,7 +295,7 @@ export function LineItemsTable<T extends { id: string }>({
     >
       <table
         aria-label={ariaLabel}
-        className="mb-0 w-full table-fixed border-collapse text-xs"
+        className="mb-0 w-full table-fixed border-collapse text-base"
       >
         <colgroup>
           <col style={{ width: 32 }} />
@@ -320,7 +320,7 @@ export function LineItemsTable<T extends { id: string }>({
                 <th
                   key={column.key}
                   className={cn(
-                    "relative px-2 py-2 text-[11px] font-semibold text-erp-form-label",
+                    "relative px-2 py-2 text-base font-semibold text-erp-form-label",
                     column.align === "end" ? "text-end" : "text-start",
                     column.className
                   )}
@@ -431,23 +431,27 @@ export function LineItemsTable<T extends { id: string }>({
               </tr>
             );
           })}
+          <tr>
+            <td colSpan={visibleColumns.length + 2} className="p-0">
+              <div className="flex flex-wrap items-center gap-4 px-2 py-2">
+                <button type="button" onClick={handleAddLine} className={footerLinkClass}>
+                  {addLineLabel}
+                </button>
+                {secondaryFooterActions.map((action) => (
+                  <button
+                    key={action.key}
+                    type="button"
+                    onClick={action.onClick}
+                    className={footerLinkClass}
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            </td>
+          </tr>
         </tbody>
       </table>
-      <div className="flex flex-wrap items-center gap-4 px-2 py-2">
-        <button type="button" onClick={handleAddLine} className={footerLinkClass}>
-          {addLineLabel}
-        </button>
-        {secondaryFooterActions.map((action) => (
-          <button
-            key={action.key}
-            type="button"
-            onClick={action.onClick}
-            className={footerLinkClass}
-          >
-            {action.label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

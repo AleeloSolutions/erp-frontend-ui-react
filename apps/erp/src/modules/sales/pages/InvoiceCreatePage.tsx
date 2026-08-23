@@ -61,7 +61,7 @@ const statusSteps: StatusStep[] = [
 
 const detailTabs = [
   { key: "lines", label: "Invoice Lines" },
-  { key: "journal", label: "Journal Items", disabled: true },
+  // { key: "journal", label: "Journal Items", disabled: true },
   { key: "other", label: "Other Info" },
 ];
 
@@ -161,7 +161,7 @@ export default function InvoiceCreatePage() {
             placeholder="Search a product"
             value={row.product || null}
             items={productItems}
-            className="font-bold"
+
             onChange={(key) => {
               const selectedProduct = mockProducts.find((product) => product.id === key);
               onChange({
@@ -177,7 +177,7 @@ export default function InvoiceCreatePage() {
             chrome="cell"
             value={row.description}
             placeholder="Enter a description"
-            className="text-[8px] italic text-erp-muted"
+            className="text-base italic text-erp-muted"
             onChange={(e) => onChange({ description: e.target.value })}
             onBlur={onCommit}
           />
@@ -388,38 +388,44 @@ export default function InvoiceCreatePage() {
       />
 
       <FormShell onSubmit={handleSubmit(onSubmit)}>
-        <div className="px-3 pt-3">
-          <p className="m-0 text-[8px] font-bold text-erp-subtle">Customer Invoice</p>
-          <h1 className="m-0 text-[1.25rem] font-bold leading-tight text-erp-text">
+        <div className="">
+          {/* px-6 pt-6 */}
+          <p className="m-0 text-[0.875rem] font-[500] text-[#000]">Customer Invoice</p>
+          <h1 className="m-0 text-[2.1rem] font-[500] leading-tight text-erp-text">
             {watch("status")}
           </h1>
         </div>
 
-        <div className="grid grid-cols-1 gap-x-6 gap-y-2 px-3 py-3 sm:grid-cols-2">
-          <div className="max-w-xs">
-            <label
-              className="block text-[9px] font-bold text-erp-text"
-              htmlFor="invoice-customer"
-            >
-              Customer<span className="text-erp-error"> *</span>
-            </label>
-            <FormDropdown
-              id="invoice-customer"
-              searchable
-              placeholder="Search customer..."
-              error={Boolean(errors.customer)}
-              value={watch("customer") || null}
-              items={customerOptions.map((option) => ({
-                key: option.value,
-                label: option.label,
-              }))}
-              onChange={(key) =>
-                setValue("customer", key ?? "", {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                })
-              }
-            />
+        <div className="grid grid-cols-1 gap-x-6 gap-y-2  sm:grid-cols-2">
+          {/* px-6 py-3 */}
+          <div>
+            <div className="grid grid-cols-[auto_1fr] items-center gap-x-2">
+              <label
+                className="text-base font-[500] text-base"
+                htmlFor="invoice-customer"
+              >
+                Customer<span className="text-erp-error"> *</span>
+              </label>
+              <div className="max-w-sm">
+                <FormDropdown
+                  id="invoice-customer"
+                  searchable
+                  placeholder="Search customer..."
+                  error={Boolean(errors.customer)}
+                  value={watch("customer") || null}
+                  items={customerOptions.map((option) => ({
+                    key: option.value,
+                    label: option.label,
+                  }))}
+                  onChange={(key) =>
+                    setValue("customer", key ?? "", {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                />
+              </div>
+            </div>
             {errors.customer ? (
               <p className="m-0 mt-1 text-[8px] text-erp-error">
                 {errors.customer.message}
@@ -428,10 +434,7 @@ export default function InvoiceCreatePage() {
           </div>
 
           <div className="grid grid-cols-[auto_auto] items-center justify-end gap-x-2 gap-y-1.5">
-            <label
-              className="text-end text-[9px] font-bold text-erp-text"
-              htmlFor="invoice-date"
-            >
+            <label className="font-semibold" htmlFor="invoice-date">
               Invoice Date<span className="text-erp-error"> *</span>
             </label>
             <FormDatePicker
@@ -440,10 +443,7 @@ export default function InvoiceCreatePage() {
               error={Boolean(errors.date)}
               {...register("date")}
             />
-            <label
-              className="text-end text-[9px] font-bold text-erp-text"
-              htmlFor="invoice-due-date"
-            >
+            <label className="font-semibold font-[500]" htmlFor="invoice-due-date">
               Due Date<span className="text-erp-error"> *</span>
             </label>
             <FormDatePicker
@@ -459,11 +459,13 @@ export default function InvoiceCreatePage() {
           items={detailTabs}
           activeKey={activeTab}
           onChange={setActiveTab}
+          className="px-6"
           aria-label="Invoice details"
         />
 
         {activeTab === "lines" ? (
-          <div className="px-2 py-2">
+          <div className="">
+            {/* //px-2 py-2 */}
             <LineItemsTable<InvoiceLineFormValue>
               tableId="sales-invoice-create-lines"
               columns={lineColumns}
@@ -489,21 +491,19 @@ export default function InvoiceCreatePage() {
             {linesError ? (
               <p className="m-0 mt-1.5 px-2 text-[8px] text-erp-error">{linesError}</p>
             ) : null}
-            <div className="mt-2 flex justify-end px-2">
-              <dl className="m-0 w-56 text-[10px]">
+            <div className="mt-10 flex justify-end px-2">
+              <dl className="m-0 w-56">
                 <div className="flex items-center justify-between py-0.5">
-                  <dt className="text-erp-muted">Untaxed Amount:</dt>
-                  <dd className="m-0 font-bold text-erp-text">{formatCurrency(total)}</dd>
+                  <dt className="">Untaxed Amount:</dt>
+                  <dd className="m-0 font-bold text-base">{formatCurrency(total)}</dd>
                 </div>
-                <div className="flex items-center justify-between border-b border-erp-border py-1">
-                  <dt className="text-erp-muted">Total:</dt>
-                  <dd className="m-0 text-[12px] font-bold text-erp-text">
-                    {formatCurrency(total)}
-                  </dd>
+                <div className="flex items-center justify-between  border-erp-border py-1">
+                  <dt className="text-base">Total:</dt>
+                  <dd className="m-0 font-bold text-base">{formatCurrency(total)}</dd>
                 </div>
-                <div className="flex items-center justify-between pt-1">
-                  <dt className="text-erp-subtle">Amount Due:</dt>
-                  <dd className="m-0 text-[12px] font-bold text-erp-text">
+                <div className="flex items-center justify-between pt-2">
+                  <dt className="text-base text-erp-muted">Amount Due:</dt>
+                  <dd className="m-0 font-[500] border-t border-t-erp-muted">
                     {formatCurrency(total)}
                   </dd>
                 </div>

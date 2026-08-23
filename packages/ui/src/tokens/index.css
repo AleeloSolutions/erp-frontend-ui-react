@@ -97,6 +97,7 @@
   --color-erp-report-text: var(--report-text);
   --color-erp-report-title: var(--report-title);
   --font-sans: var(--font-inter);
+  --text-base: var(--text-body);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
