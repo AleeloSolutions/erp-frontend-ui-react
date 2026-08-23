@@ -139,6 +139,25 @@ export const FieldSelect: Story = {
   },
 };
 
+export const FieldSelectClearable: Story = {
+  name: "Field select (clearable)",
+  render: function FieldSelectClearableStory() {
+    const [value, setValue] = useState<string | null>("2");
+    return (
+      <div className="min-h-48 w-64">
+        <Dropdown
+          trigger="field"
+          clearable
+          placeholder="Select a customer"
+          value={value}
+          onChange={(next) => setValue(next)}
+          items={partners}
+        />
+      </div>
+    );
+  },
+};
+
 export const FieldSearch: Story = {
   name: "Field search",
   render: function FieldSearchStory() {
@@ -158,6 +177,26 @@ export const FieldSearch: Story = {
         {opened ? (
           <p className="m-0 text-[12px] text-erp-muted">Search more was chosen.</p>
         ) : null}
+      </div>
+    );
+  },
+};
+
+export const FieldSearchClearable: Story = {
+  name: "Field search (clearable)",
+  render: function FieldSearchClearableStory() {
+    const [value, setValue] = useState<string | null>("2");
+    return (
+      <div className="min-h-64 w-64">
+        <Dropdown
+          trigger="field"
+          searchable
+          clearable
+          placeholder="Search a name or Tax ID..."
+          value={value}
+          onChange={(next) => setValue(next)}
+          items={partners}
+        />
       </div>
     );
   },

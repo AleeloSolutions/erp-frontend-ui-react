@@ -35,7 +35,8 @@
   "dropdown": {
     "noResults": "No results",
     "searchMore": "Search more...",
-    "search": "Search..."
+    "search": "Search...",
+    "clear": "Clear"
   },
   "datepicker": {
     "chooseDate": "Choose date",

@@ -6,11 +6,12 @@ import {
   useRef,
   useState,
   type ButtonHTMLAttributes,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import {
   cn,
   fieldChromeClasses,
@@ -57,6 +58,8 @@ export interface DropdownProps {
   size?: FieldSize;
   error?: boolean;
   disabled?: boolean;
+  /** Show a clear (×) control to reset the value when one is selected. Field trigger only. */
+  clearable?: boolean;
   id?: string;
   /** Field border treatment. Used when `trigger="field"`. Defaults to `corner`. */
   chrome?: FieldChrome;
@@ -319,6 +322,7 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
     size = "sm",
     error = false,
     disabled,
+    clearable = false,
     id,
     chrome,
     chromeEdge,
@@ -332,6 +336,10 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
   const [isOpen, setIsOpen] = useState(false);
   const [innerValue, setInnerValue] = useState(defaultValue);
   const [query, setQuery] = useState("");
+  // Tracks whether the user has typed since the combobox was last opened, so
+  // reopening on an existing selection shows the full list instead of
+  // filtering it down to just that selection's text.
+  const [searchTouched, setSearchTouched] = useState(false);
   const menuId = useId();
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -385,9 +393,23 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
     close();
   }
 
+  function clear(event: ReactMouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    if (!isControlledValue) setInnerValue(null);
+    onChange?.(null, null);
+    if (searchable) {
+      setQuery("");
+      setSearchTouched(false);
+    }
+  }
+
+  // Only filter once the user has actually typed in this open session — a
+  // reopened combobox pre-fills `query` with the current selection's label
+  // (so it can be edited), but that shouldn't hide every other option.
+  const applySearchFilter = isFieldSelect || (searchable && searchTouched);
   const needle = query.trim().toLowerCase();
   const visibleItems =
-    (searchable || isFieldSelect) && needle
+    applySearchFilter && needle
       ? items.filter((item) => item.label.toLowerCase().includes(needle))
       : items;
 
@@ -428,6 +450,8 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
     const emptyLabel = t("dropdown.noResults");
     const searchMoreLabel = t("dropdown.searchMore");
 
+    const showClear = clearable && !isDisabled && !!selectedValue;
+
     return (
       <div ref={rootRef} className={cn("relative min-w-0 max-w-full", className)}>
         <Input
@@ -444,17 +468,39 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
           chromeEdge={chromeEdge}
           placeholder={placeholder}
           value={isOpen ? query : displayLabel}
-          className="w-full truncate pe-7"
+          className={cn(
+            "w-full truncate",
+            showClear && !hideChevron && "pe-12",
+            showClear && hideChevron && "pe-7",
+            !showClear && "pe-7"
+          )}
           onFocus={() => {
             if (isDisabled) return;
             setQuery(displayLabel);
+            setSearchTouched(false);
             setIsOpen(true);
           }}
           onChange={(event) => {
             setQuery(event.target.value);
+            setSearchTouched(true);
             setIsOpen(true);
           }}
         />
+        {showClear ? (
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label={t("dropdown.clear")}
+            className={cn(
+              "absolute top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded text-erp-muted hover:bg-erp-surface-muted hover:text-erp-text",
+              hideChevron ? "end-2" : "end-6"
+            )}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={clear}
+          >
+            <X className="h-3 w-3" aria-hidden />
+          </button>
+        ) : null}
         {hideChevron ? null : <DropdownCaret open={isOpen} />}
         {isOpen ? (
           <FieldMenu
@@ -510,30 +556,64 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
     />
   ) : null;
 
+  const showClear = clearable && !isDisabled && !!selected;
+
   return (
     <div ref={rootRef} className={cn("relative min-w-0 max-w-full", className)}>
-      <button
-        type="button"
-        id={id}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        aria-controls={listId}
-        disabled={isDisabled}
-        onClick={toggle}
-        style={{ outline: "none", boxShadow: "none" }}
+      <div
         className={cn(
-          "inline-flex w-full min-w-0 items-center justify-between gap-2 text-start font-normal",
-          fieldChromeClasses({ error, active: isOpen, chrome, chromeEdge }),
+          "flex w-full min-w-0 items-center gap-1",
+          fieldChromeClasses({
+            error,
+            within: true,
+            active: isOpen,
+            disabled: isDisabled,
+            chrome,
+            chromeEdge,
+          }),
           fieldSizeClasses[size],
-          hideChevron ? "pe-3" : "pe-7",
-          !selected && placeholder ? "text-erp-placeholder" : "text-erp-text",
           buttonClassName
         )}
-        {...(restButtonProps as ButtonHTMLAttributes<HTMLButtonElement>)}
       >
-        <span className="min-w-0 flex-1 truncate">{fieldLabel}</span>
-      </button>
-      {hideChevron ? null : <DropdownCaret open={isOpen} />}
+        <button
+          type="button"
+          id={id}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          aria-controls={listId}
+          disabled={isDisabled}
+          onClick={toggle}
+          style={{ outline: "none", boxShadow: "none" }}
+          className={cn(
+            "flex min-w-0 flex-1 items-center text-start font-normal outline-none",
+            !selected && placeholder ? "text-erp-placeholder" : "text-erp-text"
+          )}
+          {...(restButtonProps as ButtonHTMLAttributes<HTMLButtonElement>)}
+        >
+          <span className="min-w-0 flex-1 truncate">{fieldLabel}</span>
+        </button>
+        {showClear ? (
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label={t("dropdown.clear")}
+            disabled={isDisabled}
+            className="grid size-5 shrink-0 place-items-center rounded text-erp-muted hover:bg-erp-surface-muted hover:text-erp-text"
+            onClick={clear}
+          >
+            <X className="h-3 w-3" aria-hidden />
+          </button>
+        ) : null}
+        {hideChevron ? null : (
+          <span
+            aria-hidden
+            className={cn(
+              "size-0 shrink-0 border-x-[4px] border-x-transparent border-t-[5px] border-solid",
+              isOpen ? "border-t-erp-teal" : "border-t-erp-subtle"
+            )}
+          />
+        )}
+      </div>
       {menu}
     </div>
   );
