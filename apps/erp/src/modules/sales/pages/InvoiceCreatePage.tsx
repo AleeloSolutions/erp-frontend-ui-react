@@ -10,6 +10,9 @@ import {
   FormDatePicker,
   FormDropdown,
   FormField,
+  FormGrid,
+  FormInput,
+  FormSection,
   FormSelect,
   FormShell,
   FormStatusBar,
@@ -121,6 +124,17 @@ export default function InvoiceCreatePage() {
       status: "Draft",
       paymentStatus: "Not Paid",
       notes: "",
+      customerReference: "",
+      salesperson: "",
+      salesTeam: "",
+      recipientBank: "",
+      paymentReference: "",
+      deliveryDate: "",
+      incoterm: "",
+      incotermLocation: "",
+      fiscalPosition: "",
+      paymentMethod: "",
+      autoPost: "No",
     },
   });
 
@@ -133,9 +147,9 @@ export default function InvoiceCreatePage() {
     {
       key: "product",
       label: "Product",
-      size: 320,
-      minSize: 200,
-      maxSize: 520,
+      size: 260,
+      minSize: 160,
+      maxSize: 440,
       renderCell: (row, { onChange, onCommit }) => (
         <div className="flex flex-col gap-0.5">
           <Dropdown
@@ -163,7 +177,7 @@ export default function InvoiceCreatePage() {
             chrome="cell"
             value={row.description}
             placeholder="Enter a description"
-            className="text-[11px] italic text-erp-muted"
+            className="text-[8px] italic text-erp-muted"
             onChange={(e) => onChange({ description: e.target.value })}
             onBlur={onCommit}
           />
@@ -173,9 +187,9 @@ export default function InvoiceCreatePage() {
     {
       key: "account",
       label: "Account",
-      size: 220,
-      minSize: 140,
-      maxSize: 360,
+      size: 170,
+      minSize: 120,
+      maxSize: 300,
       renderCell: (row, { onChange, onCommit }) => (
         <Dropdown
           trigger="field"
@@ -195,9 +209,9 @@ export default function InvoiceCreatePage() {
       key: "quantity",
       label: "Quantity",
       align: "end",
-      size: 90,
-      minSize: 70,
-      maxSize: 140,
+      size: 75,
+      minSize: 60,
+      maxSize: 120,
       renderCell: (row, { onChange, onCommit }) => (
         <Input
           type="number"
@@ -213,9 +227,9 @@ export default function InvoiceCreatePage() {
       key: "unitPrice",
       label: "Price",
       align: "end",
-      size: 90,
-      minSize: 70,
-      maxSize: 140,
+      size: 75,
+      minSize: 60,
+      maxSize: 120,
       renderCell: (row, { onChange, onCommit }) => (
         <Input
           type="number"
@@ -231,12 +245,12 @@ export default function InvoiceCreatePage() {
     {
       key: "taxes",
       label: "Taxes",
-      size: 110,
-      minSize: 80,
-      maxSize: 180,
+      size: 90,
+      minSize: 70,
+      maxSize: 150,
       renderCell: (row, { onChange, onCommit }) =>
         row.taxRate > 0 ? (
-          <span className="inline-flex h-[18px] items-center gap-1 rounded-full bg-erp-header pl-1.5 pr-1 text-[9px] font-bold tracking-[0.02em] text-erp-muted">
+          <span className="inline-flex h-[18px] items-center gap-1 rounded-full bg-erp-header pl-1.5 pr-1 text-[8px] font-bold tracking-[0.02em] text-erp-muted">
             {row.taxRate}%
             <button
               type="button"
@@ -374,17 +388,17 @@ export default function InvoiceCreatePage() {
       />
 
       <FormShell onSubmit={handleSubmit(onSubmit)}>
-        <div className="px-4 pt-4">
-          <p className="m-0 text-[11px] font-bold text-erp-subtle">Customer Invoice</p>
-          <h1 className="m-0 text-[2rem] font-bold leading-tight text-erp-text">
+        <div className="px-3 pt-3">
+          <p className="m-0 text-[8px] font-bold text-erp-subtle">Customer Invoice</p>
+          <h1 className="m-0 text-[1.25rem] font-bold leading-tight text-erp-text">
             {watch("status")}
           </h1>
         </div>
 
-        <div className="grid grid-cols-1 gap-x-10 gap-y-3 px-4 py-4 sm:grid-cols-2">
-          <div className="max-w-sm">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-2 px-3 py-3 sm:grid-cols-2">
+          <div className="max-w-xs">
             <label
-              className="block text-[12px] font-bold text-erp-text"
+              className="block text-[9px] font-bold text-erp-text"
               htmlFor="invoice-customer"
             >
               Customer<span className="text-erp-error"> *</span>
@@ -407,41 +421,37 @@ export default function InvoiceCreatePage() {
               }
             />
             {errors.customer ? (
-              <p className="m-0 mt-1 text-[10px] text-erp-error">
+              <p className="m-0 mt-1 text-[8px] text-erp-error">
                 {errors.customer.message}
               </p>
             ) : null}
           </div>
 
-          <div className="flex flex-col gap-2 sm:items-end">
-            <div className="flex items-center gap-3">
-              <label
-                className="text-[12px] font-bold text-erp-text"
-                htmlFor="invoice-date"
-              >
-                Invoice Date<span className="text-erp-error"> *</span>
-              </label>
-              <FormDatePicker
-                id="invoice-date"
-                className="w-40"
-                error={Boolean(errors.date)}
-                {...register("date")}
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <label
-                className="text-[12px] font-bold text-erp-text"
-                htmlFor="invoice-due-date"
-              >
-                Due Date<span className="text-erp-error"> *</span>
-              </label>
-              <FormDatePicker
-                id="invoice-due-date"
-                className="w-40"
-                error={Boolean(errors.dueDate)}
-                {...register("dueDate")}
-              />
-            </div>
+          <div className="grid grid-cols-[auto_auto] items-center justify-end gap-x-2 gap-y-1.5">
+            <label
+              className="text-end text-[9px] font-bold text-erp-text"
+              htmlFor="invoice-date"
+            >
+              Invoice Date<span className="text-erp-error"> *</span>
+            </label>
+            <FormDatePicker
+              id="invoice-date"
+              className="w-36"
+              error={Boolean(errors.date)}
+              {...register("date")}
+            />
+            <label
+              className="text-end text-[9px] font-bold text-erp-text"
+              htmlFor="invoice-due-date"
+            >
+              Due Date<span className="text-erp-error"> *</span>
+            </label>
+            <FormDatePicker
+              id="invoice-due-date"
+              className="w-36"
+              error={Boolean(errors.dueDate)}
+              {...register("dueDate")}
+            />
           </div>
         </div>
 
@@ -453,7 +463,7 @@ export default function InvoiceCreatePage() {
         />
 
         {activeTab === "lines" ? (
-          <div className="px-2 py-3">
+          <div className="px-2 py-2">
             <LineItemsTable<InvoiceLineFormValue>
               tableId="sales-invoice-create-lines"
               columns={lineColumns}
@@ -477,23 +487,23 @@ export default function InvoiceCreatePage() {
               aria-label="Invoice lines"
             />
             {linesError ? (
-              <p className="m-0 mt-2 px-2 text-[11px] text-erp-error">{linesError}</p>
+              <p className="m-0 mt-1.5 px-2 text-[8px] text-erp-error">{linesError}</p>
             ) : null}
-            <div className="mt-3 flex justify-end px-2">
-              <dl className="m-0 w-64 text-[13px]">
+            <div className="mt-2 flex justify-end px-2">
+              <dl className="m-0 w-56 text-[10px]">
                 <div className="flex items-center justify-between py-0.5">
                   <dt className="text-erp-muted">Untaxed Amount:</dt>
                   <dd className="m-0 font-bold text-erp-text">{formatCurrency(total)}</dd>
                 </div>
-                <div className="flex items-center justify-between border-b border-erp-border py-1.5">
+                <div className="flex items-center justify-between border-b border-erp-border py-1">
                   <dt className="text-erp-muted">Total:</dt>
-                  <dd className="m-0 text-[15px] font-bold text-erp-text">
+                  <dd className="m-0 text-[12px] font-bold text-erp-text">
                     {formatCurrency(total)}
                   </dd>
                 </div>
-                <div className="flex items-center justify-between pt-1.5">
+                <div className="flex items-center justify-between pt-1">
                   <dt className="text-erp-subtle">Amount Due:</dt>
-                  <dd className="m-0 text-[15px] font-bold text-erp-text">
+                  <dd className="m-0 text-[12px] font-bold text-erp-text">
                     {formatCurrency(total)}
                   </dd>
                 </div>
@@ -501,39 +511,157 @@ export default function InvoiceCreatePage() {
             </div>
           </div>
         ) : (
-          <div className="px-4 py-3">
-            <FormField
-              label="Payment status"
-              required
-              htmlFor="invoice-payment-status"
-              error={errors.paymentStatus?.message}
-              span={4}
-              className="mb-3"
-            >
-              <FormSelect
-                id="invoice-payment-status"
-                error={Boolean(errors.paymentStatus)}
-                options={[
-                  { label: "Not Paid", value: "Not Paid" },
-                  { label: "Partially Paid", value: "Partially Paid" },
-                  { label: "Paid", value: "Paid" },
-                  { label: "Overdue", value: "Overdue" },
-                ]}
-                {...register("paymentStatus")}
-              />
-            </FormField>
-            <FormField
-              label="Terms and Conditions"
-              htmlFor="invoice-notes"
-              error={errors.notes?.message}
-            >
-              <FormTextarea
-                id="invoice-notes"
-                error={Boolean(errors.notes)}
-                {...register("notes")}
-              />
-            </FormField>
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2">
+              <FormSection title="Invoice" className="border-b-0">
+                <FormGrid>
+                  <FormField
+                    label="Customer Reference"
+                    htmlFor="invoice-customer-reference"
+                    span={12}
+                  >
+                    <FormInput
+                      id="invoice-customer-reference"
+                      {...register("customerReference")}
+                    />
+                  </FormField>
+                  <FormField label="Salesperson" htmlFor="invoice-salesperson" span={12}>
+                    <FormInput
+                      id="invoice-salesperson"
+                      placeholder="Salesperson"
+                      {...register("salesperson")}
+                    />
+                  </FormField>
+                  <FormField label="Sales Team" htmlFor="invoice-sales-team" span={12}>
+                    <FormInput
+                      id="invoice-sales-team"
+                      placeholder="Sales team"
+                      {...register("salesTeam")}
+                    />
+                  </FormField>
+                  <FormField
+                    label="Recipient Bank"
+                    htmlFor="invoice-recipient-bank"
+                    span={12}
+                  >
+                    <FormInput
+                      id="invoice-recipient-bank"
+                      {...register("recipientBank")}
+                    />
+                  </FormField>
+                  <FormField
+                    label="Payment Reference"
+                    htmlFor="invoice-payment-reference"
+                    span={12}
+                  >
+                    <FormInput
+                      id="invoice-payment-reference"
+                      placeholder="Standard communication"
+                      {...register("paymentReference")}
+                    />
+                  </FormField>
+                  <FormField
+                    label="Delivery Date"
+                    htmlFor="invoice-delivery-date"
+                    span={12}
+                  >
+                    <FormDatePicker
+                      id="invoice-delivery-date"
+                      {...register("deliveryDate")}
+                    />
+                  </FormField>
+                </FormGrid>
+              </FormSection>
+
+              <FormSection title="Accounting" className="border-b-0">
+                <FormGrid>
+                  <FormField label="Incoterm" htmlFor="invoice-incoterm" span={12}>
+                    <FormInput
+                      id="invoice-incoterm"
+                      placeholder="Define a default in the settings"
+                      {...register("incoterm")}
+                    />
+                  </FormField>
+                  <FormField
+                    label="Incoterm Location"
+                    htmlFor="invoice-incoterm-location"
+                    span={12}
+                  >
+                    <FormInput
+                      id="invoice-incoterm-location"
+                      {...register("incotermLocation")}
+                    />
+                  </FormField>
+                  <FormField
+                    label="Fiscal Position"
+                    htmlFor="invoice-fiscal-position"
+                    span={12}
+                  >
+                    <FormInput
+                      id="invoice-fiscal-position"
+                      {...register("fiscalPosition")}
+                    />
+                  </FormField>
+                  <FormField
+                    label="Payment Method"
+                    htmlFor="invoice-payment-method"
+                    span={12}
+                  >
+                    <FormInput
+                      id="invoice-payment-method"
+                      {...register("paymentMethod")}
+                    />
+                  </FormField>
+                  <FormField label="Auto-post" htmlFor="invoice-auto-post" span={12}>
+                    <FormSelect
+                      id="invoice-auto-post"
+                      options={[
+                        { label: "No", value: "No" },
+                        { label: "Yes", value: "Yes" },
+                      ]}
+                      {...register("autoPost")}
+                    />
+                  </FormField>
+                </FormGrid>
+              </FormSection>
+            </div>
+
+            <FormSection title="Other info" className="border-b-0">
+              <FormGrid>
+                <FormField
+                  label="Payment status"
+                  required
+                  htmlFor="invoice-payment-status"
+                  error={errors.paymentStatus?.message}
+                  span={4}
+                >
+                  <FormSelect
+                    id="invoice-payment-status"
+                    error={Boolean(errors.paymentStatus)}
+                    options={[
+                      { label: "Not Paid", value: "Not Paid" },
+                      { label: "Partially Paid", value: "Partially Paid" },
+                      { label: "Paid", value: "Paid" },
+                      { label: "Overdue", value: "Overdue" },
+                    ]}
+                    {...register("paymentStatus")}
+                  />
+                </FormField>
+                <FormField
+                  label="Terms and Conditions"
+                  htmlFor="invoice-notes"
+                  error={errors.notes?.message}
+                  span={12}
+                >
+                  <FormTextarea
+                    id="invoice-notes"
+                    error={Boolean(errors.notes)}
+                    {...register("notes")}
+                  />
+                </FormField>
+              </FormGrid>
+            </FormSection>
+          </>
         )}
       </FormShell>
     </AppShell>

@@ -11,6 +11,17 @@ export const invoiceFormSchema = z.object({
     message: "Payment status is required",
   }),
   notes: z.string().optional(),
+  customerReference: z.string().optional(),
+  salesperson: z.string().optional(),
+  salesTeam: z.string().optional(),
+  recipientBank: z.string().optional(),
+  paymentReference: z.string().optional(),
+  deliveryDate: z.string().optional(),
+  incoterm: z.string().optional(),
+  incotermLocation: z.string().optional(),
+  fiscalPosition: z.string().optional(),
+  paymentMethod: z.string().optional(),
+  autoPost: z.enum(["No", "Yes"]).optional(),
 });
 
 export type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;

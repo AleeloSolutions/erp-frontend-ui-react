@@ -289,7 +289,10 @@ export function LineItemsTable<T extends { id: string }>({
   })();
 
   return (
-    <div ref={rootRef} className={cn("overflow-x-auto", className)}>
+    <div
+      ref={rootRef}
+      className={cn("overflow-x-auto [scrollbar-width:thin]", className)}
+    >
       <table
         aria-label={ariaLabel}
         className="mb-0 w-full table-fixed border-collapse text-xs"

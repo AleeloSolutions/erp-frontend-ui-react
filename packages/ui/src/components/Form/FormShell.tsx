@@ -23,7 +23,7 @@ export function FormShell({
       id={id}
       onSubmit={onSubmit}
       className={cn(
-        "overflow-hidden rounded-sm border border-erp-border bg-white mx-4 shadow-sm",
+        "overflow-hidden rounded-sm border border-erp-border bg-white mx-4 shadow-sm px-6 py-6",
         className
       )}
       noValidate
