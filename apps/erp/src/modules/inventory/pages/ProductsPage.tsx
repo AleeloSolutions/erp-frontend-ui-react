@@ -206,7 +206,7 @@ export default function ProductsPage() {
                 buttons={[
                   {
                     key: "new",
-                    children: "New Product",
+                    children: "New",
                     variant: "primary",
                     size: "sm",
                     onClick: () => navigate("/inventory/products/new"),

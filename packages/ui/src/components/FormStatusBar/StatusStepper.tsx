@@ -15,11 +15,28 @@ export interface StatusStepperProps {
 const NOTCH = 10;
 
 /**
+ * Each segment's own clip-path fully describes its true visible shape —
+ * a point on the right (unless last) AND a matching notch cut into the left
+ * (unless first) — so adjacent segments interlock by sitting flush next to
+ * each other, no overlap/z-index trick required. That matters for the
+ * active segment's border (see below): since the shape is the segment's
+ * real outline on every side, a border traced along it is correct
+ * regardless of whether the active step is first, in the middle, or last.
+ */
+function segmentClipPath(isFirst: boolean, isLast: boolean): string | undefined {
+  if (isFirst && isLast) return undefined;
+
+  const rightPoint = `calc(100% - ${NOTCH}px) 0, 100% 50%, calc(100% - ${NOTCH}px) 100%`;
+  const leftNotch = `${NOTCH}px 50%`;
+
+  if (isFirst) return `polygon(0 0, ${rightPoint}, 0 100%)`;
+  if (isLast) return `polygon(0 0, 100% 0, 100% 100%, 0 100%, ${leftNotch})`;
+  return `polygon(0 0, ${rightPoint}, 0 100%, ${leftNotch})`;
+}
+
+/**
  * Odoo-style status breadcrumb ("Draft ❯ Posted"): interlocking arrow
- * segments in a pill. Each non-last segment is clipped to a point on its
- * right edge; the next segment tucks under that point via negative margin
- * and a higher z-index on the earlier segment, which reads as a shared
- * angled seam without needing to clip the left edge too.
+ * segments in a pill.
  *
  * Markup mirrors Odoo's real `o_statusbar_status` widget: a `radiogroup` of
  * `radio` buttons (`disabled` — read-only, `aria-checked`/`data-value` per
@@ -47,9 +64,7 @@ export function StatusStepper({
         const isFirst = index === 0;
         const isLast = index === steps.length - 1;
         const isActive = step.key === currentStepKey;
-        const clipPath = isLast
-          ? undefined
-          : `polygon(0 0, calc(100% - ${NOTCH}px) 0, 100% 50%, calc(100% - ${NOTCH}px) 100%, 0 100%)`;
+        const clipPath = segmentClipPath(isFirst, isLast);
 
         return (
           <button
@@ -62,8 +77,14 @@ export function StatusStepper({
             data-value={step.key}
             style={{
               clipPath,
+              // A hairline overlap, not a real gap between segments: at this exact
+              // seam two independently clip-path'd elements meet, and sub-pixel
+              // anti-aliasing on the point/notch tips can let the container's
+              // background peek through. 1px of overlap (plus stacking order so
+              // the earlier segment's tip paints on top) hides that without
+              // affecting each segment's own correct shape/border.
+              marginLeft: isFirst ? undefined : -1,
               zIndex: steps.length - index,
-              marginLeft: isFirst ? undefined : -NOTCH,
             }}
             className={cn(
               // Same box model as Button (px-[0.625rem] py-[0.3125rem] text-[0.875rem]
@@ -78,8 +99,8 @@ export function StatusStepper({
                   // display, not an interactive control. The button itself is filled
                   // with the border color; the inset span below draws the actual
                   // table-selected fill 1px in, tracing the same clip-path so the
-                  // "border" follows the notch's diagonal edge instead of stopping
-                  // dead at it (plain CSS `border` can't follow a clip-path cut).
+                  // "border" follows every notch/point edge instead of stopping dead
+                  // at them (plain CSS `border` can't follow a clip-path cut).
                   "bg-erp-primary text-erp-primary"
                 : "border-0 bg-erp-secondary text-erp-secondary-foreground"
             )}
