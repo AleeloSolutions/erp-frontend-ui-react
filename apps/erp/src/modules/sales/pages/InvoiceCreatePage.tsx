@@ -290,7 +290,7 @@ export default function InvoiceCreatePage() {
             chrome="cell"
             value={row.description}
             placeholder="Section"
-            className="font-bold"
+            className=""
             onChange={(e) => onChange({ description: e.target.value })}
             onBlur={onCommit}
           />
