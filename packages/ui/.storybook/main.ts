@@ -5,7 +5,10 @@ import { fileURLToPath } from "node:url";
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const config: StorybookConfig = {
-  stories: ["../src/**/*.stories.@(ts|tsx)"],
+  stories: [
+    "../src/**/*.stories.@(ts|tsx)",
+    "../../../apps/erp/src/**/*.stories.@(ts|tsx)",
+  ],
   addons: ["@storybook/addon-docs", "@storybook/addon-a11y"],
   framework: {
     name: "@storybook/react-vite",
@@ -26,6 +29,7 @@ const config: StorybookConfig = {
       resolve: {
         alias: {
           "@erp/ui": path.resolve(dirname, "../src/index.ts"),
+          "@": path.resolve(dirname, "../../../apps/erp/src"),
         },
       },
     });

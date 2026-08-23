@@ -1,3 +1,4 @@
 @import "tailwindcss";
 @import "../src/tokens/index.css";
 @source "../src";
+@source "../../../apps/erp/src";
