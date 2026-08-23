@@ -2,9 +2,11 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { X } from "lucide-react";
 import { AppShell, useNavbarDefaults } from "@/app";
 import {
   ControlPanel,
+  Dropdown,
   FormDatePicker,
   FormDropdown,
   FormField,
@@ -16,16 +18,23 @@ import {
   LineItemsTable,
   PageActions,
   Tabs,
+  Textarea,
   formatCurrency,
+  type DropdownItem,
   type LineItemsColumn,
+  type LineItemsRowHelpers,
+  type LineItemsSpecialRow,
   type StatusStep,
 } from "@erp/ui";
 import { useToast } from "@erp/ui";
 import { salesNavbar } from "@/modules/sales/manifest";
 import { useCreateInvoiceMutation } from "@/modules/sales/api";
 import { mockCustomers } from "@/modules/sales/data/demo-table";
+import { mockProducts } from "@/modules/inventory/data/demo-products";
 import {
   createEmptyInvoiceLine,
+  createInvoiceNoteLine,
+  createInvoiceSectionLine,
   invoiceFormSchema,
   type InvoiceFormValues,
   type InvoiceLineFormValue,
@@ -52,6 +61,32 @@ const detailTabs = [
   { key: "journal", label: "Journal Items", disabled: true },
   { key: "other", label: "Other Info" },
 ];
+
+/** No chart-of-accounts module exists yet — this is the same fixed set the design system's storybook demo uses. */
+const accountItems: DropdownItem[] = [
+  { key: "400000 Product Sales", label: "400000 Product Sales" },
+  { key: "400010 Service Revenue", label: "400010 Service Revenue" },
+  { key: "400020 Discounts", label: "400020 Discounts" },
+];
+
+const productItems: DropdownItem[] = mockProducts
+  .filter((product) => product.status === "Active")
+  .map((product) => ({ key: product.id, label: product.name }));
+
+/** Odoo behavior: a section subtotals every product row below it, down to the next section (or the end). */
+function sectionSubtotal(
+  sectionLine: InvoiceLineFormValue,
+  allLines: InvoiceLineFormValue[]
+) {
+  const startIndex = allLines.findIndex((line) => line.id === sectionLine.id);
+  let sum = 0;
+  for (let i = startIndex + 1; i < allLines.length; i++) {
+    const line = allLines[i];
+    if (line.kind === "section") break;
+    if (line.kind === "product") sum += line.quantity * line.unitPrice;
+  }
+  return sum;
+}
 
 export default function InvoiceCreatePage() {
   const navigate = useNavigate();
@@ -89,21 +124,70 @@ export default function InvoiceCreatePage() {
     },
   });
 
-  const total = lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
+  const total = lines.reduce(
+    (sum, line) => (line.kind === "product" ? sum + line.quantity * line.unitPrice : sum),
+    0
+  );
 
   const lineColumns: LineItemsColumn<InvoiceLineFormValue>[] = [
     {
-      key: "description",
+      key: "product",
       label: "Product",
       size: 320,
       minSize: 200,
+      maxSize: 520,
       renderCell: (row, { onChange, onCommit }) => (
-        <Input
+        <div className="flex flex-col gap-0.5">
+          <Dropdown
+            trigger="field"
+            searchable
+            allowFreeText
+            hideChevron
+            chrome="cell"
+            placeholder="Search a product"
+            value={row.product || null}
+            items={productItems}
+            className="font-bold"
+            onChange={(key) => {
+              const selectedProduct = mockProducts.find((product) => product.id === key);
+              onChange({
+                product: key ?? "",
+                unitPrice: selectedProduct?.unitPrice ?? row.unitPrice,
+                description: selectedProduct?.description ?? row.description,
+              });
+              onCommit();
+            }}
+          />
+          <Textarea
+            autoGrow
+            chrome="cell"
+            value={row.description}
+            placeholder="Enter a description"
+            className="text-[11px] italic text-erp-muted"
+            onChange={(e) => onChange({ description: e.target.value })}
+            onBlur={onCommit}
+          />
+        </div>
+      ),
+    },
+    {
+      key: "account",
+      label: "Account",
+      size: 220,
+      minSize: 140,
+      maxSize: 360,
+      renderCell: (row, { onChange, onCommit }) => (
+        <Dropdown
+          trigger="field"
+          searchable
+          allowFreeText
           chrome="cell"
-          value={row.description}
-          placeholder="Line description"
-          onChange={(e) => onChange({ description: e.target.value })}
-          onBlur={onCommit}
+          value={row.account || null}
+          items={accountItems}
+          onChange={(key) => {
+            onChange({ account: key ?? "" });
+            onCommit();
+          }}
         />
       ),
     },
@@ -111,8 +195,9 @@ export default function InvoiceCreatePage() {
       key: "quantity",
       label: "Quantity",
       align: "end",
-      size: 100,
+      size: 90,
       minSize: 70,
+      maxSize: 140,
       renderCell: (row, { onChange, onCommit }) => (
         <Input
           type="number"
@@ -128,8 +213,9 @@ export default function InvoiceCreatePage() {
       key: "unitPrice",
       label: "Price",
       align: "end",
-      size: 110,
-      minSize: 80,
+      size: 90,
+      minSize: 70,
+      maxSize: 140,
       renderCell: (row, { onChange, onCommit }) => (
         <Input
           type="number"
@@ -143,6 +229,30 @@ export default function InvoiceCreatePage() {
       ),
     },
     {
+      key: "taxes",
+      label: "Taxes",
+      size: 110,
+      minSize: 80,
+      maxSize: 180,
+      renderCell: (row, { onChange, onCommit }) =>
+        row.taxRate > 0 ? (
+          <span className="inline-flex h-[18px] items-center gap-1 rounded-full bg-erp-header pl-1.5 pr-1 text-[9px] font-bold tracking-[0.02em] text-erp-muted">
+            {row.taxRate}%
+            <button
+              type="button"
+              aria-label="Remove tax"
+              className="rounded-full hover:bg-erp-surface-hover"
+              onClick={() => {
+                onChange({ taxRate: 0 });
+                onCommit();
+              }}
+            >
+              <X className="h-2.5 w-2.5" aria-hidden />
+            </button>
+          </span>
+        ) : null,
+    },
+    {
       key: "amount",
       label: "Amount",
       align: "end",
@@ -154,8 +264,52 @@ export default function InvoiceCreatePage() {
     },
   ];
 
+  function getInvoiceSpecialRow(
+    row: InvoiceLineFormValue,
+    { onChange, onCommit }: LineItemsRowHelpers<InvoiceLineFormValue>
+  ): LineItemsSpecialRow | undefined {
+    if (row.kind === "section") {
+      return {
+        content: (
+          <Textarea
+            autoGrow
+            chrome="cell"
+            value={row.description}
+            placeholder="Section"
+            className="font-bold"
+            onChange={(e) => onChange({ description: e.target.value })}
+            onBlur={onCommit}
+          />
+        ),
+        trailingCells: [
+          <span key="amount" className="font-bold">
+            {formatCurrency(sectionSubtotal(row, lines))}
+          </span>,
+        ],
+      };
+    }
+    if (row.kind === "note") {
+      return {
+        content: (
+          <Textarea
+            autoGrow
+            chrome="cell"
+            value={row.description}
+            placeholder="Note"
+            className="italic text-erp-muted"
+            onChange={(e) => onChange({ description: e.target.value })}
+            onBlur={onCommit}
+          />
+        ),
+      };
+    }
+    return undefined;
+  }
+
   async function onSubmit(values: InvoiceFormValues) {
-    const validLines = lines.filter((line) => line.description.trim().length > 0);
+    const validLines = lines.filter(
+      (line) => line.kind === "product" && line.description.trim().length > 0
+    );
     if (validLines.length === 0) {
       setLinesError("Add at least one line with a description.");
       setActiveTab("lines");
@@ -195,6 +349,7 @@ export default function InvoiceCreatePage() {
       <ControlPanel pageActions={<PageActions breadcrumb="New Invoice" />} />
 
       <FormStatusBar
+        belowControlPanel
         steps={statusSteps}
         currentStepKey={watch("status")}
         onStepChange={(key) =>
@@ -305,6 +460,20 @@ export default function InvoiceCreatePage() {
               rows={lines}
               onRowsChange={setLines}
               createEmptyRow={createEmptyInvoiceLine}
+              getSpecialRow={getInvoiceSpecialRow}
+              secondaryFooterActions={[
+                {
+                  key: "section",
+                  label: "Add a section",
+                  onClick: () =>
+                    setLines((prev) => [...prev, createInvoiceSectionLine()]),
+                },
+                {
+                  key: "note",
+                  label: "Add a note",
+                  onClick: () => setLines((prev) => [...prev, createInvoiceNoteLine()]),
+                },
+              ]}
               aria-label="Invoice lines"
             />
             {linesError ? (

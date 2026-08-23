@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../../utils";
+import { NAVBAR_HEIGHT } from "../stickyOffsets";
 
 export interface ControlPanelProps {
   /** Left slot — typically PageActions (New button + title + gear) */
@@ -19,8 +20,9 @@ export function ControlPanel({
 }: ControlPanelProps) {
   return (
     <div
+      style={{ top: NAVBAR_HEIGHT }}
       className={cn(
-        "relative z-20 overflow-visible border-b border-erp-table-border bg-erp-table-header px-3 pt-2 pb-3 bg-white",
+        "sticky z-20 overflow-visible border-b border-erp-table-border bg-erp-table-header px-3 pt-2 pb-3 bg-white",
         className
       )}
     >

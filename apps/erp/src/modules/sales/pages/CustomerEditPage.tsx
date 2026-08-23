@@ -131,6 +131,7 @@ export default function CustomerEditPage() {
       ) : (
         <>
           <FormStatusBar
+            belowControlPanel
             steps={statusSteps}
             currentStepKey={status}
             onStepChange={(key) =>

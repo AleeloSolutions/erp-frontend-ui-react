@@ -17,9 +17,17 @@ export type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
 
 export interface InvoiceLineFormValue {
   id: string;
+  /** `section` / `note` rows merge the row into a single free-text cell (Odoo-style). */
+  kind: "product" | "section" | "note";
+  /** Selected product catalog id, or free text when no catalog match (`allowFreeText`). */
+  product: string;
   description: string;
+  /** GL account code, e.g. "400000 Product Sales". */
+  account: string;
   quantity: number;
   unitPrice: number;
+  /** Tax percentage, e.g. 15. 0 = no tax. */
+  taxRate: number;
 }
 
 let nextLineId = 1;
@@ -27,8 +35,34 @@ let nextLineId = 1;
 export function createEmptyInvoiceLine(): InvoiceLineFormValue {
   return {
     id: `new-${nextLineId++}`,
+    kind: "product",
+    product: "",
     description: "",
+    account: "400000 Product Sales",
     quantity: 1,
     unitPrice: 0,
+    taxRate: 15,
+  };
+}
+
+export function createInvoiceSectionLine(): InvoiceLineFormValue {
+  return {
+    ...createEmptyInvoiceLine(),
+    kind: "section",
+    account: "",
+    quantity: 0,
+    unitPrice: 0,
+    taxRate: 0,
+  };
+}
+
+export function createInvoiceNoteLine(): InvoiceLineFormValue {
+  return {
+    ...createEmptyInvoiceLine(),
+    kind: "note",
+    account: "",
+    quantity: 0,
+    unitPrice: 0,
+    taxRate: 0,
   };
 }

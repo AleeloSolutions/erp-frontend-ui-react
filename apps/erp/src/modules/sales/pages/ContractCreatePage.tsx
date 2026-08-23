@@ -103,6 +103,7 @@ export default function ContractCreatePage() {
       <ControlPanel pageActions={<PageActions breadcrumb="New Contract" />} />
 
       <FormStatusBar
+        belowControlPanel
         steps={statusSteps}
         currentStepKey={watch("status")}
         onStepChange={(key) =>

@@ -8,3 +8,4 @@ export { PageContainer, type PageContainerProps } from "./PageContainer";
 export { PageSubmenu, type PageSubmenuProps } from "./PageSubmenu";
 export { SideMenu, type SideMenuProps } from "./SideMenu";
 export { Sidebar, type SidebarProps } from "./Sidebar";
+export { NAVBAR_HEIGHT, CONTROL_PANEL_HEIGHT } from "./stickyOffsets";

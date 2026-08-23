@@ -233,6 +233,7 @@ export default function QuotationEditPage() {
       ) : (
         <>
           <FormStatusBar
+            belowControlPanel
             steps={statusSteps}
             currentStepKey={status}
             onStepChange={(key) =>

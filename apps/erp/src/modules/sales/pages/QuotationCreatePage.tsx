@@ -188,6 +188,7 @@ export default function QuotationCreatePage() {
       <ControlPanel pageActions={<PageActions breadcrumb="New Quotation" />} />
 
       <FormStatusBar
+        belowControlPanel
         steps={statusSteps}
         currentStepKey={watch("status")}
         onStepChange={(key) =>

@@ -82,6 +82,7 @@ export default function CustomerCreatePage() {
       <ControlPanel pageActions={<PageActions breadcrumb="New Customer" />} />
 
       <FormStatusBar
+        belowControlPanel
         steps={statusSteps}
         currentStepKey={status}
         onStepChange={(key) =>

@@ -43,7 +43,12 @@ export function Navbar({
   className,
 }: NavbarProps) {
   return (
-    <header className={cn("flex h-[46px] w-full items-center bg-white px-2", className)}>
+    <header
+      className={cn(
+        "sticky top-0 z-30 flex h-[46px] w-full items-center bg-white px-2",
+        className
+      )}
+    >
       {/* Left: Home toggle + brand + submenu */}
       <div className="flex flex-1 items-center gap-1 overflow-hidden">
         <button

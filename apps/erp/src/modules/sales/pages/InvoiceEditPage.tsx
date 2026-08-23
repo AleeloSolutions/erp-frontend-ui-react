@@ -100,7 +100,17 @@ export default function InvoiceEditPage() {
       paymentStatus: invoice.paymentStatus,
       notes: "",
     });
-    setLines(invoice.lines.length > 0 ? invoice.lines : [createEmptyInvoiceLine()]);
+    setLines(
+      invoice.lines.length > 0
+        ? invoice.lines.map((line) => ({
+            ...line,
+            kind: "product" as const,
+            product: "",
+            account: "",
+            taxRate: 0,
+          }))
+        : [createEmptyInvoiceLine()]
+    );
   }, [invoiceQuery.data, reset]);
 
   const total = lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
@@ -236,6 +246,7 @@ export default function InvoiceEditPage() {
       ) : (
         <>
           <FormStatusBar
+            belowControlPanel
             steps={statusSteps}
             currentStepKey={status}
             onStepChange={(key) =>
