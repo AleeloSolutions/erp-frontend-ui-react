@@ -11,4 +11,3 @@ export * from "./Modal";
 export * from "./SearchFilter";
 export * from "./Tabs";
 export * from "./Toast";
-export * from "./WizardStepper";

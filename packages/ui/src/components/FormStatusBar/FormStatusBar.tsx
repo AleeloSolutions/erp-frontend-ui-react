@@ -16,6 +16,7 @@ export interface FormStatusBarProps {
   actions?: FormStatusBarAction[];
   steps: StatusStep[];
   currentStepKey: string;
+  onStepChange?: (key: string) => void;
   className?: string;
 }
 
@@ -28,6 +29,7 @@ export function FormStatusBar({
   actions = [],
   steps,
   currentStepKey,
+  onStepChange,
   className,
 }: FormStatusBarProps) {
   const visibleActions = actions.filter((action) => !action.hidden);
@@ -51,7 +53,7 @@ export function FormStatusBar({
           </Button>
         ))}
       </div>
-      <StatusStepper steps={steps} currentStepKey={currentStepKey} />
+      <StatusStepper steps={steps} currentStepKey={currentStepKey} onStepChange={onStepChange} />
     </div>
   );
 }

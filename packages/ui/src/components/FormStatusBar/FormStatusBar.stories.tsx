@@ -1,6 +1,12 @@
+import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { FormStatusBar, type FormStatusBarAction } from "./FormStatusBar";
 import type { StatusStep } from "./StatusStepper";
+
+const wizardSteps: StatusStep[] = [
+  { key: "quotation", label: "Quotation" },
+  { key: "done", label: "Locked" },
+];
 
 const invoiceSteps: StatusStep[] = [
   { key: "draft", label: "Draft" },
@@ -25,18 +31,16 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
-
-export const Posted: Story = {
+export const Interactive: Story = {
   args: {
-    actions: [{ key: "cancel", label: "Reset to Draft", variant: "secondary" }],
-    currentStepKey: "posted",
+    steps: wizardSteps,
+    currentStepKey: "quotation",
   },
-};
-
-export const SingleAction: Story = {
-  args: {
-    actions: [{ key: "confirm", label: "Confirm", variant: "primary" }],
+  render: function Interactive(args) {
+    const [currentStepKey, setCurrentStepKey] = useState(args.currentStepKey);
+    return (
+      <FormStatusBar {...args} currentStepKey={currentStepKey} onStepChange={setCurrentStepKey} />
+    );
   },
 };
 
@@ -46,25 +50,8 @@ export const NoActions: Story = {
   },
 };
 
-export const LongerSequence: Story = {
+export const SingleAction: Story = {
   args: {
-    actions: [{ key: "next", label: "Next Stage", variant: "primary" }],
-    steps: [
-      { key: "quotation", label: "Quotation" },
-      { key: "sales_order", label: "Sales Order" },
-      { key: "done", label: "Locked" },
-    ],
-    currentStepKey: "sales_order",
+    actions: [{ key: "confirm", label: "Confirm", variant: "primary" }],
   },
-};
-
-export const RTL: Story = {
-  args: {
-    actions: invoiceActions,
-  },
-  render: (args) => (
-    <div dir="rtl">
-      <FormStatusBar {...args} />
-    </div>
-  ),
 };
