@@ -28,4 +28,5 @@ export {
   getColumnWidthStyle,
   normalizeSizingToWidth,
   applyNeighborResize,
+  startNeighborColumnResize,
 } from "./column-width";

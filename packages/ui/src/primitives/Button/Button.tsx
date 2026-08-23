@@ -20,13 +20,18 @@ const variantClasses: Record<ButtonVariant, string> = {
   ghost:
     "bg-transparent border-transparent text-erp-muted hover:bg-erp-surface-muted hover:border-erp-border-strong",
   outline:
-    "bg-erp-secondary border-erp-secondary-border text-erp-secondary-foreground hover:bg-erp-secondary-hover",
+    " border-erp-primary-border text-erp-primary hover:bg-erp-primary hover:text-erp-primary-foreground  active:shadow-md active:brightness-95",
 };
 
+// Auto height (padding + line-height), not a fixed h-*, per spec.
+const textButtonSize =
+  "px-[0.625rem] py-[0.3125rem] text-[0.875rem] font-[500] leading-[1.5]";
+
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-7 px-2.5 text-[10.5px]",
-  md: "h-[30px] px-2.5 text-[11px]",
-  lg: "h-8 px-3 text-[11px]",
+  sm: textButtonSize,
+  md: textButtonSize,
+  lg: textButtonSize,
+  // Fixed square icon-only button — the text box model above doesn't apply.
   icon: "h-7 w-7 p-0",
 };
 

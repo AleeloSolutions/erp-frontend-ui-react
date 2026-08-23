@@ -57,7 +57,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           "min-w-0 max-w-full appearance-none",
           // Hide number spinners so chrome matches text fields
           type === "number" &&
-            "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+            "[appearance:textfield] [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
           fieldChromeClasses({ error, chrome, chromeEdge }),
           fieldSizeClasses[size],
           className

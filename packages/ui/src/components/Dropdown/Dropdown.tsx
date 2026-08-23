@@ -41,6 +41,12 @@ export interface DropdownProps {
   trigger?: "field" | "button";
   /** Searchable combobox — only when `trigger="field"`. */
   searchable?: boolean;
+  /**
+   * When `searchable`, accept typed text that doesn't match any item as the
+   * value itself (quick-create style) instead of reverting to the last
+   * selection on dismiss. Fires `onChange(text, { key: text, label: text })`.
+   */
+  allowFreeText?: boolean;
   /** Button trigger label, or static field label when not using value/onChange. */
   label?: ReactNode;
   placeholder?: string;
@@ -279,6 +285,7 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
     align = "left",
     trigger,
     searchable = false,
+    allowFreeText = false,
     placeholder,
     value,
     defaultValue = null,
@@ -309,6 +316,8 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
   const isControlledValue = value !== undefined;
   const selectedValue = isControlledValue ? value : innerValue;
   const selected = items.find((item) => item.key === selectedValue);
+  // Falls back to the raw value when it's a free-text entry not present in `items`.
+  const displayLabel = selected?.label ?? (allowFreeText ? (selectedValue ?? "") : "");
 
   const {
     className: buttonClassName,
@@ -322,12 +331,30 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
   const isDisabled = disabled ?? buttonDisabled;
 
   const close = () => setIsOpen(false);
-  useDismiss(isOpen, close, rootRef, menuRef);
+
+  function commitItem(item: DropdownItem) {
+    if (!isControlledValue) setInnerValue(item.key);
+    onChange?.(item.key, item);
+  }
+
+  // Dismissing (outside click / Escape) without picking a list item: if the
+  // typed text doesn't match the current selection, either commit it as a
+  // free-text value (allowFreeText) or just close — the display falls back
+  // to the last selection either way.
+  function dismiss() {
+    if (searchable && allowFreeText && isOpen) {
+      const typed = query.trim();
+      if (typed && typed !== (selected?.label ?? "")) {
+        commitItem({ key: typed, label: typed });
+      }
+    }
+    close();
+  }
+  useDismiss(isOpen, dismiss, rootRef, menuRef);
 
   function pickItem(item: DropdownItem) {
     if (isFieldSelect || searchable) {
-      if (!isControlledValue) setInnerValue(item.key);
-      onChange?.(item.key, item);
+      commitItem(item);
     }
     item.onClick?.();
     close();
@@ -341,8 +368,8 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
 
   useEffect(() => {
     if (!searchable || isOpen) return;
-    setQuery(selected?.label ?? "");
-  }, [searchable, isOpen, selected?.label]);
+    setQuery(displayLabel);
+  }, [searchable, isOpen, displayLabel]);
 
   if (isButtonTrigger) {
     const toggle = () => setIsOpen((open) => !open);
@@ -391,11 +418,11 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
           chrome={chrome}
           chromeEdge={chromeEdge}
           placeholder={placeholder}
-          value={isOpen ? query : (selected?.label ?? "")}
+          value={isOpen ? query : displayLabel}
           className="w-full truncate pe-7"
           onFocus={() => {
             if (isDisabled) return;
-            setQuery(selected?.label ?? "");
+            setQuery(displayLabel);
             setIsOpen(true);
           }}
           onChange={(event) => {

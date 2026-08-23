@@ -5,6 +5,8 @@ export * from "./Drawer";
 export * from "./Dropdown";
 export * from "./FilterBar";
 export * from "./Form";
+export * from "./FormStatusBar";
+export * from "./LineItemsTable";
 export * from "./Modal";
 export * from "./SearchFilter";
 export * from "./Tabs";

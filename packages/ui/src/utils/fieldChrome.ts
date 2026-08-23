@@ -28,8 +28,12 @@ export const fieldIconSizeClasses: Record<FieldSize, string> = {
   default: "h-3.5 w-3.5",
 };
 
-/** Shared field border treatments. Default `corner` matches today’s Input/Select look. */
-export type FieldChrome = "underline" | "corner" | "tick";
+/**
+ * Shared field border treatments. Default `corner` matches today’s Input/Select look.
+ * `cell` = spreadsheet-style: borderless at rest, same underline feedback on hover/focus —
+ * for fields embedded directly in a table cell (e.g. LineItemsTable).
+ */
+export type FieldChrome = "underline" | "corner" | "tick" | "cell";
 export type FieldChromeEdge = "end" | "start";
 
 export type FieldChromeProps = {
@@ -62,16 +66,17 @@ export function fieldChromeClasses({
   active = false,
   disabled = false,
 }: FieldChromeOptions = {}) {
-  const edge = chrome === "underline" ? null : chromeEdge;
+  const edge = chrome === "underline" || chrome === "cell" ? null : chromeEdge;
   const isEnd = edge === "end";
   const isCorner = chrome === "corner" && edge != null;
   const isTick = chrome === "tick" && edge != null;
+  const isCell = chrome === "cell";
 
   return cn(
     !isTick && "bg-transparent",
     "text-erp-text",
     "border-0 border-solid border-b border-t-0",
-    !isTick && "border-b-erp-border-soft",
+    !isTick && (isCell ? "border-b-transparent" : "border-b-erp-border-soft"),
     isTick && "erp-field-tick",
     isTick && (isEnd ? "erp-field-tick-end" : "erp-field-tick-start"),
     "placeholder:text-erp-placeholder placeholder:opacity-100",
