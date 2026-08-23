@@ -1,19 +1,21 @@
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Users } from "lucide-react";
-import { AppShell, PageHeader, PageSubmenu } from "@/app";
+import { AppShell, useNavbarDefaults } from "@/app";
 import {
+  ControlPanel,
   FormField,
   FormGrid,
   FormInput,
   FormSection,
-  FormSelect,
   FormShell,
+  FormStatusBar,
   FormTextarea,
+  PageActions,
+  type StatusStep,
 } from "@erp/ui";
 import { useToast } from "@erp/ui";
-import { salesSubmenu } from "@/modules/sales/manifest";
+import { salesNavbar } from "@/modules/sales/manifest";
 import { useCreateCustomerMutation } from "@/modules/sales/api";
 import {
   customerFormSchema,
@@ -21,14 +23,22 @@ import {
 } from "@/modules/sales/customers/schema";
 import { MockApiError } from "@/lib/mock";
 
+const statusSteps: StatusStep[] = [
+  { key: "Active", label: "Active" },
+  { key: "Inactive", label: "Inactive" },
+];
+
 export default function CustomerCreatePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "customers" });
   const createMutation = useCreateCustomerMutation();
 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerFormSchema),
@@ -65,28 +75,37 @@ export default function CustomerCreatePage() {
     }
   }
 
+  const status = watch("status");
+
   return (
-    <AppShell activeNavKey="sales" activeMobileKey="tasks">
-      <PageHeader
-        module="Sales"
-        section="Customers"
-        title="Create Customer"
-        description="Compose FormShell with a Query mutation and toast feedback."
-        icon={<Users className="h-4 w-4" aria-hidden />}
+    <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
+      <ControlPanel pageActions={<PageActions breadcrumb="New Customer" />} />
+
+      <FormStatusBar
+        steps={statusSteps}
+        currentStepKey={status}
+        onStepChange={(key) =>
+          setValue("status", key as CustomerFormValues["status"], { shouldDirty: true })
+        }
+        actions={[
+          {
+            key: "create",
+            label: "Confirm",
+            variant: "primary",
+            loading: createMutation.isPending,
+            onClick: handleSubmit(onSubmit),
+          },
+          {
+            key: "cancel",
+            label: "Cancel",
+            variant: "secondary",
+            disabled: createMutation.isPending,
+            onClick: () => navigate("/sales/customers"),
+          },
+        ]}
       />
 
-      <PageSubmenu module="Sales" items={salesSubmenu} activeKey="customers" />
-
-      <FormShell
-        title="New customer"
-        description='Required fields are marked. Use an email containing "fail" to simulate a server error.'
-        onSubmit={handleSubmit(onSubmit)}
-        actionProps={{
-          submitLabel: "Create customer",
-          submitting: createMutation.isPending,
-          onCancel: () => navigate("/sales/customers"),
-        }}
-      >
+      <FormShell onSubmit={handleSubmit(onSubmit)}>
         <FormSection title="Basic information">
           <FormGrid columns={12}>
             <FormField
@@ -129,23 +148,6 @@ export default function CustomerCreatePage() {
                 id="customer-phone"
                 error={Boolean(errors.phone)}
                 {...register("phone")}
-              />
-            </FormField>
-            <FormField
-              label="Status"
-              required
-              htmlFor="customer-status"
-              error={errors.status?.message}
-              span={6}
-            >
-              <FormSelect
-                id="customer-status"
-                error={Boolean(errors.status)}
-                options={[
-                  { label: "Active", value: "Active" },
-                  { label: "Inactive", value: "Inactive" },
-                ]}
-                {...register("status")}
               />
             </FormField>
             <FormField

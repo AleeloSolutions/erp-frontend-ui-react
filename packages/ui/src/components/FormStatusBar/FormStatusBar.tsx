@@ -9,6 +9,7 @@ export interface FormStatusBarAction {
   onClick?: () => void;
   variant?: ButtonVariant;
   disabled?: boolean;
+  loading?: boolean;
   hidden?: boolean;
 }
 
@@ -37,7 +38,7 @@ export function FormStatusBar({
   return (
     <div
       className={cn(
-        "sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 border-b border-erp-border bg-erp-surface px-4 py-2 shadow-sm",
+        "sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 px-4 py-2",
         className
       )}
     >
@@ -47,13 +48,18 @@ export function FormStatusBar({
             key={action.key}
             variant={action.variant ?? "secondary"}
             disabled={action.disabled}
+            loading={action.loading}
             onClick={action.onClick}
           >
             {action.label}
           </Button>
         ))}
       </div>
-      <StatusStepper steps={steps} currentStepKey={currentStepKey} onStepChange={onStepChange} />
+      <StatusStepper
+        steps={steps}
+        currentStepKey={currentStepKey}
+        onStepChange={onStepChange}
+      />
     </div>
   );
 }

@@ -11,8 +11,10 @@ import {
   FormSection,
   FormSelect,
   FormShell,
+  FormStatusBar,
   FormTextarea,
   useToast,
+  type StatusStep,
 } from "@erp/ui";
 import { inventorySubmenu } from "@/modules/inventory/manifest";
 import { useProductQuery, useUpdateProductMutation } from "@/modules/inventory/api";
@@ -25,6 +27,11 @@ import {
 } from "@/modules/inventory/products/schema";
 import { MockApiError } from "@/lib/mock";
 
+const statusSteps: StatusStep[] = productStatusOptions.map((option) => ({
+  key: option.value,
+  label: option.label,
+}));
+
 export default function ProductEditPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -36,6 +43,8 @@ export default function ProductEditPage() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -133,197 +142,198 @@ export default function ProductEditPage() {
           </p>
         </div>
       ) : (
-        <FormShell
-          title={productQuery.data?.name ?? "Edit product"}
-          description={
-            loading
-              ? "Loading product…"
-              : 'Required fields are marked. Use a SKU or name containing "fail" to simulate a server error.'
-          }
-          onSubmit={handleSubmit(onSubmit)}
-          actionProps={{
-            submitLabel: "Save changes",
-            submitting: updateMutation.isPending || loading,
-            onCancel: () => navigate("/inventory/products"),
-          }}
-        >
-          <FormSection title="Identity">
-            <FormGrid columns={12}>
-              <FormField
-                label="SKU"
-                required
-                htmlFor="product-sku"
-                error={errors.sku?.message}
-                span={4}
-              >
-                <FormInput
-                  id="product-sku"
-                  error={Boolean(errors.sku)}
-                  disabled={loading}
-                  {...register("sku")}
-                />
-              </FormField>
-              <FormField
-                label="Product name"
-                required
-                htmlFor="product-name"
-                error={errors.name?.message}
-                span={8}
-              >
-                <FormInput
-                  id="product-name"
-                  error={Boolean(errors.name)}
-                  disabled={loading}
-                  {...register("name")}
-                />
-              </FormField>
-              <FormField
-                label="Category"
-                required
-                htmlFor="product-category"
-                error={errors.category?.message}
-                span={4}
-              >
-                <FormSelect
-                  id="product-category"
-                  error={Boolean(errors.category)}
-                  options={[...productCategoryOptions]}
-                  disabled={loading}
-                  {...register("category")}
-                />
-              </FormField>
-              <FormField
-                label="Unit"
-                required
-                htmlFor="product-unit"
-                error={errors.unit?.message}
-                span={4}
-              >
-                <FormSelect
-                  id="product-unit"
-                  error={Boolean(errors.unit)}
-                  options={[...productUnitOptions]}
-                  disabled={loading}
-                  {...register("unit")}
-                />
-              </FormField>
-              <FormField
-                label="Status"
-                required
-                htmlFor="product-status"
-                error={errors.status?.message}
-                span={4}
-              >
-                <FormSelect
-                  id="product-status"
-                  error={Boolean(errors.status)}
-                  options={[...productStatusOptions]}
-                  disabled={loading}
-                  {...register("status")}
-                />
-              </FormField>
-              <FormField
-                label="Barcode"
-                htmlFor="product-barcode"
-                error={errors.barcode?.message}
-                span={12}
-              >
-                <FormInput
-                  id="product-barcode"
-                  error={Boolean(errors.barcode)}
-                  disabled={loading}
-                  {...register("barcode")}
-                />
-              </FormField>
-            </FormGrid>
-          </FormSection>
+        <>
+          <FormStatusBar
+            steps={statusSteps}
+            currentStepKey={watch("status")}
+            onStepChange={(key) =>
+              setValue("status", key as ProductFormValues["status"], {
+                shouldDirty: true,
+              })
+            }
+            actions={[
+              {
+                key: "save",
+                label: "Confirm",
+                variant: "primary",
+                loading: updateMutation.isPending,
+                disabled: loading,
+                onClick: handleSubmit(onSubmit),
+              },
+              {
+                key: "cancel",
+                label: "Cancel",
+                variant: "secondary",
+                disabled: updateMutation.isPending,
+                onClick: () => navigate("/inventory/products"),
+              },
+            ]}
+          />
 
-          <FormSection title="Pricing & stock">
-            <FormGrid columns={12}>
-              <FormField
-                label="Unit price"
-                required
-                htmlFor="product-unit-price"
-                error={errors.unitPrice?.message}
-                span={3}
-              >
-                <FormInput
-                  id="product-unit-price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  error={Boolean(errors.unitPrice)}
-                  disabled={loading}
-                  {...register("unitPrice")}
-                />
-              </FormField>
-              <FormField
-                label="Cost price"
-                required
-                htmlFor="product-cost-price"
-                error={errors.costPrice?.message}
-                span={3}
-              >
-                <FormInput
-                  id="product-cost-price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  error={Boolean(errors.costPrice)}
-                  disabled={loading}
-                  {...register("costPrice")}
-                />
-              </FormField>
-              <FormField
-                label="Stock quantity"
-                required
-                htmlFor="product-stock"
-                error={errors.stockQty?.message}
-                span={3}
-              >
-                <FormInput
-                  id="product-stock"
-                  type="number"
-                  step="1"
-                  min="0"
-                  error={Boolean(errors.stockQty)}
-                  disabled={loading}
-                  {...register("stockQty")}
-                />
-              </FormField>
-              <FormField
-                label="Reorder level"
-                required
-                htmlFor="product-reorder"
-                error={errors.reorderLevel?.message}
-                span={3}
-              >
-                <FormInput
-                  id="product-reorder"
-                  type="number"
-                  step="1"
-                  min="0"
-                  error={Boolean(errors.reorderLevel)}
-                  disabled={loading}
-                  {...register("reorderLevel")}
-                />
-              </FormField>
-              <FormField
-                label="Description"
-                htmlFor="product-description"
-                error={errors.description?.message}
-                span={12}
-              >
-                <FormTextarea
-                  id="product-description"
-                  error={Boolean(errors.description)}
-                  disabled={loading}
-                  {...register("description")}
-                />
-              </FormField>
-            </FormGrid>
-          </FormSection>
-        </FormShell>
+          <FormShell onSubmit={handleSubmit(onSubmit)}>
+            <FormSection title="Identity">
+              <FormGrid columns={12}>
+                <FormField
+                  label="SKU"
+                  required
+                  htmlFor="product-sku"
+                  error={errors.sku?.message}
+                  span={4}
+                >
+                  <FormInput
+                    id="product-sku"
+                    error={Boolean(errors.sku)}
+                    disabled={loading}
+                    {...register("sku")}
+                  />
+                </FormField>
+                <FormField
+                  label="Product name"
+                  required
+                  htmlFor="product-name"
+                  error={errors.name?.message}
+                  span={8}
+                >
+                  <FormInput
+                    id="product-name"
+                    error={Boolean(errors.name)}
+                    disabled={loading}
+                    {...register("name")}
+                  />
+                </FormField>
+                <FormField
+                  label="Category"
+                  required
+                  htmlFor="product-category"
+                  error={errors.category?.message}
+                  span={4}
+                >
+                  <FormSelect
+                    id="product-category"
+                    error={Boolean(errors.category)}
+                    options={[...productCategoryOptions]}
+                    disabled={loading}
+                    {...register("category")}
+                  />
+                </FormField>
+                <FormField
+                  label="Unit"
+                  required
+                  htmlFor="product-unit"
+                  error={errors.unit?.message}
+                  span={4}
+                >
+                  <FormSelect
+                    id="product-unit"
+                    error={Boolean(errors.unit)}
+                    options={[...productUnitOptions]}
+                    disabled={loading}
+                    {...register("unit")}
+                  />
+                </FormField>
+                <FormField
+                  label="Barcode"
+                  htmlFor="product-barcode"
+                  error={errors.barcode?.message}
+                  span={12}
+                >
+                  <FormInput
+                    id="product-barcode"
+                    error={Boolean(errors.barcode)}
+                    disabled={loading}
+                    {...register("barcode")}
+                  />
+                </FormField>
+              </FormGrid>
+            </FormSection>
+
+            <FormSection title="Pricing & stock">
+              <FormGrid columns={12}>
+                <FormField
+                  label="Unit price"
+                  required
+                  htmlFor="product-unit-price"
+                  error={errors.unitPrice?.message}
+                  span={3}
+                >
+                  <FormInput
+                    id="product-unit-price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    error={Boolean(errors.unitPrice)}
+                    disabled={loading}
+                    {...register("unitPrice")}
+                  />
+                </FormField>
+                <FormField
+                  label="Cost price"
+                  required
+                  htmlFor="product-cost-price"
+                  error={errors.costPrice?.message}
+                  span={3}
+                >
+                  <FormInput
+                    id="product-cost-price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    error={Boolean(errors.costPrice)}
+                    disabled={loading}
+                    {...register("costPrice")}
+                  />
+                </FormField>
+                <FormField
+                  label="Stock quantity"
+                  required
+                  htmlFor="product-stock"
+                  error={errors.stockQty?.message}
+                  span={3}
+                >
+                  <FormInput
+                    id="product-stock"
+                    type="number"
+                    step="1"
+                    min="0"
+                    error={Boolean(errors.stockQty)}
+                    disabled={loading}
+                    {...register("stockQty")}
+                  />
+                </FormField>
+                <FormField
+                  label="Reorder level"
+                  required
+                  htmlFor="product-reorder"
+                  error={errors.reorderLevel?.message}
+                  span={3}
+                >
+                  <FormInput
+                    id="product-reorder"
+                    type="number"
+                    step="1"
+                    min="0"
+                    error={Boolean(errors.reorderLevel)}
+                    disabled={loading}
+                    {...register("reorderLevel")}
+                  />
+                </FormField>
+                <FormField
+                  label="Description"
+                  htmlFor="product-description"
+                  error={errors.description?.message}
+                  span={12}
+                >
+                  <FormTextarea
+                    id="product-description"
+                    error={Boolean(errors.description)}
+                    disabled={loading}
+                    {...register("description")}
+                  />
+                </FormField>
+              </FormGrid>
+            </FormSection>
+          </FormShell>
+        </>
       )}
     </AppShell>
   );

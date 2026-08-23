@@ -6,42 +6,43 @@ import { AppShell, useNavbarDefaults } from "@/app";
 import { ControlPanel, DataTable, PageActions } from "@erp/ui";
 import { Button, ConfirmDialog, Drawer, StatusBadge, useToast } from "@erp/ui";
 import { salesNavbar } from "@/modules/sales/manifest";
-import { useContractsQuery, useDeleteContractMutation } from "@/modules/sales/api";
+import { useDeleteInvoiceMutation, useInvoicesQuery } from "@/modules/sales/api";
 import { useDebounce } from "@erp/ui";
-import type { Contract } from "@/modules/sales/api";
+import type { Invoice, InvoiceStatus } from "@/modules/sales/api";
 import type { DataTableFilter, DataTableFilterValues } from "@erp/ui";
 import { MockApiError } from "@/lib/mock";
 
-export default function ContractsPage() {
+const STATUS_OPTIONS: InvoiceStatus[] = ["Draft", "Posted"];
+
+export default function InvoicesPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "contracts" });
+  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "invoices" });
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState<DataTableFilterValues>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([]);
-  const [detailContract, setDetailContract] = useState<Contract | null>(null);
+  const [detailInvoice, setDetailInvoice] = useState<Invoice | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
   const statusFilter = String(filterValues.status ?? "");
-  const status =
-    statusFilter === "Active" || statusFilter === "Draft" || statusFilter === "Expired"
-      ? statusFilter
-      : "all";
+  const status = STATUS_OPTIONS.includes(statusFilter as InvoiceStatus)
+    ? (statusFilter as InvoiceStatus)
+    : "all";
 
   const listParams = useMemo(
     () => ({
       search: debouncedSearch,
-      status: status as "all" | "Active" | "Draft" | "Expired",
+      status: status as InvoiceStatus | "all",
       page,
       pageSize,
     }),
     [debouncedSearch, status, page, pageSize]
   );
 
-  const contractsQuery = useContractsQuery(listParams);
-  const deleteMutation = useDeleteContractMutation();
+  const invoicesQuery = useInvoicesQuery(listParams);
+  const deleteMutation = useDeleteInvoiceMutation();
 
   const filters = useMemo<DataTableFilter[]>(
     () => [
@@ -50,28 +51,24 @@ export default function ContractsPage() {
         label: "Status",
         type: "select",
         placeholder: "All statuses",
-        options: [
-          { label: "Active", value: "Active" },
-          { label: "Draft", value: "Draft" },
-          { label: "Expired", value: "Expired" },
-        ],
+        options: STATUS_OPTIONS.map((value) => ({ label: value, value })),
       },
     ],
     []
   );
 
-  const columns = useMemo<ColumnDef<Contract>[]>(
+  const columns = useMemo<ColumnDef<Invoice>[]>(
     () => [
       {
-        accessorKey: "name",
-        header: "Contract",
+        accessorKey: "number",
+        header: "Invoice",
         meta: { fill: true },
-        size: 220,
+        size: 180,
         cell: ({ row, getValue }) => (
           <button
             type="button"
             className="font-bold text-erp-primary hover:underline"
-            onClick={() => setDetailContract(row.original)}
+            onClick={() => setDetailInvoice(row.original)}
           >
             {String(getValue())}
           </button>
@@ -83,25 +80,32 @@ export default function ContractsPage() {
         size: 200,
       },
       {
-        accessorKey: "startDate",
-        header: "Start date",
+        accessorKey: "date",
+        header: "Invoice date",
         size: 120,
       },
       {
-        accessorKey: "endDate",
-        header: "End date",
-        size: 120,
-      },
-      {
-        accessorKey: "value",
-        header: "Value",
+        accessorKey: "dueDate",
+        header: "Due date",
         size: 120,
       },
       {
         accessorKey: "status",
         header: "Status",
         cell: ({ getValue }) => <StatusBadge status={String(getValue())} />,
-        size: 110,
+        size: 100,
+      },
+      {
+        accessorKey: "paymentStatus",
+        header: "Payment",
+        cell: ({ getValue }) => <StatusBadge status={String(getValue())} />,
+        size: 130,
+      },
+      {
+        accessorKey: "amount",
+        header: "Amount",
+        meta: { align: "right" },
+        size: 120,
       },
       {
         id: "__actions",
@@ -112,7 +116,7 @@ export default function ContractsPage() {
           <Button
             variant="ghost"
             size="icon"
-            aria-label={`Delete ${row.original.name}`}
+            aria-label={`Delete ${row.original.number}`}
             onClick={() => setPendingDeleteIds([row.original.id])}
           >
             <Trash2 className="h-3.5 w-3.5 text-erp-error" />
@@ -129,15 +133,15 @@ export default function ContractsPage() {
         await deleteMutation.mutateAsync(id);
       }
       toast({
-        title: pendingDeleteIds.length > 1 ? "Contracts deleted" : "Contract deleted",
+        title: pendingDeleteIds.length > 1 ? "Invoices deleted" : "Invoice deleted",
         description: `${pendingDeleteIds.length} record(s) removed.`,
         variant: "success",
       });
       setPendingDeleteIds([]);
-      setDetailContract(null);
+      setDetailInvoice(null);
     } catch (error) {
       const message =
-        error instanceof MockApiError ? error.message : "Could not delete contract.";
+        error instanceof MockApiError ? error.message : "Could not delete invoice.";
       toast({ title: "Delete failed", description: message, variant: "error" });
     }
   }
@@ -145,7 +149,7 @@ export default function ContractsPage() {
   return (
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
       <DataTable
-        tableId="sales-contracts"
+        tableId="sales-invoices"
         renderToolbar={({ searchFilter, pagination, bulkActions }) => (
           <ControlPanel
             pageActions={
@@ -156,7 +160,7 @@ export default function ContractsPage() {
                     children: "New",
                     variant: "primary",
                     size: "sm",
-                    onClick: () => navigate("/sales/contracts/new"),
+                    onClick: () => navigate("/sales/invoices/new"),
                   },
                 ]}
               />
@@ -167,9 +171,9 @@ export default function ContractsPage() {
           </ControlPanel>
         )}
         columns={columns}
-        data={contractsQuery.data?.data ?? []}
+        data={invoicesQuery.data?.data ?? []}
         searchable
-        searchPlaceholder="Search contracts…"
+        searchPlaceholder="Search invoices…"
         search={{
           value: search,
           onChange: (value) => {
@@ -187,17 +191,17 @@ export default function ContractsPage() {
           },
         }}
         selectable
-        loading={contractsQuery.isLoading || contractsQuery.isFetching}
+        loading={invoicesQuery.isLoading || invoicesQuery.isFetching}
         error={
-          contractsQuery.isError
-            ? contractsQuery.error.message || "Failed to load contracts"
+          invoicesQuery.isError
+            ? invoicesQuery.error.message || "Failed to load invoices"
             : null
         }
         getRowId={(row) => row.id}
         pagination={{
           page,
           pageSize,
-          total: contractsQuery.data?.total ?? 0,
+          total: invoicesQuery.data?.total ?? 0,
           onPageChange: setPage,
           onPageSizeChange: (size) => {
             setPageSize(size);
@@ -212,13 +216,13 @@ export default function ContractsPage() {
             onClick: (rows) => setPendingDeleteIds(rows.map((row) => row.id)),
           },
         ]}
-        emptyMessage="No contracts found. Try adjusting filters or create a new contract."
+        emptyMessage="No invoices found. Try adjusting filters or create a new invoice."
       />
 
       <ConfirmDialog
         open={pendingDeleteIds.length > 0}
         title={
-          pendingDeleteIds.length > 1 ? "Delete selected contracts?" : "Delete contract?"
+          pendingDeleteIds.length > 1 ? "Delete selected invoices?" : "Delete invoice?"
         }
         description="This mock action removes records from the in-memory store."
         confirmLabel="Delete"
@@ -229,20 +233,30 @@ export default function ContractsPage() {
       />
 
       <Drawer
-        open={Boolean(detailContract)}
-        onClose={() => setDetailContract(null)}
-        title={detailContract?.name}
-        description="Contract detail drawer (mock)"
+        open={Boolean(detailInvoice)}
+        onClose={() => setDetailInvoice(null)}
+        title={detailInvoice?.number}
+        description="Invoice detail drawer (mock)"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setDetailContract(null)}>
+            <Button variant="secondary" onClick={() => setDetailInvoice(null)}>
               Close
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (detailInvoice) {
+                  navigate(`/sales/invoices/${detailInvoice.id}/edit`);
+                }
+              }}
+            >
+              Edit
             </Button>
             <Button
               variant="danger"
               onClick={() => {
-                if (detailContract) {
-                  setPendingDeleteIds([detailContract.id]);
+                if (detailInvoice) {
+                  setPendingDeleteIds([detailInvoice.id]);
                 }
               }}
             >
@@ -251,37 +265,43 @@ export default function ContractsPage() {
           </>
         }
       >
-        {detailContract ? (
+        {detailInvoice ? (
           <dl className="m-0 grid gap-2 text-[12px]">
             <div>
               <dt className="text-erp-subtle">Customer</dt>
-              <dd className="m-0 font-bold text-erp-text">{detailContract.customer}</dd>
+              <dd className="m-0 font-bold text-erp-text">{detailInvoice.customer}</dd>
             </div>
             <div>
-              <dt className="text-erp-subtle">Start date</dt>
-              <dd className="m-0 font-bold text-erp-text">{detailContract.startDate}</dd>
+              <dt className="text-erp-subtle">Invoice date</dt>
+              <dd className="m-0 font-bold text-erp-text">{detailInvoice.date}</dd>
             </div>
             <div>
-              <dt className="text-erp-subtle">End date</dt>
-              <dd className="m-0 font-bold text-erp-text">{detailContract.endDate}</dd>
-            </div>
-            <div>
-              <dt className="text-erp-subtle">Value</dt>
-              <dd className="m-0 font-bold text-erp-text">{detailContract.value}</dd>
+              <dt className="text-erp-subtle">Due date</dt>
+              <dd className="m-0 font-bold text-erp-text">{detailInvoice.dueDate}</dd>
             </div>
             <div>
               <dt className="text-erp-subtle">Status</dt>
               <dd className="m-0 mt-1">
-                <StatusBadge status={detailContract.status} />
+                <StatusBadge status={detailInvoice.status} />
               </dd>
+            </div>
+            <div>
+              <dt className="text-erp-subtle">Payment</dt>
+              <dd className="m-0 mt-1">
+                <StatusBadge status={detailInvoice.paymentStatus} />
+              </dd>
+            </div>
+            <div>
+              <dt className="text-erp-subtle">Amount</dt>
+              <dd className="m-0 font-bold text-erp-text">{detailInvoice.amount}</dd>
             </div>
             <p className="m-0 mt-2 text-[11px] text-erp-muted">
               Need a new record?{" "}
               <Link
-                to="/sales/contracts/new"
+                to="/sales/invoices/new"
                 className="font-bold text-erp-blue hover:underline"
               >
-                Create contract
+                Create invoice
               </Link>
             </p>
           </dl>

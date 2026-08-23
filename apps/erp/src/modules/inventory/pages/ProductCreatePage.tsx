@@ -10,8 +10,10 @@ import {
   FormSection,
   FormSelect,
   FormShell,
+  FormStatusBar,
   FormTextarea,
   useToast,
+  type StatusStep,
 } from "@erp/ui";
 import { inventorySubmenu } from "@/modules/inventory/manifest";
 import { useCreateProductMutation } from "@/modules/inventory/api";
@@ -24,6 +26,11 @@ import {
 } from "@/modules/inventory/products/schema";
 import { MockApiError } from "@/lib/mock";
 
+const statusSteps: StatusStep[] = productStatusOptions.map((option) => ({
+  key: option.value,
+  label: option.label,
+}));
+
 export default function ProductCreatePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -32,6 +39,8 @@ export default function ProductCreatePage() {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -90,16 +99,31 @@ export default function ProductCreatePage() {
 
       <PageSubmenu module="Inventory" items={inventorySubmenu} activeKey="products" />
 
-      <FormShell
-        title="New product"
-        description='Required fields are marked. Use a SKU or name containing "fail" to simulate a server error.'
-        onSubmit={handleSubmit(onSubmit)}
-        actionProps={{
-          submitLabel: "Create product",
-          submitting: createMutation.isPending,
-          onCancel: () => navigate("/inventory/products"),
-        }}
-      >
+      <FormStatusBar
+        steps={statusSteps}
+        currentStepKey={watch("status")}
+        onStepChange={(key) =>
+          setValue("status", key as ProductFormValues["status"], { shouldDirty: true })
+        }
+        actions={[
+          {
+            key: "create",
+            label: "Confirm",
+            variant: "primary",
+            loading: createMutation.isPending,
+            onClick: handleSubmit(onSubmit),
+          },
+          {
+            key: "cancel",
+            label: "Cancel",
+            variant: "secondary",
+            disabled: createMutation.isPending,
+            onClick: () => navigate("/inventory/products"),
+          },
+        ]}
+      />
+
+      <FormShell onSubmit={handleSubmit(onSubmit)}>
         <FormSection title="Identity">
           <FormGrid columns={12}>
             <FormField
@@ -155,20 +179,6 @@ export default function ProductCreatePage() {
                 error={Boolean(errors.unit)}
                 options={[...productUnitOptions]}
                 {...register("unit")}
-              />
-            </FormField>
-            <FormField
-              label="Status"
-              required
-              htmlFor="product-status"
-              error={errors.status?.message}
-              span={4}
-            >
-              <FormSelect
-                id="product-status"
-                error={Boolean(errors.status)}
-                options={[...productStatusOptions]}
-                {...register("status")}
               />
             </FormField>
             <FormField

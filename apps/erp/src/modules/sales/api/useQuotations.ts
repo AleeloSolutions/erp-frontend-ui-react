@@ -9,19 +9,18 @@ import {
   deleteQuotation,
   getQuotation,
   listQuotations,
+  updateQuotation,
   type CreateQuotationInput,
   type Quotation,
   type QuotationListParams,
   type QuotationListResult,
+  type UpdateQuotationInput,
 } from "./quotations";
 import { queryKeys } from "./query-keys";
 
 export function useQuotationsQuery(
   params: QuotationListParams = {},
-  options?: Omit<
-    UseQueryOptions<QuotationListResult, Error>,
-    "queryKey" | "queryFn"
-  >
+  options?: Omit<UseQueryOptions<QuotationListResult, Error>, "queryKey" | "queryFn">
 ) {
   return useQuery({
     queryKey: queryKeys.quotations.list(params as Record<string, unknown>),
@@ -50,6 +49,21 @@ export function useCreateQuotationMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.quotations.lists(),
+      });
+    },
+  });
+}
+
+export function useUpdateQuotationMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateQuotationInput }) =>
+      updateQuotation(id, input),
+    onSuccess: (quotation) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.quotations.lists() });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.quotations.detail(quotation.id),
       });
     },
   });

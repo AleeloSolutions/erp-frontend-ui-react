@@ -4,6 +4,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@erp/ui";
 import {
+  FormActions,
   FormCheckbox,
   FormDatePicker,
   FormField,
@@ -143,202 +144,195 @@ function CustomerFormDemo() {
 
   return (
     <>
-    <DemoSection
-      title="Form — Create Customer"
-      description="Validation, required fields, responsive grid, sections, summary, and submit state."
-    >
-      <div className="p-3 pt-0">
-        {submitted ? (
-          <p className="mb-2 rounded-md border border-erp-success/20 bg-erp-success-bg px-2.5 py-2 text-[11px] text-erp-success">
-            Customer draft submitted successfully (mock).
-          </p>
-        ) : null}
-        <FormShell
-          title="Create Customer"
-          description="Create a new customer record."
-          serverError={serverError}
-          onSubmit={handleSubmit(onSubmit)}
-          stepper={
-            <FormStepper
-              steps={["Basic Information", "Details", "Review"]}
-              currentStep={step}
-            />
-          }
-          summary={
-            <FormSummary
-              items={summaryItems}
-              footer={
-                <>
-                  1. Save draft
-                  <br />
-                  2. Review and submit
-                  <br />
-                  3. Confirmation
-                </>
-              }
-            />
-          }
-          actionProps={{
-            onCancel: () => {
-              reset();
-              setSubmitted(false);
-              setServerError(null);
-              setStep(0);
-            },
-            onSecondary: () => {
-              setStep(0);
-              setSubmitted(false);
-            },
-            submitLabel: "Submit",
-            submitting,
-          }}
-          className="rounded-md"
-        >
-          <FormSection
-            title="Basic Information"
-            description="Enter the primary customer details."
+      <DemoSection
+        title="Form — Create Customer"
+        description="Validation, required fields, responsive grid, sections, summary, and submit state."
+      >
+        <div className="p-3 pt-0">
+          {submitted ? (
+            <p className="mb-2 rounded-md border border-erp-success/20 bg-erp-success-bg px-2.5 py-2 text-[11px] text-erp-success">
+              Customer draft submitted successfully (mock).
+            </p>
+          ) : null}
+          <FormStepper
+            steps={["Basic Information", "Details", "Review"]}
+            currentStep={step}
+            className="mb-2"
+          />
+          <FormShell
+            serverError={serverError}
+            onSubmit={handleSubmit(onSubmit)}
+            summary={
+              <FormSummary
+                items={summaryItems}
+                footer={
+                  <>
+                    1. Save draft
+                    <br />
+                    2. Review and submit
+                    <br />
+                    3. Confirmation
+                  </>
+                }
+              />
+            }
+            className="rounded-md"
           >
-            <FormGrid>
-              <FormField
-                label="Customer name"
-                required
-                htmlFor="customer-name"
-                error={errors.name?.message}
-                span={6}
-              >
-                <FormInput
-                  id="customer-name"
-                  placeholder="Customer name"
-                  error={Boolean(errors.name)}
-                  {...register("name")}
-                />
-              </FormField>
-              <FormField
-                label="Email"
-                required
-                htmlFor="customer-email"
-                error={errors.email?.message}
-                description='Tip: use an email containing "fail" to demo server error.'
-                span={6}
-              >
-                <FormInput
-                  id="customer-email"
-                  type="email"
-                  placeholder="name@example.com"
-                  error={Boolean(errors.email)}
-                  {...register("email")}
-                />
-              </FormField>
-              <FormField
-                label="Phone"
-                required
-                htmlFor="customer-phone"
-                error={errors.phone?.message}
-                span={4}
-              >
-                <FormInput
-                  id="customer-phone"
-                  placeholder="615100000"
-                  error={Boolean(errors.phone)}
-                  {...register("phone")}
-                />
-              </FormField>
-              <FormField
-                label="Status"
-                required
-                htmlFor="customer-status"
-                error={errors.status?.message}
-                span={4}
-              >
-                <FormSelect
-                  id="customer-status"
-                  error={Boolean(errors.status)}
-                  options={[
-                    { label: "Active", value: "Active" },
-                    { label: "Inactive", value: "Inactive" },
-                  ]}
-                  {...register("status")}
-                />
-              </FormField>
-              <FormField
-                label="Customer type"
-                required
-                error={errors.customerType?.message}
-                span={4}
-              >
-                <div className="flex h-[30px] items-center gap-3">
-                  <FormRadio
-                    id="type-company"
-                    value="Company"
-                    label="Company"
-                    {...register("customerType")}
+            <FormSection
+              title="Basic Information"
+              description="Enter the primary customer details."
+            >
+              <FormGrid>
+                <FormField
+                  label="Customer name"
+                  required
+                  htmlFor="customer-name"
+                  error={errors.name?.message}
+                  span={6}
+                >
+                  <FormInput
+                    id="customer-name"
+                    placeholder="Customer name"
+                    error={Boolean(errors.name)}
+                    {...register("name")}
                   />
-                  <FormRadio
-                    id="type-individual"
-                    value="Individual"
-                    label="Individual"
-                    {...register("customerType")}
+                </FormField>
+                <FormField
+                  label="Email"
+                  required
+                  htmlFor="customer-email"
+                  error={errors.email?.message}
+                  description='Tip: use an email containing "fail" to demo server error.'
+                  span={6}
+                >
+                  <FormInput
+                    id="customer-email"
+                    type="email"
+                    placeholder="name@example.com"
+                    error={Boolean(errors.email)}
+                    {...register("email")}
                   />
-                </div>
-              </FormField>
-            </FormGrid>
-          </FormSection>
+                </FormField>
+                <FormField
+                  label="Phone"
+                  required
+                  htmlFor="customer-phone"
+                  error={errors.phone?.message}
+                  span={4}
+                >
+                  <FormInput
+                    id="customer-phone"
+                    placeholder="615100000"
+                    error={Boolean(errors.phone)}
+                    {...register("phone")}
+                  />
+                </FormField>
+                <FormField
+                  label="Status"
+                  required
+                  htmlFor="customer-status"
+                  error={errors.status?.message}
+                  span={4}
+                >
+                  <FormSelect
+                    id="customer-status"
+                    error={Boolean(errors.status)}
+                    options={[
+                      { label: "Active", value: "Active" },
+                      { label: "Inactive", value: "Inactive" },
+                    ]}
+                    {...register("status")}
+                  />
+                </FormField>
+                <FormField
+                  label="Customer type"
+                  required
+                  error={errors.customerType?.message}
+                  span={4}
+                >
+                  <div className="flex h-[30px] items-center gap-3">
+                    <FormRadio
+                      id="type-company"
+                      value="Company"
+                      label="Company"
+                      {...register("customerType")}
+                    />
+                    <FormRadio
+                      id="type-individual"
+                      value="Individual"
+                      label="Individual"
+                      {...register("customerType")}
+                    />
+                  </div>
+                </FormField>
+              </FormGrid>
+            </FormSection>
 
-          <FormSection title="Additional information">
-            <FormGrid>
-              <FormField
-                label="Address"
-                required
-                htmlFor="customer-address"
-                error={errors.address?.message}
-                span={12}
-              >
-                <FormInput
-                  id="customer-address"
-                  placeholder="Street, city, country"
-                  error={Boolean(errors.address)}
-                  {...register("address")}
-                />
-              </FormField>
-              <FormField
-                label="Notes"
-                htmlFor="customer-notes"
-                error={errors.notes?.message}
-                span={12}
-              >
-                <FormTextarea
-                  id="customer-notes"
-                  placeholder="Optional notes"
-                  error={Boolean(errors.notes)}
-                  {...register("notes")}
-                />
-              </FormField>
-              <FormField span={6}>
-                <FormCheckbox
-                  id="customer-newsletter"
-                  label="Subscribe to announcements"
-                  {...register("newsletter")}
-                />
-              </FormField>
-              <FormField span={6}>
-                <FormSwitch
-                  id="customer-vip"
-                  label="VIP customer"
-                  {...register("vip")}
-                />
-              </FormField>
-              <FormField
-                label="Tax ID (disabled demo)"
-                htmlFor="customer-tax"
-                span={6}
-              >
-                <FormInput id="customer-tax" value="TAX-LOCKED" disabled readOnly />
-              </FormField>
-            </FormGrid>
-          </FormSection>
-        </FormShell>
-      </div>
-    </DemoSection>
+            <FormSection title="Additional information">
+              <FormGrid>
+                <FormField
+                  label="Address"
+                  required
+                  htmlFor="customer-address"
+                  error={errors.address?.message}
+                  span={12}
+                >
+                  <FormInput
+                    id="customer-address"
+                    placeholder="Street, city, country"
+                    error={Boolean(errors.address)}
+                    {...register("address")}
+                  />
+                </FormField>
+                <FormField
+                  label="Notes"
+                  htmlFor="customer-notes"
+                  error={errors.notes?.message}
+                  span={12}
+                >
+                  <FormTextarea
+                    id="customer-notes"
+                    placeholder="Optional notes"
+                    error={Boolean(errors.notes)}
+                    {...register("notes")}
+                  />
+                </FormField>
+                <FormField span={6}>
+                  <FormCheckbox
+                    id="customer-newsletter"
+                    label="Subscribe to announcements"
+                    {...register("newsletter")}
+                  />
+                </FormField>
+                <FormField span={6}>
+                  <FormSwitch
+                    id="customer-vip"
+                    label="VIP customer"
+                    {...register("vip")}
+                  />
+                </FormField>
+                <FormField label="Tax ID (disabled demo)" htmlFor="customer-tax" span={6}>
+                  <FormInput id="customer-tax" value="TAX-LOCKED" disabled readOnly />
+                </FormField>
+              </FormGrid>
+            </FormSection>
+            <FormActions
+              onCancel={() => {
+                reset();
+                setSubmitted(false);
+                setServerError(null);
+                setStep(0);
+              }}
+              onSecondary={() => {
+                setStep(0);
+                setSubmitted(false);
+              }}
+              submitLabel="Submit"
+              submitting={submitting}
+            />
+          </FormShell>
+        </div>
+      </DemoSection>
     </>
   );
 }
@@ -371,9 +365,7 @@ function InvoiceFormDemo() {
 
   const values = watch();
   const amountNumber = Number(values.amount || 0);
-  const estimatedTotal = Number.isFinite(amountNumber)
-    ? amountNumber * 1.05
-    : 0;
+  const estimatedTotal = Number.isFinite(amountNumber) ? amountNumber * 1.05 : 0;
 
   const summaryItems = useMemo(
     () => [
@@ -411,13 +403,13 @@ function InvoiceFormDemo() {
             Invoice submitted successfully (mock).
           </p>
         ) : null}
+        <FormStepper
+          steps={["Draft", "Review", "Approved"]}
+          currentStep={0}
+          className="mb-2"
+        />
         <FormShell
-          title="New invoice"
-          description="Create a new invoice record"
           onSubmit={handleSubmit(onSubmit)}
-          stepper={
-            <FormStepper steps={["Draft", "Review", "Approved"]} currentStep={0} />
-          }
           summary={
             <FormSummary
               items={summaryItems}
@@ -434,15 +426,6 @@ function InvoiceFormDemo() {
               }
             />
           }
-          actionProps={{
-            onCancel: () => {
-              reset();
-              setSubmitted(false);
-            },
-            onSecondary: () => setSubmitted(false),
-            submitLabel: "Submit",
-            submitting,
-          }}
           className="rounded-md"
         >
           <FormSection title="Primary information">
@@ -591,6 +574,15 @@ function InvoiceFormDemo() {
               </FormField>
             </FormGrid>
           </FormSection>
+          <FormActions
+            onCancel={() => {
+              reset();
+              setSubmitted(false);
+            }}
+            onSecondary={() => setSubmitted(false)}
+            submitLabel="Submit"
+            submitting={submitting}
+          />
         </FormShell>
       </div>
     </DemoSection>

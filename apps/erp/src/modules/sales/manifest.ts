@@ -3,9 +3,15 @@ import { SalesRoutes } from "./routes";
 export const salesSubmenu = [
   { key: "customers", label: "Customers", href: "/sales/customers" },
   { key: "quotations", label: "Quotations", href: "/sales/quotations" },
+  { key: "invoices", label: "Invoices", href: "/sales/invoices" },
   { key: "contracts", label: "Contracts", href: "/sales/contracts" },
   { key: "orders", label: "Sales orders", href: "/sales/orders" },
 ];
+
+export const salesNavbar = {
+  brandLabel: "Sales",
+  submenuItems: salesSubmenu,
+};
 
 export const salesManifest = {
   id: "sales",
@@ -22,6 +28,7 @@ export const salesManifest = {
     children: [
       { key: "customers", label: "Customers", href: "/sales/customers" },
       { key: "quotations", label: "Quotations", href: "/sales/quotations" },
+      { key: "invoices", label: "Invoices", href: "/sales/invoices" },
       { key: "contracts", label: "Contracts", href: "/sales/contracts" },
       { key: "orders", label: "Sales orders", href: "/sales/orders" },
     ],

@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Plus, Trash2, Users } from "lucide-react";
-import { AppShell, PageHeader } from "@/app";
-import { DataTable } from "@erp/ui";
+import { Trash2 } from "lucide-react";
+import { AppShell, useNavbarDefaults } from "@/app";
+import { ControlPanel, DataTable, PageActions } from "@erp/ui";
 import { Button, ConfirmDialog, Drawer, StatusBadge, useToast } from "@erp/ui";
-import { salesSubmenu } from "@/modules/sales/manifest";
+import { salesNavbar } from "@/modules/sales/manifest";
 import { useCustomersQuery, useDeleteCustomerMutation } from "@/modules/sales/api";
 import { useDebounce } from "@erp/ui";
 import type { Customer } from "@/modules/sales/api";
@@ -15,6 +15,7 @@ import { MockApiError } from "@/lib/mock";
 export default function CustomersPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "customers" });
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState<DataTableFilterValues>({});
   const [page, setPage] = useState(1);
@@ -139,28 +140,29 @@ export default function CustomersPage() {
   }
 
   return (
-    <AppShell activeNavKey="sales" activeMobileKey="tasks">
-      <PageHeader
-        module="Sales"
-        section="Customers"
-        title="Customers"
-        description="Manage customers with Query-backed list, confirm delete, and drawer detail."
-        icon={<Users className="h-4 w-4" aria-hidden />}
-        actions={
-          <Button variant="primary" onClick={() => navigate("/sales/customers/new")}>
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            Create Customer
-          </Button>
-        }
-        submenu={{
-          module: "Sales",
-          items: salesSubmenu,
-          activeKey: "customers",
-        }}
-      />
-
+    <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
       <DataTable
         tableId="sales-customers"
+        renderToolbar={({ searchFilter, pagination, bulkActions }) => (
+          <ControlPanel
+            pageActions={
+              <PageActions
+                buttons={[
+                  {
+                    key: "new",
+                    children: "New",
+                    variant: "primary",
+                    size: "sm",
+                    onClick: () => navigate("/sales/customers/new"),
+                  },
+                ]}
+              />
+            }
+            endSlot={pagination}
+          >
+            {bulkActions ?? searchFilter}
+          </ControlPanel>
+        )}
         columns={columns}
         data={customersQuery.data?.data ?? []}
         searchable
@@ -232,6 +234,16 @@ export default function CustomersPage() {
           <>
             <Button variant="secondary" onClick={() => setDetailCustomer(null)}>
               Close
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (detailCustomer) {
+                  navigate(`/sales/customers/${detailCustomer.id}/edit`);
+                }
+              }}
+            >
+              Edit
             </Button>
             <Button
               variant="danger"

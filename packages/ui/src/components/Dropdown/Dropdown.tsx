@@ -212,6 +212,7 @@ function FieldMenu({
   searchMoreLabel,
   anchorRef,
   menuRef,
+  search,
 }: {
   items: DropdownItem[];
   listId: string;
@@ -220,17 +221,23 @@ function FieldMenu({
   onSearchMore?: () => void;
   searchMoreLabel?: string;
   anchorRef: RefObject<HTMLElement | null>;
-  menuRef: RefObject<HTMLUListElement | null>;
+  menuRef: RefObject<HTMLDivElement | null>;
+  /** Renders a live-filter search input above the list — used by the plain
+   * (non-combobox) field trigger so search is available immediately on open,
+   * without changing that trigger's own closed-state look. */
+  search?: {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+  };
 }) {
   const coords = useFieldMenuCoords(anchorRef);
 
   return createPortal(
-    <ul
+    <div
       ref={menuRef}
-      id={listId}
-      role="listbox"
       className={cn(
-        "z-[70] m-0 list-none overflow-y-auto py-2 [scrollbar-width:thin]",
+        "z-[70] flex flex-col overflow-hidden",
         "rounded border border-erp-table-border bg-erp-table-bg text-[0.875rem] text-erp-text",
         "shadow-[0_0.5rem_1rem_rgba(0,0,0,0.15)]"
       )}
@@ -243,37 +250,55 @@ function FieldMenu({
         maxHeight: coords.maxHeight,
       }}
     >
-      {items.length === 0 ? (
-        <li className="px-5 py-[3px] text-erp-muted">{emptyLabel}</li>
-      ) : (
-        items.map((item) => (
-          <li key={item.key}>
+      {search ? (
+        <div className="shrink-0 border-b border-erp-table-border p-1.5">
+          <input
+            type="text"
+            autoFocus
+            value={search.value}
+            onChange={(event) => search.onChange(event.target.value)}
+            placeholder={search.placeholder}
+            className="w-full border-0 bg-transparent px-2 py-1 text-[0.875rem] text-erp-text outline-none placeholder:text-erp-placeholder"
+          />
+        </div>
+      ) : null}
+      <ul
+        id={listId}
+        role="listbox"
+        className="m-0 min-h-0 flex-1 list-none overflow-y-auto py-2 [scrollbar-width:thin]"
+      >
+        {items.length === 0 ? (
+          <li className="px-5 py-[3px] text-erp-muted">{emptyLabel}</li>
+        ) : (
+          items.map((item) => (
+            <li key={item.key}>
+              <button
+                type="button"
+                role="option"
+                disabled={item.disabled}
+                className="block w-full truncate border-0 bg-transparent px-5 py-[3px] text-start text-erp-text hover:bg-erp-menu-hover disabled:text-erp-muted"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => onSelect(item)}
+              >
+                {item.label}
+              </button>
+            </li>
+          ))
+        )}
+        {onSearchMore ? (
+          <li>
             <button
               type="button"
-              role="option"
-              disabled={item.disabled}
-              className="block w-full truncate border-0 bg-transparent px-5 py-[3px] text-start text-erp-text hover:bg-erp-menu-hover disabled:text-erp-muted"
+              className="block w-full truncate border-0 bg-transparent px-5 py-[3px] text-start text-erp-text hover:bg-erp-menu-hover"
               onMouseDown={(event) => event.preventDefault()}
-              onClick={() => onSelect(item)}
+              onClick={onSearchMore}
             >
-              {item.label}
+              {searchMoreLabel}
             </button>
           </li>
-        ))
-      )}
-      {onSearchMore ? (
-        <li>
-          <button
-            type="button"
-            className="block w-full truncate border-0 bg-transparent px-5 py-[3px] text-start text-erp-text hover:bg-erp-menu-hover"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={onSearchMore}
-          >
-            {searchMoreLabel}
-          </button>
-        </li>
-      ) : null}
-    </ul>,
+        ) : null}
+      </ul>
+    </div>,
     document.body
   );
 }
@@ -310,7 +335,7 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
   const menuId = useId();
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
-  const menuRef = useRef<HTMLUListElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const isButtonTrigger = useButtonTrigger(trigger, buttonProps);
   const isFieldSelect = !isButtonTrigger && !searchable;
   const isControlledValue = value !== undefined;
@@ -362,7 +387,7 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
 
   const needle = query.trim().toLowerCase();
   const visibleItems =
-    searchable && needle
+    (searchable || isFieldSelect) && needle
       ? items.filter((item) => item.label.toLowerCase().includes(needle))
       : items;
 
@@ -461,17 +486,27 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
 
   const toggle = () => {
     if (isDisabled) return;
-    setIsOpen((open) => !open);
+    setIsOpen((open) => {
+      const next = !open;
+      // Start every open with a blank search box rather than leftover text.
+      if (next) setQuery("");
+      return next;
+    });
   };
 
   const menu = isOpen ? (
     <FieldMenu
-      items={items}
+      items={visibleItems}
       listId={listId}
       emptyLabel={t("dropdown.noResults")}
       onSelect={pickItem}
       anchorRef={rootRef}
       menuRef={menuRef}
+      search={{
+        value: query,
+        onChange: setQuery,
+        placeholder: t("dropdown.search"),
+      }}
     />
   ) : null;
 

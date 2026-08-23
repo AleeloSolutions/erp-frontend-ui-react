@@ -9,6 +9,7 @@ export interface StatusBadgeProps extends HTMLAttributes<HTMLSpanElement> {
 
 const statusClasses: Record<StatusVariant, string> = {
   paid: "bg-erp-success-bg text-erp-success",
+  notPaid: "bg-erp-header text-erp-muted",
   pending: "bg-erp-warning-bg text-erp-warning",
   approved: "bg-erp-info-bg text-erp-info",
   overdue: "bg-erp-error-bg text-erp-error",
@@ -22,6 +23,7 @@ const statusClasses: Record<StatusVariant, string> = {
 
 const statusLabels: Record<StatusVariant, string> = {
   paid: "Paid",
+  notPaid: "Not Paid",
   pending: "Pending",
   approved: "Approved",
   overdue: "Overdue",
@@ -37,7 +39,8 @@ function resolveStatus(status: string): StatusVariant {
   const value = status.toLowerCase().trim();
 
   if (value.includes("partial")) return "partial";
-  if (value.includes("paid") && !value.includes("partial")) return "paid";
+  if (value.includes("not paid") || value === "unpaid") return "notPaid";
+  if (value.includes("paid")) return "paid";
   if (value.includes("pending")) return "pending";
   if (value.includes("approved")) return "approved";
   if (value.includes("overdue")) return "overdue";

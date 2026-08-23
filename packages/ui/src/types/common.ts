@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 export type StatusVariant =
   | "paid"
+  | "notPaid"
   | "pending"
   | "approved"
   | "overdue"
@@ -14,12 +15,7 @@ export type StatusVariant =
   | "closed";
 
 export type ButtonVariant =
-  | "primary"
-  | "secondary"
-  | "teal"
-  | "danger"
-  | "ghost"
-  | "outline";
+  "primary" | "secondary" | "teal" | "danger" | "ghost" | "outline";
 
 export type ButtonSize = "sm" | "md" | "lg" | "icon";
 

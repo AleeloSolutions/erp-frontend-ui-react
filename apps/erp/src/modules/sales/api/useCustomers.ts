@@ -9,19 +9,18 @@ import {
   deleteCustomer,
   getCustomer,
   listCustomers,
+  updateCustomer,
   type CreateCustomerInput,
   type Customer,
   type CustomerListParams,
   type CustomerListResult,
+  type UpdateCustomerInput,
 } from "./customers";
 import { queryKeys } from "./query-keys";
 
 export function useCustomersQuery(
   params: CustomerListParams = {},
-  options?: Omit<
-    UseQueryOptions<CustomerListResult, Error>,
-    "queryKey" | "queryFn"
-  >
+  options?: Omit<UseQueryOptions<CustomerListResult, Error>, "queryKey" | "queryFn">
 ) {
   return useQuery({
     queryKey: queryKeys.customers.list(params as Record<string, unknown>),
@@ -49,6 +48,21 @@ export function useCreateCustomerMutation() {
     mutationFn: (input: CreateCustomerInput) => createCustomer(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.customers.lists() });
+    },
+  });
+}
+
+export function useUpdateCustomerMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateCustomerInput }) =>
+      updateCustomer(id, input),
+    onSuccess: (customer) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.customers.lists() });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.customers.detail(customer.id),
+      });
     },
   });
 }

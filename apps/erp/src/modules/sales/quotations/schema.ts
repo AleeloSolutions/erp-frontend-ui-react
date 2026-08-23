@@ -7,13 +7,25 @@ export const quotationFormSchema = z.object({
   status: z.enum(["Draft", "Pending", "Approved"], {
     message: "Status is required",
   }),
-  amount: z
-    .string()
-    .min(1, "Amount is required")
-    .refine((value) => !Number.isNaN(Number(value)) && Number(value) > 0, {
-      message: "Amount must be a positive number",
-    }),
   notes: z.string().optional(),
 });
 
 export type QuotationFormValues = z.infer<typeof quotationFormSchema>;
+
+export interface QuotationLineFormValue {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+let nextLineId = 1;
+
+export function createEmptyQuotationLine(): QuotationLineFormValue {
+  return {
+    id: `new-${nextLineId++}`,
+    description: "",
+    quantity: 1,
+    unitPrice: 0,
+  };
+}

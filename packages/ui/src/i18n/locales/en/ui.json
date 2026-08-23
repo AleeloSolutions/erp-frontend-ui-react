@@ -34,7 +34,8 @@
   },
   "dropdown": {
     "noResults": "No results",
-    "searchMore": "Search more..."
+    "searchMore": "Search more...",
+    "search": "Search..."
   },
   "datepicker": {
     "chooseDate": "Choose date",

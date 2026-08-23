@@ -27,6 +27,8 @@ export interface CreateCustomerInput {
   notes?: string;
 }
 
+export type UpdateCustomerInput = CreateCustomerInput;
+
 let store: Customer[] = mockCustomers.map((customer) => ({ ...customer }));
 let nextId = store.length + 1;
 
@@ -75,9 +77,7 @@ export async function getCustomer(id: string): Promise<Customer> {
   return { ...customer };
 }
 
-export async function createCustomer(
-  input: CreateCustomerInput
-): Promise<Customer> {
+export async function createCustomer(input: CreateCustomerInput): Promise<Customer> {
   await mockDelay(700);
 
   if (input.email.toLowerCase().includes("fail")) {
@@ -95,6 +95,34 @@ export async function createCustomer(
   };
 
   store = [customer, ...store];
+  return customer;
+}
+
+export async function updateCustomer(
+  id: string,
+  input: UpdateCustomerInput
+): Promise<Customer> {
+  await mockDelay(700);
+
+  const index = store.findIndex((item) => item.id === id);
+  if (index < 0) {
+    throw new MockApiError("Customer not found", 404);
+  }
+
+  if (input.email.toLowerCase().includes("fail")) {
+    throw new MockApiError("Unable to update customer. Please try again.");
+  }
+
+  const existing = store[index];
+  const customer: Customer = {
+    ...existing,
+    name: input.name,
+    email: input.email,
+    phone: input.phone,
+    status: input.status,
+  };
+
+  store = [...store.slice(0, index), customer, ...store.slice(index + 1)];
   return customer;
 }
 

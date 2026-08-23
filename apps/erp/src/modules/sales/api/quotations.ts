@@ -1,9 +1,14 @@
 import { formatCurrency, formatDate } from "@erp/ui";
-import { mockQuotations, type DemoQuotation } from "../data/demo-table";
+import {
+  mockQuotations,
+  type DemoQuotation,
+  type QuotationLine,
+} from "../data/demo-table";
 import { MockApiError, mockDelay } from "@/lib/mock";
 
 export type Quotation = DemoQuotation;
 export type QuotationStatus = Quotation["status"];
+export type { QuotationLine };
 
 export interface QuotationListParams {
   search?: string;
@@ -19,17 +24,26 @@ export interface QuotationListResult {
   pageSize: number;
 }
 
+export interface QuotationLineInput {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+}
+
 export interface CreateQuotationInput {
   customer: string;
   date: string;
   validUntil: string;
   status: QuotationStatus;
-  amount: number;
   notes?: string;
+  lines: QuotationLineInput[];
 }
+
+export type UpdateQuotationInput = CreateQuotationInput;
 
 let store: Quotation[] = mockQuotations.map((quotation) => ({ ...quotation }));
 let nextId = store.length + 1;
+let nextLineId = 1;
 
 function formatDisplayDate(isoDate: string) {
   const date = new Date(`${isoDate}T00:00:00`);
@@ -39,8 +53,12 @@ function formatDisplayDate(isoDate: string) {
   return formatDate(date);
 }
 
-function formatAmount(amount: number) {
-  return formatCurrency(amount);
+function toLines(lines: QuotationLineInput[]): QuotationLine[] {
+  return lines.map((line) => ({ id: `l-${nextLineId++}`, ...line }));
+}
+
+function totalAmount(lines: QuotationLineInput[]) {
+  return lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
 }
 
 export async function listQuotations(
@@ -84,9 +102,7 @@ export async function getQuotation(id: string): Promise<Quotation> {
   return { ...quotation };
 }
 
-export async function createQuotation(
-  input: CreateQuotationInput
-): Promise<Quotation> {
+export async function createQuotation(input: CreateQuotationInput): Promise<Quotation> {
   await mockDelay(700);
 
   if (input.customer.toLowerCase().includes("fail")) {
@@ -101,10 +117,41 @@ export async function createQuotation(
     date: formatDisplayDate(input.date),
     validUntil: formatDisplayDate(input.validUntil),
     status: input.status,
-    amount: formatAmount(input.amount),
+    amount: formatCurrency(totalAmount(input.lines)),
+    lines: toLines(input.lines),
   };
 
   store = [quotation, ...store];
+  return quotation;
+}
+
+export async function updateQuotation(
+  id: string,
+  input: UpdateQuotationInput
+): Promise<Quotation> {
+  await mockDelay(700);
+
+  const index = store.findIndex((item) => item.id === id);
+  if (index < 0) {
+    throw new MockApiError("Quotation not found", 404);
+  }
+
+  if (input.customer.toLowerCase().includes("fail")) {
+    throw new MockApiError("Unable to update quotation. Please try again.");
+  }
+
+  const existing = store[index];
+  const quotation: Quotation = {
+    ...existing,
+    customer: input.customer,
+    date: formatDisplayDate(input.date),
+    validUntil: formatDisplayDate(input.validUntil),
+    status: input.status,
+    amount: formatCurrency(totalAmount(input.lines)),
+    lines: toLines(input.lines),
+  };
+
+  store = [...store.slice(0, index), quotation, ...store.slice(index + 1)];
   return quotation;
 }
 
