@@ -61,7 +61,7 @@ const statusSteps: StatusStep[] = [
 
 const detailTabs = [
   { key: "lines", label: "Invoice Lines" },
-  // { key: "journal", label: "Journal Items", disabled: true },
+  { key: "journal", label: "Journal Items" },
   { key: "other", label: "Other Info" },
 ];
 
@@ -391,7 +391,7 @@ export default function InvoiceCreatePage() {
         <div className="">
           {/* px-6 pt-6 */}
           <p className="m-0 text-[0.875rem] font-[500] text-[#000]">Customer Invoice</p>
-          <h1 className="m-0 text-[2.1rem] font-[500] leading-tight text-erp-text">
+          <h1 className="m-0  mt-[0.2em] mb-[0.2em] text-[2.1rem] font-[500] leading-tight text-erp-tex t">
             {watch("status")}
           </h1>
         </div>
@@ -433,13 +433,13 @@ export default function InvoiceCreatePage() {
             ) : null}
           </div>
 
-          <div className="grid grid-cols-[auto_auto] items-center justify-end gap-x-2 gap-y-1.5">
+          <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1.5">
             <label className="font-semibold" htmlFor="invoice-date">
               Invoice Date<span className="text-erp-error"> *</span>
             </label>
             <FormDatePicker
               id="invoice-date"
-              className="w-36"
+              className=""
               error={Boolean(errors.date)}
               {...register("date")}
             />
@@ -448,7 +448,7 @@ export default function InvoiceCreatePage() {
             </label>
             <FormDatePicker
               id="invoice-due-date"
-              className="w-36"
+              className=""
               error={Boolean(errors.dueDate)}
               {...register("dueDate")}
             />
@@ -459,7 +459,7 @@ export default function InvoiceCreatePage() {
           items={detailTabs}
           activeKey={activeTab}
           onChange={setActiveTab}
-          className="px-6"
+          className=""
           aria-label="Invoice details"
         />
 
@@ -491,23 +491,25 @@ export default function InvoiceCreatePage() {
             {linesError ? (
               <p className="m-0 mt-1.5 px-2 text-[8px] text-erp-error">{linesError}</p>
             ) : null}
-            <div className="mt-10 flex justify-end px-2">
-              <dl className="m-0 w-56">
-                <div className="flex items-center justify-between py-0.5">
-                  <dt className="">Untaxed Amount:</dt>
-                  <dd className="m-0 font-bold text-base">{formatCurrency(total)}</dd>
-                </div>
-                <div className="flex items-center justify-between  border-erp-border py-1">
-                  <dt className="text-base">Total:</dt>
-                  <dd className="m-0 font-bold text-base">{formatCurrency(total)}</dd>
-                </div>
-                <div className="flex items-center justify-between pt-2">
-                  <dt className="text-base text-erp-muted">Amount Due:</dt>
-                  <dd className="m-0 font-[500] border-t border-t-erp-muted">
-                    {formatCurrency(total)}
-                  </dd>
-                </div>
-              </dl>
+            <div className="mt-0 flex justify-end px-2">
+              <div className="w-68 border-t border-t-erp-muted pt-2">
+                <dl className="m-0 w-54 mx-auto ">
+                  <div className="flex items-center justify-between py-0.5">
+                    <dt className="">Untaxed Amount:</dt>
+                    <dd className="m-0 font-[600] text-[1rem]">{formatCurrency(total)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between  border-erp-border py-1">
+                    <dt>Total:</dt>
+                    <dd className="m-0 text-[1.2rem] font-bold border-t border-t-erp-muted pt-2">{formatCurrency(total)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between pt-2">
+                    <dt className="text-base text-erp-muted">Amount Due:</dt>
+                    <dd className="m-0 text-[1.2rem] font-[600] border-t border-t-erp-muted pt-2 border-t-erp-muted">
+                      {formatCurrency(total)}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
             </div>
           </div>
         ) : (
