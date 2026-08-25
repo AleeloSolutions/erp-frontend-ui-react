@@ -1,0 +1,34 @@
+import type { Meta, StoryObj } from "@storybook/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { AppProviders } from "@/app/AppProviders";
+import InvoicePrintPage from "./InvoicePrintPage";
+
+/**
+ * The real "Print Invoice" route (`/sales/invoices/:id/print`), rendered
+ * with the app's actual providers and a MemoryRouter (the page reads `id`
+ * via `useParams`, so it needs a matching `<Route>`, not just an entry URL).
+ * No AppShell here — this route is a standalone print view by design.
+ */
+const meta = {
+  title: "Pages/Invoice",
+  component: InvoicePrintPage,
+  parameters: {
+    layout: "fullscreen",
+  },
+  decorators: [
+    (Story) => (
+      <MemoryRouter initialEntries={["/sales/invoices/1/print"]}>
+        <AppProviders>
+          <Routes>
+            <Route path="/sales/invoices/:id/print" element={<Story />} />
+          </Routes>
+        </AppProviders>
+      </MemoryRouter>
+    ),
+  ],
+} satisfies Meta<typeof InvoicePrintPage>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Print: Story = {};

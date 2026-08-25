@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Printer } from "lucide-react";
 import { AppShell, useNavbarDefaults } from "@/app";
 import {
   ControlPanel,
@@ -225,7 +226,25 @@ export default function InvoiceEditPage() {
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
       <ControlPanel
         pageActions={
-          <PageActions breadcrumb={invoiceQuery.data?.number ?? "Edit Invoice"} />
+          <PageActions
+            breadcrumb={invoiceQuery.data?.number ?? "Edit Invoice"}
+            buttons={
+              invoiceQuery.data
+                ? [
+                    {
+                      key: "print",
+                      variant: "secondary",
+                      onClick: () => navigate(`/sales/invoices/${id}/print`),
+                      children: (
+                        <>
+                          <Printer className="h-3.5 w-3.5" aria-hidden /> Print
+                        </>
+                      ),
+                    },
+                  ]
+                : []
+            }
+          />
         }
       />
 

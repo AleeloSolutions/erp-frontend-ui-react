@@ -8,6 +8,7 @@ import QuotationEditPage from "./pages/QuotationEditPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import InvoiceCreatePage from "./pages/InvoiceCreatePage";
 import InvoiceEditPage from "./pages/InvoiceEditPage";
+import InvoicePrintPage from "./pages/InvoicePrintPage";
 import ContractsPage from "./pages/ContractsPage";
 import ContractCreatePage from "./pages/ContractCreatePage";
 
@@ -24,6 +25,7 @@ export function SalesRoutes() {
       <Route path="invoices" element={<InvoicesPage />} />
       <Route path="invoices/new" element={<InvoiceCreatePage />} />
       <Route path="invoices/:id/edit" element={<InvoiceEditPage />} />
+      <Route path="invoices/:id/print" element={<InvoicePrintPage />} />
       <Route path="contracts" element={<ContractsPage />} />
       <Route path="contracts/new" element={<ContractCreatePage />} />
     </Routes>
