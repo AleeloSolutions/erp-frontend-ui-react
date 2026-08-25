@@ -37,14 +37,14 @@ export function DataTableBulkActions<TData>({
       role="status"
       aria-live="polite"
     >
-      <span className="inline-flex h-8 items-center gap-1 rounded-sm border border-erp-primary px-4 text-[11px] text-erp-primary">
+      <span className="inline-flex h-8 items-center gap-1 rounded-sm border border-erp-brand-third hover:bg-erp-brand-third-overlay px-4 text-[11px] text-erp-brand-third`">
         <span>
           <strong className="font-bold">{selectedCount}</strong> {t("datatable.selected")}
         </span>
         <button
           type="button"
           aria-label={t("datatable.clearSelection")}
-          className="grid h-4 w-4 place-items-center rounded-sm text-erp-primary hover:bg-erp-primary/10"
+          className="grid h-4 w-4 place-items-center rounded-sm text-erp-brand-third hover:bg-erp-brand-third/10"
           onClick={onClear}
         >
           <X className="h-4 w-4" aria-hidden />

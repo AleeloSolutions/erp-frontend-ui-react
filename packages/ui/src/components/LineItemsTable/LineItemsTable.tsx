@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import { GripVertical, Trash2 } from "lucide-react";
 import { cn } from "../../utils";
 import {
@@ -73,7 +80,7 @@ export interface LineItemsTableProps<T extends { id: string }> {
   "aria-label"?: string;
 }
 
-const footerLinkClass = "text-base font-[400] text-erp-primary";
+const footerLinkClass = "text-base font-[400] text-erp-brand-third";
 const SIZING_STORAGE_PREFIX = "erp.lineitemstable.sizing.";
 const VISIBILITY_STORAGE_PREFIX = "erp.lineitemstable.visibility.";
 const DEFAULT_MIN_SIZE = 60;
@@ -247,12 +254,12 @@ export function LineItemsTable<T extends { id: string }>({
   };
 
   const startResize = (
-    event: { clientX: number },
+    event: ReactPointerEvent<HTMLSpanElement>,
     column: LineItemsColumn<T>,
     neighbor: LineItemsColumn<T>
   ) => {
     startNeighborColumnResize({
-      startClientX: event.clientX,
+      event,
       columnId: column.key,
       neighborId: neighbor.key,
       startSizing: {
@@ -331,16 +338,11 @@ export function LineItemsTable<T extends { id: string }>({
                       role="separator"
                       aria-orientation="vertical"
                       aria-hidden
-                      onMouseDown={(event) => {
+                      onPointerDown={(event) => {
+                        if (!event.isPrimary) return;
                         event.preventDefault();
                         event.stopPropagation();
                         startResize(event, column, neighbor);
-                      }}
-                      onTouchStart={(event) => {
-                        const touch = event.touches[0];
-                        if (!touch) return;
-                        event.stopPropagation();
-                        startResize({ clientX: touch.clientX }, column, neighbor);
                       }}
                       className={cn(
                         "absolute inset-y-0 z-10 w-1.5 cursor-col-resize touch-none select-none bg-erp-text/25 opacity-0 hover:opacity-50",

@@ -28,4 +28,4 @@ This is an **npm workspaces** monorepo: Vite + React + TypeScript SPA (React Rou
    - Multiple contextual actions → `getRowActions` MoreHorizontal menu
    - Single direct destructive/important action → explicit `__actions` column control
    - No actions → no actions UI
-8. Pass `tableId` when column-width persistence is desired (`localStorage` key `erp.datatable.sizing.${tableId}`).
+8. Pass `tableId` when column-visibility persistence is desired (`localStorage` key `erp.datatable.visibility.${tableId}`). Column widths are session-only by design — they always reset to their computed defaults on reload, regardless of `tableId`.

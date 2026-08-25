@@ -23,6 +23,7 @@ import {
 import { DataTableBulkActions } from "./DataTableBulkActions";
 import { DataTableColumnsMenu } from "./DataTableColumnsMenu";
 import { DataTableHeader } from "./DataTableHeader";
+import { DataTableColumnResizer } from "./DataTableColumnResizer";
 import { DataTableBody } from "./DataTableBody";
 import { DataTablePagination } from "./DataTablePagination";
 import { DataTableLoading } from "./DataTableLoading";
@@ -33,6 +34,11 @@ import {
   type SizingColumnSpec,
 } from "./column-width";
 import { useDebounce } from "../../hooks/useDebounce";
+import {
+  NAVBAR_HEIGHT,
+  CONTROL_PANEL_HEIGHT,
+  PAGE_CONTAINER_BOTTOM_PADDING,
+} from "../../layout";
 import type {
   DataTableBulkAction,
   DataTableFilter,
@@ -45,9 +51,14 @@ import type {
 } from "../../types/table";
 import "../../types/table";
 
-const SIZING_STORAGE_PREFIX = "erp.datatable.sizing.";
 const VISIBILITY_STORAGE_PREFIX = "erp.datatable.visibility.";
-const DEFAULT_COLUMN_MIN_SIZE = 72;
+/**
+ * Floor for a resizable text column: padding (8px compact, each side) + a sort
+ * icon (~14px incl. gap) + a couple of truncated characters — sized off the
+ * shortest header label in practice ("Test"/"Status"). __select/__actions stay
+ * fixed-size elsewhere and never hit this floor.
+ */
+const DEFAULT_COLUMN_MIN_SIZE = 44;
 const DEFAULT_COLUMN_MAX_SIZE = 640;
 
 export interface DataTableSearchConfig {
@@ -59,9 +70,9 @@ export interface DataTableProps<TData, TValue = unknown> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   /**
-   * Stable id for this table instance. When set, column widths persist under
-   * `erp.datatable.sizing.${tableId}` and column visibility under
-   * `erp.datatable.visibility.${tableId}`.
+   * Stable id for this table instance. When set, column visibility persists
+   * under `erp.datatable.visibility.${tableId}`. Column widths are
+   * session-only — they always reset to their computed defaults on reload.
    */
   tableId?: string;
   searchable?: boolean;
@@ -127,19 +138,6 @@ function getCellSearchText(value: unknown): string {
   return JSON.stringify(value);
 }
 
-function readStoredSizing(tableId: string | undefined): ColumnSizingState {
-  if (!tableId || typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(`${SIZING_STORAGE_PREFIX}${tableId}`);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-    return parsed as ColumnSizingState;
-  } catch {
-    return {};
-  }
-}
-
 function readStoredVisibility(tableId: string | undefined): VisibilityState {
   if (!tableId || typeof window === "undefined") return {};
   try {
@@ -200,15 +198,13 @@ export function DataTable<TData, TValue = unknown>({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() =>
     readStoredVisibility(tableId)
   );
-  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() => {
-    const stored = readStoredSizing(tableId);
-    if (Object.keys(stored).length > 0) return stored;
-    return estimateDataColumnSizing(columns as ColumnDef<TData, unknown>[], data, {
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() =>
+    estimateDataColumnSizing(columns as ColumnDef<TData, unknown>[], data, {
       minSize: DEFAULT_COLUMN_MIN_SIZE,
       maxSize: DEFAULT_COLUMN_MAX_SIZE,
-    });
-  });
-  const sizingLockedRef = useRef(Object.keys(readStoredSizing(tableId)).length > 0);
+    })
+  );
+  const sizingLockedRef = useRef(false);
   const [columnResizeDirection, setColumnResizeDirection] = useState<"ltr" | "rtl">(
     "ltr"
   );
@@ -220,15 +216,6 @@ export function DataTable<TData, TValue = unknown>({
     pageIndex: isServerPagination ? Math.max(0, pagination.page - 1) : 0,
     pageSize: isServerPagination ? pagination.pageSize : initialPageSize,
   });
-
-  useEffect(() => {
-    if (!tableId || typeof window === "undefined") return;
-    if (Object.keys(columnSizing).length === 0) return;
-    window.localStorage.setItem(
-      `${SIZING_STORAGE_PREFIX}${tableId}`,
-      JSON.stringify(columnSizing)
-    );
-  }, [tableId, columnSizing]);
 
   useEffect(() => {
     if (!tableId || !enableColumnVisibility || typeof window === "undefined") return;
@@ -642,6 +629,33 @@ export function DataTable<TData, TValue = unknown>({
     searchable || filters.length > 0 || resolvedGroupingOptions.length > 0;
   const hasSelection = selectedRows.length > 0;
 
+  // `renderToolbar` pages always wrap their toolbar in a ControlPanel (sticky
+  // below the Navbar) — see AGENTS.md/ControlPanel usage across list pages.
+  // The scroll area is capped to the viewport space left below that sticky
+  // chrome, so the table body scrolls internally (header pinned via its own
+  // `sticky top-0`, relative to that scroll box) instead of the whole page
+  // scrolling past the header. PageContainer's own bottom padding counts too
+  // — omitting it leaves the page `PAGE_CONTAINER_BOTTOM_PADDING`px taller
+  // than the viewport, which grows a second, outer page scrollbar alongside
+  // this one.
+  //
+  // A page-level-sticky header (stacking sticky Navbar -> sticky ControlPanel
+  // -> sticky header/resizer against one document scroll) was tried and
+  // reverted: it broke in different ways (header vanishing when scrolled;
+  // resize handles rendering taller than the header row under browser zoom)
+  // that couldn't be root-caused without a real browser to inspect. This
+  // nested-scroll model is the version that's actually been verified stable
+  // — do not change it back without a way to visually verify the result.
+  const chromeHeight =
+    NAVBAR_HEIGHT +
+    (renderToolbar ? CONTROL_PANEL_HEIGHT : 0) +
+    PAGE_CONTAINER_BOTTOM_PADDING;
+
+  const totalColumnsWidth = table
+    .getVisibleLeafColumns()
+    .reduce((sum, column) => sum + column.getSize(), 0);
+  const tableWidth = Math.max(containerWidth, totalColumnsWidth);
+
   const pager = enablePagination ? (
     <DataTablePagination
       table={table}
@@ -720,12 +734,26 @@ export function DataTable<TData, TValue = unknown>({
             columns={table.getVisibleLeafColumns().length || columns.length + 1}
           />
         ) : (
-          <div className="relative overflow-hidden">
-            <div ref={scrollRef} className="w-full overflow-auto">
+          <div className="relative">
+            <div
+              ref={scrollRef}
+              className="w-full overflow-auto"
+              style={{ maxHeight: `calc(100vh - ${chromeHeight}px)` }}
+            >
+              <DataTableColumnResizer
+                table={table}
+                enabled={enableColumnResizing}
+                columnSizing={columnSizing}
+                onColumnSizingChange={(next) => {
+                  sizingLockedRef.current = true;
+                  setColumnSizing(next);
+                }}
+                columnResizeDirection={columnResizeDirection}
+              />
               <table
                 className="w-full table-fixed border-collapse text-start tabular-nums"
                 style={{
-                  width: containerWidth > 0 ? containerWidth : "100%",
+                  width: tableWidth > 0 ? tableWidth : "100%",
                 }}
               >
                 <colgroup>
@@ -733,17 +761,7 @@ export function DataTable<TData, TValue = unknown>({
                     <col key={column.id} style={getColumnWidthStyle(column)} />
                   ))}
                 </colgroup>
-                <DataTableHeader
-                  table={table}
-                  enableResizing={enableColumnResizing}
-                  columnResizeDirection={columnResizeDirection}
-                  columnSizing={columnSizing}
-                  onColumnSizingChange={(next) => {
-                    sizingLockedRef.current = true;
-                    setColumnSizing(next);
-                  }}
-                  columnsMenu={columnsMenu}
-                />
+                <DataTableHeader table={table} columnsMenu={columnsMenu} />
                 <DataTableBody
                   table={table}
                   emptyMessage={emptyMessage}

@@ -2,17 +2,11 @@ import type { ReactNode } from "react";
 import type { Header, Table } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { cn } from "../../utils";
-import { getColumnCellStyle, startNeighborColumnResize } from "./column-width";
-import type { ColumnSizingState } from "@tanstack/react-table";
+import { getColumnCellStyle } from "./column-width";
 import "../../types/table";
 
 export interface DataTableHeaderProps<TData> {
   table: Table<TData>;
-  enableResizing?: boolean;
-  /** Must match TanStack `columnResizeDirection` so drag delta matches handle edge. */
-  columnResizeDirection?: "ltr" | "rtl";
-  columnSizing: ColumnSizingState;
-  onColumnSizingChange: (sizing: ColumnSizingState) => void;
   /** Overlay at the end of the header row — not a data column. */
   columnsMenu?: ReactNode;
 }
@@ -50,19 +44,9 @@ function headerLabelText<TData>(header: Header<TData, unknown>): string {
 
 function HeaderCell<TData>({
   header,
-  enableResizing,
-  columnResizeDirection = "ltr",
-  neighborId,
-  columnSizing,
-  onColumnSizingChange,
   padEnd,
 }: {
   header: Header<TData, unknown>;
-  enableResizing?: boolean;
-  columnResizeDirection?: "ltr" | "rtl";
-  neighborId?: string;
-  columnSizing: ColumnSizingState;
-  onColumnSizingChange: (sizing: ColumnSizingState) => void;
   padEnd?: boolean;
 }) {
   const canSort = header.column.getCanSort();
@@ -70,11 +54,7 @@ function HeaderCell<TData>({
   const alignRight = header.column.columnDef.meta?.align === "right";
   const isSelect = header.column.id === "__select";
   const isActions = header.column.id === "__actions";
-  const handleOnEndEdge = columnResizeDirection === "ltr";
   const label = headerLabelText(header);
-  const canNeighborResize = Boolean(
-    enableResizing && header.column.getCanResize() && neighborId
-  );
 
   if (isSelect || isActions) {
     return (
@@ -101,35 +81,22 @@ function HeaderCell<TData>({
       colSpan={header.colSpan}
       style={getColumnCellStyle(header.column)}
       className={cn(
-        "group/th relative sticky top-0 z-10 h-10 overflow-hidden border-b border-erp-table-border bg-erp-table-header px-4 py-2 text-[14px] font-weight-500 whitespace-nowrap text-erp-text align-middle !text-start",
+        "group/th relative sticky top-0 z-10 h-10 border-b border-erp-table-border bg-erp-table-header py-2 text-[14px] font-weight-500 whitespace-nowrap text-erp-text align-middle !text-start",
         canSort && "cursor-pointer",
         padEnd && "pe-9",
         alignRight && "!text-end"
       )}
     >
       {header.isPlaceholder ? null : (
-        <>
-          <div className="flex w-full min-w-0 items-center">
-            {canSort ? (
-              <button
-                type="button"
-                title={label}
-                className="flex w-full min-w-0 items-center gap-1 hover:text-erp-primary"
-                onClick={header.column.getToggleSortingHandler()}
-              >
-                <span
-                  className={cn(
-                    "min-w-0 flex-1 truncate",
-                    alignRight ? "text-end" : "text-start"
-                  )}
-                >
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                </span>
-                <SortIcon sorted={sorted} />
-              </button>
-            ) : (
+        <div className="flex w-full min-w-0 items-center">
+          {canSort ? (
+            <button
+              type="button"
+              title={label}
+              className="flex w-full min-w-0 items-center gap-1 hover:text-erp-primary"
+              onClick={header.column.getToggleSortingHandler()}
+            >
               <span
-                title={label}
                 className={cn(
                   "min-w-0 flex-1 truncate",
                   alignRight ? "text-end" : "text-start"
@@ -137,66 +104,20 @@ function HeaderCell<TData>({
               >
                 {flexRender(header.column.columnDef.header, header.getContext())}
               </span>
-            )}
-          </div>
-          {canNeighborResize && neighborId ? (
+              <SortIcon sorted={sorted} />
+            </button>
+          ) : (
             <span
-              role="separator"
-              aria-orientation="vertical"
-              aria-hidden
-              onClick={(event) => event.stopPropagation()}
-              onMouseDown={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                const neighbor = header.getContext().table.getColumn(neighborId);
-                if (!neighbor) return;
-                startNeighborColumnResize({
-                  startClientX: event.clientX,
-                  columnId: header.column.id,
-                  neighborId,
-                  startSizing: {
-                    ...columnSizing,
-                    [header.column.id]: header.column.getSize(),
-                    [neighborId]: neighbor.getSize(),
-                  },
-                  columnMin: header.column.columnDef.minSize ?? 72,
-                  columnMax: header.column.columnDef.maxSize ?? 640,
-                  neighborMin: neighbor.columnDef.minSize ?? 72,
-                  neighborMax: neighbor.columnDef.maxSize ?? 640,
-                  direction: columnResizeDirection,
-                  onChange: onColumnSizingChange,
-                });
-              }}
-              onTouchStart={(event) => {
-                event.stopPropagation();
-                const touch = event.touches[0];
-                if (!touch) return;
-                const neighbor = header.getContext().table.getColumn(neighborId);
-                if (!neighbor) return;
-                startNeighborColumnResize({
-                  startClientX: touch.clientX,
-                  columnId: header.column.id,
-                  neighborId,
-                  startSizing: {
-                    ...columnSizing,
-                    [header.column.id]: header.column.getSize(),
-                    [neighborId]: neighbor.getSize(),
-                  },
-                  columnMin: header.column.columnDef.minSize ?? 72,
-                  columnMax: header.column.columnDef.maxSize ?? 640,
-                  neighborMin: neighbor.columnDef.minSize ?? 72,
-                  neighborMax: neighbor.columnDef.maxSize ?? 640,
-                  direction: columnResizeDirection,
-                  onChange: onColumnSizingChange,
-                });
-              }}
+              title={label}
               className={cn(
-                "absolute inset-y-0 z-10 w-1.5 cursor-col-resize touch-none select-none bg-erp-text/25 opacity-0 hover:opacity-50",
-                handleOnEndEdge ? "end-0" : "start-0"
+                "min-w-0 flex-1 truncate",
+                alignRight ? "text-end" : "text-start"
               )}
-            />
-          ) : null}
-        </>
+            >
+              {flexRender(header.column.columnDef.header, header.getContext())}
+            </span>
+          )}
+        </div>
       )}
     </th>
   );
@@ -204,10 +125,6 @@ function HeaderCell<TData>({
 
 export function DataTableHeader<TData>({
   table,
-  enableResizing,
-  columnResizeDirection = "ltr",
-  columnSizing,
-  onColumnSizingChange,
   columnsMenu,
 }: DataTableHeaderProps<TData>) {
   const leafIds = table.getVisibleLeafColumns().map((column) => column.id);
@@ -218,33 +135,13 @@ export function DataTableHeader<TData>({
       {table.getHeaderGroups().map((headerGroup) => (
         <tr key={headerGroup.id}>
           {headerGroup.headers.map((header) => {
-            const index = leafIds.indexOf(header.column.id);
-            const neighborId =
-              columnResizeDirection === "ltr" ? leafIds[index + 1] : leafIds[index - 1];
-            const neighborColumn = neighborId ? table.getColumn(neighborId) : undefined;
-            const neighborResizable =
-              neighborColumn != null &&
-              neighborColumn.getCanResize() &&
-              neighborColumn.id !== "__select" &&
-              neighborColumn.id !== "__actions";
             const isLastData =
               Boolean(columnsMenu) &&
               header.column.id === lastLeafId &&
               header.column.id !== "__select" &&
               header.column.id !== "__actions";
 
-            return (
-              <HeaderCell
-                key={header.id}
-                header={header}
-                enableResizing={enableResizing}
-                columnResizeDirection={columnResizeDirection}
-                neighborId={neighborResizable ? neighborId : undefined}
-                columnSizing={columnSizing}
-                onColumnSizingChange={onColumnSizingChange}
-                padEnd={isLastData}
-              />
-            );
+            return <HeaderCell key={header.id} header={header} padEnd={isLastData} />;
           })}
         </tr>
       ))}

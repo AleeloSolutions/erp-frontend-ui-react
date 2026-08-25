@@ -369,7 +369,7 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
                 className={cn(
                   "flex min-h-8 min-w-0 flex-1 items-center rounded-s border border-erp-table-border bg-erp-table-bg py-0.5 ps-2 pe-1",
                   showPanel ? "border-e-0" : "rounded-e",
-                  open && "border-erp-primary"
+                  open && "border-erp-brand-third"
                 )}
               >
                 <button
@@ -435,7 +435,8 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
                     "grid w-8 shrink-0 place-items-center self-stretch rounded-e border border-erp-table-border bg-erp-table-bg text-erp-muted",
                     "hover:bg-erp-secondary hover:text-erp-text",
                     "disabled:cursor-not-allowed disabled:opacity-60",
-                    open && "border-erp-primary bg-erp-secondary text-erp-text"
+                    open &&
+                      "border-erp-brand-third bg-erp-brand-third-overlay text-erp-text"
                   )}
                   onClick={() => setOpen(!open)}
                 >

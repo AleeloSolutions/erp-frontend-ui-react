@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import type { Column, ColumnDef, ColumnSizingState } from "@tanstack/react-table";
 import "../../types/table";
 
@@ -6,6 +6,17 @@ const CHAR_WIDTH_PX = 7.2;
 const CELL_X_PADDING_PX = 24;
 const HEADER_EXTRA_PX = 28;
 const SAMPLE_ROWS = 30;
+
+/** Below this rendered width, cells switch to compact horizontal padding. */
+const COMPACT_PADDING_THRESHOLD_PX = 80;
+const COMPACT_PADDING_X_PX = 8;
+const DEFAULT_PADDING_X_PX = 16;
+
+function paddingXFor(size: number): number {
+  return size < COMPACT_PADDING_THRESHOLD_PX
+    ? COMPACT_PADDING_X_PX
+    : DEFAULT_PADDING_X_PX;
+}
 
 /** Locked pixel box so a column cannot expand into its neighbor. */
 export function getColumnWidthStyle<TData, TValue>(
@@ -19,16 +30,26 @@ export function getColumnWidthStyle<TData, TValue>(
   };
 }
 
-/** Match `<col>` lock on cells/headers; content truncates instead of pushing layout. */
+/**
+ * Match `<col>` lock on cells/headers; content truncates instead of pushing layout.
+ * Horizontal padding shrinks as the column narrows so squeezed columns (checkbox
+ * excluded — it stays `p-0`) keep room for truncated text/icons instead of losing
+ * all their content box to fixed padding.
+ */
 export function getColumnCellStyle<TData, TValue>(
   column: Column<TData, TValue>
 ): CSSProperties {
   const size = column.getSize();
-  return {
+  const style: CSSProperties = {
     width: size,
     minWidth: size,
     maxWidth: size,
   };
+  if (column.id === "__select" || column.id === "__actions") return style;
+  const paddingX = paddingXFor(size);
+  style.paddingInlineStart = paddingX;
+  style.paddingInlineEnd = paddingX;
+  return style;
 }
 
 export type SizingColumnSpec = {
@@ -268,11 +289,70 @@ export function applyNeighborResize(
 }
 
 /**
- * Pointer drag that resizes a column against its neighbor while keeping total width.
- * Returns a cleanup function.
+ * At most one column-resize drag's listeners may be active at a time. If a
+ * previous drag's `pointerup`/`pointercancel` never reached us for any reason,
+ * starting a new drag force-cleans it up first — otherwise its stale listener
+ * keeps recomputing sizing off its own (unrelated) start point on every
+ * pointermove, fighting the new drag and corrupting both.
  */
+let activeDragCleanup: (() => void) | null = null;
+
+/**
+ * Drives a column-resize drag off Pointer Capture rather than `window`
+ * mouse/touch listeners. With `window` listeners, a drag whose `pointerup`
+ * fires outside the page (over a devtools panel, an iframe, or after the
+ * cursor leaves the viewport during a fast drag) can fail to get cleaned up —
+ * the stale `mousemove` listener keeps firing on every future mouse movement,
+ * including during later, unrelated drags, corrupting their sizing. Pointer
+ * capture binds subsequent pointer events to the target element for the
+ * duration of the gesture regardless of where the pointer physically is, so
+ * `pointerup`/`pointercancel` are far more likely to reach us and tear the
+ * drag down — and `activeDragCleanup` above is the unconditional backstop for
+ * the rest.
+ */
+function startPointerColumnDrag(
+  event: ReactPointerEvent<HTMLElement>,
+  onMove: (clientX: number) => void,
+  onEnd?: () => void
+): void {
+  // Force-end whatever drag (if any) never got its own pointerup/pointercancel,
+  // including its onEnd — so a stale "active" highlight can't linger either.
+  activeDragCleanup?.();
+
+  const target = event.currentTarget;
+  const pointerId = event.pointerId;
+
+  function handleMove(nativeEvent: PointerEvent) {
+    if (nativeEvent.pointerId !== pointerId) return;
+    onMove(nativeEvent.clientX);
+  }
+
+  function forceEnd() {
+    if (activeDragCleanup === forceEnd) activeDragCleanup = null;
+    target.removeEventListener("pointermove", handleMove);
+    target.removeEventListener("pointerup", handleEnd);
+    target.removeEventListener("pointercancel", handleEnd);
+    if (target.hasPointerCapture(pointerId)) {
+      target.releasePointerCapture(pointerId);
+    }
+    onEnd?.();
+  }
+
+  function handleEnd(nativeEvent: PointerEvent) {
+    if (nativeEvent.pointerId !== pointerId) return;
+    forceEnd();
+  }
+
+  activeDragCleanup = forceEnd;
+  target.setPointerCapture(pointerId);
+  target.addEventListener("pointermove", handleMove);
+  target.addEventListener("pointerup", handleEnd);
+  target.addEventListener("pointercancel", handleEnd);
+}
+
+/** Pointer drag that resizes a column against its neighbor while keeping total width. */
 export function startNeighborColumnResize(options: {
-  startClientX: number;
+  event: ReactPointerEvent<HTMLElement>;
   columnId: string;
   neighborId: string;
   startSizing: ColumnSizingState;
@@ -284,9 +364,9 @@ export function startNeighborColumnResize(options: {
   direction: "ltr" | "rtl";
   onChange: (sizing: ColumnSizingState) => void;
   onEnd?: () => void;
-}): () => void {
+}): void {
   const {
-    startClientX,
+    event,
     columnId,
     neighborId,
     startSizing,
@@ -298,34 +378,169 @@ export function startNeighborColumnResize(options: {
     onChange,
     onEnd,
   } = options;
+  const startClientX = event.clientX;
 
-  function onMove(event: MouseEvent | TouchEvent) {
-    const clientX =
-      "touches" in event ? (event.touches[0]?.clientX ?? startClientX) : event.clientX;
-    const rawDelta = clientX - startClientX;
-    const delta = direction === "rtl" ? -rawDelta : rawDelta;
-    onChange(
-      applyNeighborResize(startSizing, columnId, neighborId, delta, {
-        columnMin,
-        columnMax,
-        neighborMin,
-        neighborMax,
-      })
-    );
+  startPointerColumnDrag(
+    event,
+    (clientX) => {
+      const rawDelta = clientX - startClientX;
+      const delta = direction === "rtl" ? -rawDelta : rawDelta;
+      onChange(
+        applyNeighborResize(startSizing, columnId, neighborId, delta, {
+          columnMin,
+          columnMax,
+          neighborMin,
+          neighborMax,
+        })
+      );
+    },
+    onEnd
+  );
+}
+
+export type DonorColumn = { id: string; min: number; max: number };
+
+/**
+ * Grow exactly one column (`growCol`) by up to `amount`, pulling the width
+ * from a chain of donor columns in order (nearest first). A donor pinned at
+ * its own min doesn't stall the pull: the remainder cascades to the next
+ * donor in the chain that still has room. `growCol` only grows by as much as
+ * its own max *and* the chain combined can actually supply, so total width
+ * across growCol + chain is conserved.
+ */
+function growFromChain(
+  sizing: ColumnSizingState,
+  growCol: DonorColumn,
+  chain: DonorColumn[],
+  amount: number
+): ColumnSizingState {
+  const next: ColumnSizingState = { ...sizing };
+  if (amount <= 0) return next;
+
+  const current = sizing[growCol.id] ?? growCol.min;
+  const capByOwnMax = Math.max(0, growCol.max - current);
+
+  const givable = chain.map((donor) => {
+    const donorCurrent = sizing[donor.id] ?? donor.min;
+    return Math.max(0, donorCurrent - donor.min);
+  });
+  const capByChain = givable.reduce((sum, value) => sum + value, 0);
+
+  const totalGrant = Math.min(amount, capByOwnMax, capByChain);
+  let remaining = totalGrant;
+
+  chain.forEach((donor, index) => {
+    if (remaining <= 0) return;
+    const take = Math.min(givable[index], remaining);
+    const donorCurrent = sizing[donor.id] ?? donor.min;
+    next[donor.id] = Math.round(donorCurrent - take);
+    remaining -= take;
+  });
+
+  next[growCol.id] = Math.round(current + totalGrant);
+  return next;
+}
+
+/**
+ * Resize an interior column border: dragging one way grows `leftChain[0]`
+ * (pulling from `rightChain`, nearest column first); dragging the other way
+ * grows `rightChain[0]` (pulling from `leftChain`). Both chains cascade past
+ * any column pinned at its own min/max by an earlier, unrelated drag, so
+ * resizing back is never stranded by a squeezed neighbor on either side.
+ */
+export function applyBorderResize(
+  sizing: ColumnSizingState,
+  leftChain: DonorColumn[],
+  rightChain: DonorColumn[],
+  delta: number
+): ColumnSizingState {
+  if (delta > 0 && leftChain.length > 0) {
+    return growFromChain(sizing, leftChain[0], rightChain, delta);
   }
-
-  function onUp() {
-    window.removeEventListener("mousemove", onMove);
-    window.removeEventListener("mouseup", onUp);
-    window.removeEventListener("touchmove", onMove);
-    window.removeEventListener("touchend", onUp);
-    onEnd?.();
+  if (delta < 0 && rightChain.length > 0) {
+    return growFromChain(sizing, rightChain[0], leftChain, -delta);
   }
+  return { ...sizing };
+}
 
-  window.addEventListener("mousemove", onMove);
-  window.addEventListener("mouseup", onUp);
-  window.addEventListener("touchmove", onMove, { passive: true });
-  window.addEventListener("touchend", onUp);
+/**
+ * Pointer drag that resizes an interior column border symmetrically in both
+ * directions (see `applyBorderResize`) — a column pinned at its min/max by
+ * an earlier drag can't strand the handle on either side of it.
+ */
+export function startBorderColumnResize(options: {
+  event: ReactPointerEvent<HTMLElement>;
+  leftChain: DonorColumn[];
+  rightChain: DonorColumn[];
+  startSizing: ColumnSizingState;
+  /** LTR: positive dx grows the left column. RTL: inverted. */
+  direction: "ltr" | "rtl";
+  onChange: (sizing: ColumnSizingState) => void;
+  onEnd?: () => void;
+}): void {
+  const { event, leftChain, rightChain, startSizing, direction, onChange, onEnd } =
+    options;
+  const startClientX = event.clientX;
 
-  return onUp;
+  startPointerColumnDrag(
+    event,
+    (clientX) => {
+      const rawDelta = clientX - startClientX;
+      const delta = direction === "rtl" ? -rawDelta : rawDelta;
+      onChange(applyBorderResize(startSizing, leftChain, rightChain, delta));
+    },
+    onEnd
+  );
+}
+
+/** Cumulative right-edge x-offset (px, from the table's start edge) of each leaf column. */
+export function getColumnRightEdges<TData, TValue>(
+  columns: Column<TData, TValue>[]
+): number[] {
+  let cumulative = 0;
+  return columns.map((column) => {
+    cumulative += column.getSize();
+    return cumulative;
+  });
+}
+
+/** Grow/shrink a single column's own width — used by the trailing edge of the last resizable column. */
+export function applyEdgeResize(
+  sizing: ColumnSizingState,
+  columnId: string,
+  delta: number,
+  limits: { min: number; max: number }
+): ColumnSizingState {
+  const start = sizing[columnId] ?? limits.min;
+  const next = Math.min(limits.max, Math.max(limits.min, Math.round(start + delta)));
+  return { ...sizing, [columnId]: next };
+}
+
+/**
+ * Pointer drag that resizes a single column's own width (no neighbor pairing).
+ * Used for the trailing edge of the last resizable column, where there is no
+ * resizable column to its right to borrow space from/give space to.
+ */
+export function startEdgeColumnResize(options: {
+  event: ReactPointerEvent<HTMLElement>;
+  columnId: string;
+  startSizing: ColumnSizingState;
+  min: number;
+  max: number;
+  direction: "ltr" | "rtl";
+  onChange: (sizing: ColumnSizingState) => void;
+  onEnd?: () => void;
+}): void {
+  const { event, columnId, startSizing, min, max, direction, onChange, onEnd } = options;
+  const startClientX = event.clientX;
+
+  startPointerColumnDrag(
+    event,
+    (clientX) => {
+      const rawDelta = clientX - startClientX;
+      const delta = direction === "rtl" ? -rawDelta : rawDelta;
+      onChange(applyEdgeResize(startSizing, columnId, delta, { min, max }));
+    },
+    onEnd
+  );
 }

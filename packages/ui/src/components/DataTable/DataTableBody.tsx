@@ -56,7 +56,7 @@ function DataRow<TData>({
             style={getColumnCellStyle(cell.column)}
             className={cn(
               "h-10 overflow-hidden border-b border-erp-table-border text-[14px] text-erp-text align-middle whitespace-nowrap",
-              isSelect || isActions ? "p-0" : "px-4 py-1",
+              isSelect || isActions ? "p-0" : "py-1",
               isSelect && "overflow-visible text-center",
               alignRight && "text-end tabular-nums"
             )}
