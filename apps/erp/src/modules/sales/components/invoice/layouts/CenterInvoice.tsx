@@ -1,18 +1,23 @@
 import type { InvoiceData, InvoiceSettings } from "../types/invoice";
 import { InvoiceMeta } from "../shared/InvoiceMeta";
 import { InvoiceFooter } from "../shared/InvoiceFooter";
+import { InvoiceSpine } from "../shared/InvoiceSpine";
+import { InvoiceSeal } from "../shared/InvoiceSeal";
+import { InvoiceStub } from "../shared/InvoiceStub";
+import { InvoiceLogoBadge } from "../shared/InvoiceLogoBadge";
+import { InvoicePaymentInfo } from "../shared/InvoicePaymentInfo";
+import { LEDGER_SEAL_THEME_CSS, ledgerSealThemeVars } from "../shared/theme";
+import { companyInitials } from "../lib/companyInitials";
 import { tableStyles } from "../config/tableStyles";
 import { buildInvoiceQrValue } from "../lib/buildQrValue";
 
 /**
- * Extracted from `InvoicePrintDocumentClassic` — same markup/classes, now
- * data- and settings-driven. `headerBg`/`mutedColor` stay internal
- * constants (like Dual's neutrals) since they aren't part of
- * `InvoiceSettings`'s primary/secondary pair.
+ * Center's own composition (centered logo/branding column between two side
+ * columns, centered footer) stays; only the skin changes. A running left
+ * rail would fight the centered arrangement, so the spine is adapted to a
+ * thin horizontal bar across the top instead of dropped (per the doc's
+ * explicit allowance for layouts without an obvious vertical-rail slot).
  */
-const headerBg = "#faf0e6";
-const mutedColor = "#6b7280";
-
 export interface CenterInvoiceProps {
   data: InvoiceData;
   settings: InvoiceSettings;
@@ -24,72 +29,90 @@ export function CenterInvoice({ data, settings }: CenterInvoiceProps) {
   const logoUrl = settings.logoUrl ?? data.company.logoUrl;
   const address = settings.address || data.company.address;
   const taxId = settings.taxId || data.company.taxId;
-  const accountNumber = settings.bankAccount || data.invoice.accountNumber;
+  const companyName = settings.tagline || data.company.name;
   const Table = tableStyles[settings.tableStyle].component;
 
   return (
     <div
-      className="mx-auto flex w-[210mm] min-h-[297mm] shrink-0 flex-col bg-white text-black shadow-md print:w-auto print:shadow-none"
-      style={{ fontFamily: settings.font }}
+      className="ls-theme mx-auto flex w-[210mm] min-h-[297mm] shrink-0 flex-col bg-white shadow-md print:w-auto print:shadow-none"
+      style={{
+        fontFamily: settings.font,
+        color: "var(--ls-ink)",
+        ...ledgerSealThemeVars(primary, secondary),
+      }}
     >
       <style>{"@page { size: A4; margin: 0; }"}</style>
-      <div
-        className="grid grid-cols-3 items-start gap-4 px-[15mm] py-6 print:px-[10mm]"
-        style={{ backgroundColor: headerBg }}
-      >
-        <ul className="m-0 list-none p-0 text-[11px] leading-relaxed">
-          {address ? <li className="whitespace-pre-line">{address}</li> : null}
+      <style>{LEDGER_SEAL_THEME_CSS}</style>
+
+      <InvoiceSpine
+        orientation="horizontal"
+        mark={companyInitials(data.company.name)}
+        primary={primary}
+        secondary={secondary}
+      />
+
+      <div className="grid grid-cols-3 items-start gap-4 px-[15mm] py-6 print:px-[10mm]">
+        <ul
+          className="m-0 list-none whitespace-pre-line p-0 text-[11px] leading-relaxed"
+          style={{ color: "var(--ls-ink-soft)" }}
+        >
+          {address ? <li>{address}</li> : null}
           {taxId ? (
             <li>
-              <span>Tax ID</span>: <span>{taxId}</span>
+              Tax ID <span>{taxId}</span>
             </li>
           ) : null}
         </ul>
-        <div className="text-center">
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt="Logo"
-              className="mx-auto mb-1 h-16 w-16 object-contain"
-            />
-          ) : null}
-          <div className="text-[13px] font-bold">
-            {settings.tagline || data.company.name}
-          </div>
+        <div className="flex flex-col items-center gap-1.5 text-center">
+          <InvoiceLogoBadge
+            logoUrl={logoUrl}
+            initials={companyInitials(data.company.name)}
+          />
+          <div className="text-[13px] font-semibold">{companyName}</div>
         </div>
         <div className="text-right text-[12px]">{data.customer.name}</div>
       </div>
 
-      <div className="px-[15mm] print:px-[10mm]">
-        <h2 className="mb-4 mt-6 text-[1.75rem] font-normal" style={{ color: primary }}>
-          Invoice {data.invoice.number}
-        </h2>
+      <div className="flex flex-1 flex-col px-[15mm] print:px-[10mm]">
+        <div className="flex items-end justify-between gap-4">
+          <InvoiceMeta
+            date={data.invoice.date}
+            dueDate={data.invoice.dueDate}
+            accentColor={secondary}
+          />
+          <InvoiceSeal
+            label="Invoice"
+            number={data.invoice.number.replace("INV/", "")}
+            size={96}
+          />
+        </div>
 
-        <InvoiceMeta
-          date={data.invoice.date}
-          dueDate={data.invoice.dueDate}
-          accentColor={secondary}
-          className="mb-6"
-        />
+        <div className="mt-4">
+          <Table
+            items={data.items}
+            currencySuffix={data.totals.currencySuffix}
+            accentColor={primary}
+            secondaryColor={secondary}
+          />
+        </div>
 
-        <Table
-          items={data.items}
-          totals={data.totals}
-          paymentInfo={{
-            paymentTerms: data.invoice.paymentTerms,
-            paymentReference: data.invoice.paymentReference ?? data.invoice.number,
-            accountNumber,
-          }}
-          qrValue={settings.showQrCode ? buildInvoiceQrValue(data) : undefined}
-          accentColor={primary}
-          secondaryColor={secondary}
-        />
+        <div className="mt-4 flex flex-1 items-start justify-between gap-6">
+          <div className="min-w-0 flex-1 text-[11.5px]">
+            <InvoicePaymentInfo
+              paymentInfo={{
+                paymentReference: data.invoice.paymentReference ?? data.invoice.number,
+              }}
+              qrValue={settings.showQrCode ? buildInvoiceQrValue(data) : undefined}
+            />
+          </div>
+          <InvoiceStub totals={data.totals} primary={primary} />
+        </div>
       </div>
 
       <InvoiceFooter
-        companyName={settings.tagline || data.company.name}
+        companyName={companyName}
         accentColor={primary}
-        mutedColor={mutedColor}
+        mutedColor="var(--ls-ink-soft)"
         footerText={settings.footerText}
       />
     </div>

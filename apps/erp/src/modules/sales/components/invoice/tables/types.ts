@@ -1,4 +1,4 @@
-import type { InvoiceData, InvoiceItem } from "../types/invoice";
+import type { InvoiceItem } from "../types/invoice";
 
 export interface TableStylePaymentInfo {
   paymentTerms?: string;
@@ -8,19 +8,17 @@ export interface TableStylePaymentInfo {
 
 /**
  * Common contract every table-style component implements, so the registry
- * can type them uniformly. Not every style uses every field — e.g. Light
- * and Bordered ignore `secondaryColor` (their borders are a fixed neutral,
- * not brand-colored).
+ * can type them uniformly. Line-items only as of the Ledger Seal pass —
+ * totals and payment-terms/QR now render once per layout via the shared
+ * `InvoiceStub`/`InvoicePaymentInfo` "foot-row" (see each layout), not
+ * inside the table, so every layout × table-style combination shows the
+ * exact same totals treatment instead of three slightly different ones.
  */
 export interface TableStyleProps {
   items: InvoiceItem[];
-  totals: InvoiceData["totals"];
-  /** Brand primary — Total-row emphasis in every style. */
+  currencySuffix: string;
+  /** Brand primary — the ledger-tick header rule's gradient start, in every style. */
   accentColor: string;
-  /** Brand secondary — header text/border accents (Striped only, so far). */
+  /** Brand secondary — header rule's gradient end / dot marker color. */
   secondaryColor?: string;
-  /** Shown beside the totals box, in every table style. */
-  paymentInfo?: TableStylePaymentInfo;
-  /** Rendered beside the "scan to pay" message under `paymentInfo`, in every table style. */
-  qrValue?: string;
 }

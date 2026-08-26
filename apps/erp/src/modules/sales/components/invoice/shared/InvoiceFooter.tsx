@@ -1,32 +1,24 @@
-import type { ReactNode } from "react";
+import { FRAUNCES } from "./theme";
 
 /**
  * Centered "big footer text + page number" footer — identical between
- * Classic and Background today, so it's shared here. Dual's footer is a
+ * Center and Bubble today, so it's shared here. Dual's footer is a
  * genuinely different arrangement (footer text left / company name right)
- * and keeps its own bespoke markup in DualInvoice.
+ * and keeps its own bespoke markup in DualInvoice. Bubble's corner-circle
+ * decorations now render at the root level (see BubbleInvoice) since their
+ * position is measured from the full page, not this footer band.
  *
- * `children` is an optional decoration overlay (Background's corner-circle
- * SVG needs one) — `relative` on the wrapper costs nothing visually when
- * unused, so it's included now rather than reshaping this component again
- * on the next pass.
- *
- * The customer's email used to render here; it's been dropped from the
- * footer UI entirely, and `footerText` now takes the large/bold/accent
- * treatment that slot used to have — this is the primary bottom-of-page
- * message now, not a small caption.
- *
- * `companyName` repeats the same bold name shown next to the logo in the
- * header (the caller passes the tagline in place of the company name when
- * one is set, same as the header does), so the document re-affirms its
- * branding at the bottom the same way it does at the top.
+ * `footerText` keeps the large/accent treatment from the prior fix (it's
+ * the primary bottom-of-page message, not a small caption); `companyName`
+ * repeats the same name shown next to the logo in the header (the caller
+ * passes the tagline in place of the company name when one is set, same as
+ * the header does).
  */
 export interface InvoiceFooterProps {
   companyName?: string;
   accentColor: string;
   mutedColor: string;
   footerText?: string;
-  children?: ReactNode;
 }
 
 export function InvoiceFooter({
@@ -34,21 +26,25 @@ export function InvoiceFooter({
   accentColor,
   mutedColor,
   footerText,
-  children,
 }: InvoiceFooterProps) {
   return (
-    <div className="relative z-10 mt-auto px-[15mm] pb-8 pt-16 text-center print:px-[10mm]">
-      {children}
+    <div
+      className="relative z-10 mt-auto border-t px-11 pb-2 pt-2 text-center print:px-8"
+      style={{ borderColor: "var(--ls-line)" }}
+    >
       <div className="relative">
         {footerText ? (
-          <div className="text-[1.4rem] font-extrabold" style={{ color: accentColor }}>
+          <div
+            className="text-[1.1rem] font-semibold"
+            style={{ fontFamily: FRAUNCES, color: accentColor }}
+          >
             {footerText}
           </div>
         ) : null}
         {companyName ? (
           <div
             className={
-              footerText ? "mt-2 text-[12px] font-bold" : "text-[12px] font-bold"
+              footerText ? "mt-1 text-[12px] font-medium" : "text-[12px] font-medium"
             }
           >
             {companyName}
