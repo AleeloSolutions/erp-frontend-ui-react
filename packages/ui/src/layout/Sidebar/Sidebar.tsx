@@ -39,7 +39,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "sticky top-0 hidden h-screen w-[220px] shrink-0 flex-col bg-nav text-white max-[720px]:hidden min-[721px]:flex max-[980px]:w-16",
+        "fixed inset-y-0 start-0 z-40 hidden h-screen w-[220px] flex-col bg-nav text-white max-[720px]:hidden min-[721px]:flex max-[980px]:w-16",
         className
       )}
     >

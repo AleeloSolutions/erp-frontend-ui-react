@@ -10,8 +10,15 @@
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- `display=optional`, not `swap` — Inter's line-height differs from the
+         fallback stack (Segoe UI on Windows), so swapping fonts mid-session
+         after they finish downloading (1-3s in) visibly shrinks every text
+         row's height, including the sticky table header. `optional` commits
+         to whichever font is available at first paint and never swaps later,
+         trading "the exact webfont on a very slow first load" for "no layout
+         jump," which is the right tradeoff for an internal app. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Roboto:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Roboto:wght@400;500;700&family=Fraunces:wght@500;600&family=JetBrains+Mono:wght@400;500&display=optional"
       rel="stylesheet"
     />
   </head>

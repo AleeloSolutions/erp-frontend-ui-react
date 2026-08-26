@@ -19,7 +19,7 @@ export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState<DataTableFilterValues>({});
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(30);
   const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([]);
   const [detailCustomer, setDetailCustomer] = useState<Customer | null>(null);
 
@@ -78,11 +78,6 @@ export default function CustomersPage() {
         accessorKey: "email",
         header: "Email",
         size: 200,
-      },
-      {
-        accessorKey: "test",
-        header: "Test",
-        size: 120,
       },
       {
         accessorKey: "phone",

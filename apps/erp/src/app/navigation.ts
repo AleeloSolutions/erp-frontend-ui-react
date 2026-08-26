@@ -1,6 +1,6 @@
 import { LayoutDashboard, BarChart3, Home, ListTodo, MoreHorizontal } from "lucide-react";
 import type { MobileNavItem, NavigationItem } from "@erp/ui";
-import { inventoryManifest } from "@/modules/inventory/manifest";
+// import { inventoryManifest } from "@/modules/inventory/manifest";
 import { salesManifest } from "@/modules/sales/manifest";
 import { reportsManifest } from "@/modules/reports/manifest";
 
@@ -16,7 +16,6 @@ export const coreNavigation: NavigationItem[] = [
       { key: "shortcuts", label: "Shortcuts", href: "/dashboard" },
     ],
   },
-  inventoryManifest.nav,
   salesManifest.nav,
   reportsManifest.nav,
 ];

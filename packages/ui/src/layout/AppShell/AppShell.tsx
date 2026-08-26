@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "../../utils";
 import { Sidebar } from "../Sidebar";
-import { MobileNav } from "../MobileNav";
+// import { MobileNav } from "../MobileNav"; // not in use currently
 import { Navbar, type NavbarProps } from "../Navbar";
 import { PageContainer } from "../PageContainer";
 import type { MobileNavItem, NavigationItem } from "../../types/navigation";
@@ -21,27 +21,19 @@ export interface AppShellProps {
 export function AppShell({
   children,
   navigationItems = [],
-  mobileNavItems = [],
   activeNavKey,
-  activeMobileKey,
   navbar,
   className,
   contentClassName,
 }: AppShellProps) {
   return (
-    <div
-      data-app-shell
-      className={cn(
-        "min-h-screen min-[721px]:grid min-[721px]:grid-cols-[220px_1fr] max-[980px]:min-[721px]:grid-cols-[64px_1fr]",
-        className
-      )}
-    >
+    <div data-app-shell className={cn("min-h-screen", className)}>
       <Sidebar items={navigationItems} activeKey={activeNavKey} />
-      <main className="min-w-0">
+      <main className="min-w-0 min-[721px]:ms-[220px] max-[980px]:min-[721px]:ms-16">
         {navbar ? <Navbar {...navbar} /> : null}
         <PageContainer className={contentClassName}>{children}</PageContainer>
       </main>
-      <MobileNav items={mobileNavItems} activeKey={activeMobileKey} />
+      {/* <MobileNav items={mobileNavItems} activeKey={activeMobileKey} /> */}
     </div>
   );
 }

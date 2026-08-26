@@ -14,10 +14,10 @@ export default function HomePage() {
         icon={<LayoutDashboard className="h-4 w-4" aria-hidden />}
         actions={
           <Link
-            to="/inventory/products"
+            to="/sales/quotations"
             className="inline-flex h-8 items-center justify-center rounded-[7px] border border-nav bg-nav px-3 text-[11px] font-bold text-white shadow-[0_4px_10px_rgba(90,28,13,0.18)] hover:border-nav-active hover:bg-nav-active active:border-nav-active active:bg-nav-active"
           >
-            Open Products module
+            Open Quotations
           </Link>
         }
       />

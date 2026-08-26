@@ -90,7 +90,6 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     email: input.email,
     phone: input.phone,
     status: input.status,
-    test: "test",
     created: formatCreated(),
   };
 
