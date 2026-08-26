@@ -64,6 +64,24 @@ describe("applyBorderResize", () => {
     expect(next.phone).toBe(76); // cascaded past test into phone
   });
 
+  it("preserves total width across a fractional-looking drag (integer grants)", () => {
+    const sizing: ColumnSizingState = { email: 200, test: 120, phone: 120 };
+    const total = 200 + 120 + 120;
+
+    // Same path as pointermove: delta is rounded before applyBorderResize.
+    const delta = Math.round(37.6);
+    const next = applyBorderResize(
+      sizing,
+      [col("email")],
+      [col("test"), col("phone")],
+      delta
+    );
+
+    expect(next.email + next.test + next.phone).toBe(total);
+    expect(next.email).toBe(200 + delta);
+    expect(next.test + next.phone).toBe(120 + 120 - delta);
+  });
+
   it("stops growing once every donor on both sides is exhausted", () => {
     const sizing = { email: 200, test: MIN, phone: MIN };
 

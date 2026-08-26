@@ -9,6 +9,8 @@ export interface DataTableHeaderProps<TData> {
   table: Table<TData>;
   /** Overlay at the end of the header row — not a data column. */
   columnsMenu?: ReactNode;
+  /** Sticky `top` offset (px) — the space the sticky chrome above the table (Navbar, optionally ControlPanel) occupies, since the table scrolls with the page rather than in its own scroll container. */
+  stickyTop: number;
 }
 
 /** Font Awesome `fa-sort` / `fa-sort-up` / `fa-sort-down` glyph. */
@@ -45,9 +47,11 @@ function headerLabelText<TData>(header: Header<TData, unknown>): string {
 function HeaderCell<TData>({
   header,
   padEnd,
+  stickyTop,
 }: {
   header: Header<TData, unknown>;
   padEnd?: boolean;
+  stickyTop: number;
 }) {
   const canSort = header.column.getCanSort();
   const sorted = header.column.getIsSorted();
@@ -61,10 +65,10 @@ function HeaderCell<TData>({
       <th
         key={header.id}
         colSpan={header.colSpan}
-        style={getColumnCellStyle(header.column)}
+        style={{ ...getColumnCellStyle(header.column), top: stickyTop }}
         className={cn(
-          "group/th sticky top-0 z-10 h-10 border-b border-erp-table-border bg-erp-table-header p-0 align-middle",
-          isSelect ? "overflow-visible pe-1" : "overflow-hidden",
+          "group/th sticky z-10 h-10 border-b border-erp-table-border bg-erp-table-header p-0 align-middle",
+          isSelect ? "overflow-visible" : "overflow-hidden",
           padEnd && "pe-9"
         )}
       >
@@ -79,9 +83,9 @@ function HeaderCell<TData>({
     <th
       key={header.id}
       colSpan={header.colSpan}
-      style={getColumnCellStyle(header.column)}
+      style={{ ...getColumnCellStyle(header.column), top: stickyTop }}
       className={cn(
-        "group/th relative sticky top-0 z-10 h-10 border-b border-erp-table-border bg-erp-table-header py-2 text-[14px] font-weight-500 whitespace-nowrap text-erp-text align-middle !text-start",
+        "group/th relative sticky z-10 h-11 overflow-hidden border-b border-erp-table-border bg-erp-table-header py-2 text-[14px] font-weight-500 whitespace-nowrap text-erp-text align-middle !text-start",
         canSort && "cursor-pointer",
         padEnd && "pe-9",
         alignRight && "!text-end"
@@ -126,6 +130,7 @@ function HeaderCell<TData>({
 export function DataTableHeader<TData>({
   table,
   columnsMenu,
+  stickyTop,
 }: DataTableHeaderProps<TData>) {
   const leafIds = table.getVisibleLeafColumns().map((column) => column.id);
   const lastLeafId = leafIds[leafIds.length - 1];
@@ -141,7 +146,14 @@ export function DataTableHeader<TData>({
               header.column.id !== "__select" &&
               header.column.id !== "__actions";
 
-            return <HeaderCell key={header.id} header={header} padEnd={isLastData} />;
+            return (
+              <HeaderCell
+                key={header.id}
+                header={header}
+                padEnd={isLastData}
+                stickyTop={stickyTop}
+              />
+            );
           })}
         </tr>
       ))}

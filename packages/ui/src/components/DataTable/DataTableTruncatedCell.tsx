@@ -76,7 +76,14 @@ export function DataTableTruncatedCell({
     const target = getMeasureTarget(node);
     if (target !== node) observer.observe(target);
     return () => observer.disconnect();
-  }, [children, value]);
+    // `children` intentionally excluded: it's fresh JSX on every parent render (e.g. every
+    // column-resize pointer-move touches every cell in the table) even when nothing this
+    // effect cares about changed, which was tearing down and recreating a ResizeObserver —
+    // plus forcing a synchronous layout read via isOverflowing() — for every cell on every
+    // such render. The ResizeObserver already re-checks on its own whenever the cell's
+    // rendered size actually changes; `value` is the only thing that should force a re-run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   return (
     <div

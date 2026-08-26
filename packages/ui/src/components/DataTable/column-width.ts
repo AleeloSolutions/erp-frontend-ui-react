@@ -31,25 +31,24 @@ export function getColumnWidthStyle<TData, TValue>(
 }
 
 /**
- * Match `<col>` lock on cells/headers; content truncates instead of pushing layout.
- * Horizontal padding shrinks as the column narrows so squeezed columns (checkbox
- * excluded — it stays `p-0`) keep room for truncated text/icons instead of losing
- * all their content box to fixed padding.
+ * Cell/header chrome only — **not** column width.
+ *
+ * Widths are owned exclusively by `<colgroup>` via `getColumnWidthStyle` so the
+ * header and body cannot disagree. Setting width on both `<col>` and `<th>`/`<td>`
+ * lets fixed-layout tables redistribute a 1px sum drift differently against the
+ * first row vs the body, which shows up as header/body boundary drift while
+ * resizing. Horizontal padding still shrinks on narrow columns so truncated
+ * text/icons keep a usable content box (checkbox/actions stay `p-0`).
  */
 export function getColumnCellStyle<TData, TValue>(
   column: Column<TData, TValue>
 ): CSSProperties {
-  const size = column.getSize();
-  const style: CSSProperties = {
-    width: size,
-    minWidth: size,
-    maxWidth: size,
+  if (column.id === "__select" || column.id === "__actions") return {};
+  const paddingX = paddingXFor(column.getSize());
+  return {
+    paddingInlineStart: paddingX,
+    paddingInlineEnd: paddingX,
   };
-  if (column.id === "__select" || column.id === "__actions") return style;
-  const paddingX = paddingXFor(size);
-  style.paddingInlineStart = paddingX;
-  style.paddingInlineEnd = paddingX;
-  return style;
 }
 
 export type SizingColumnSpec = {
@@ -258,9 +257,10 @@ export function applyNeighborResize(
 ): ColumnSizingState {
   const startA = sizing[columnId] ?? limits.columnMin;
   const startB = sizing[neighborId] ?? limits.neighborMin;
+  const intended = Math.round(delta);
 
-  let nextA = startA + delta;
-  let nextB = startB - delta;
+  let nextA = startA + intended;
+  let nextB = startB - intended;
 
   if (nextA < limits.columnMin) {
     nextB -= limits.columnMin - nextA;
@@ -281,10 +281,11 @@ export function applyNeighborResize(
   nextA = Math.min(limits.columnMax, Math.max(limits.columnMin, nextA));
   nextB = Math.min(limits.neighborMax, Math.max(limits.neighborMin, nextB));
 
+  // Keep pair sum exact — never independently re-round A and B.
   return {
     ...sizing,
-    [columnId]: Math.round(nextA),
-    [neighborId]: Math.round(nextB),
+    [columnId]: nextA,
+    [neighborId]: nextB,
   };
 }
 
@@ -321,14 +322,23 @@ function startPointerColumnDrag(
 
   const target = event.currentTarget;
   const pointerId = event.pointerId;
+  const prevUserSelect = document.body.style.userSelect;
+  const prevCursor = document.body.style.cursor;
+  document.body.style.userSelect = "none";
+  document.body.style.cursor = "col-resize";
 
   function handleMove(nativeEvent: PointerEvent) {
     if (nativeEvent.pointerId !== pointerId) return;
+    // Prevent the browser selecting header/body text mid-drag (blue selection
+    // reads as the header "shifting" independently of the body).
+    nativeEvent.preventDefault();
     onMove(nativeEvent.clientX);
   }
 
   function forceEnd() {
     if (activeDragCleanup === forceEnd) activeDragCleanup = null;
+    document.body.style.userSelect = prevUserSelect;
+    document.body.style.cursor = prevCursor;
     target.removeEventListener("pointermove", handleMove);
     target.removeEventListener("pointerup", handleEnd);
     target.removeEventListener("pointercancel", handleEnd);
@@ -384,7 +394,7 @@ export function startNeighborColumnResize(options: {
     event,
     (clientX) => {
       const rawDelta = clientX - startClientX;
-      const delta = direction === "rtl" ? -rawDelta : rawDelta;
+      const delta = Math.round(direction === "rtl" ? -rawDelta : rawDelta);
       onChange(
         applyNeighborResize(startSizing, columnId, neighborId, delta, {
           columnMin,
@@ -415,7 +425,11 @@ function growFromChain(
   amount: number
 ): ColumnSizingState {
   const next: ColumnSizingState = { ...sizing };
-  if (amount <= 0) return next;
+  // Integer pixels only — fractional grants + per-column Math.round let the
+  // sum of column sizes drift from the table width by 1px, and the overlay
+  // resize handles (positioned from that sum) then sit off the real cell edges.
+  const grant = Math.round(amount);
+  if (grant <= 0) return next;
 
   const current = sizing[growCol.id] ?? growCol.min;
   const capByOwnMax = Math.max(0, growCol.max - current);
@@ -426,18 +440,18 @@ function growFromChain(
   });
   const capByChain = givable.reduce((sum, value) => sum + value, 0);
 
-  const totalGrant = Math.min(amount, capByOwnMax, capByChain);
+  const totalGrant = Math.min(grant, capByOwnMax, capByChain);
   let remaining = totalGrant;
 
   chain.forEach((donor, index) => {
     if (remaining <= 0) return;
     const take = Math.min(givable[index], remaining);
     const donorCurrent = sizing[donor.id] ?? donor.min;
-    next[donor.id] = Math.round(donorCurrent - take);
+    next[donor.id] = donorCurrent - take;
     remaining -= take;
   });
 
-  next[growCol.id] = Math.round(current + totalGrant);
+  next[growCol.id] = current + totalGrant;
   return next;
 }
 
@@ -486,7 +500,7 @@ export function startBorderColumnResize(options: {
     event,
     (clientX) => {
       const rawDelta = clientX - startClientX;
-      const delta = direction === "rtl" ? -rawDelta : rawDelta;
+      const delta = Math.round(direction === "rtl" ? -rawDelta : rawDelta);
       onChange(applyBorderResize(startSizing, leftChain, rightChain, delta));
     },
     onEnd
@@ -512,7 +526,7 @@ export function applyEdgeResize(
   limits: { min: number; max: number }
 ): ColumnSizingState {
   const start = sizing[columnId] ?? limits.min;
-  const next = Math.min(limits.max, Math.max(limits.min, Math.round(start + delta)));
+  const next = Math.min(limits.max, Math.max(limits.min, start + Math.round(delta)));
   return { ...sizing, [columnId]: next };
 }
 
@@ -538,7 +552,7 @@ export function startEdgeColumnResize(options: {
     event,
     (clientX) => {
       const rawDelta = clientX - startClientX;
-      const delta = direction === "rtl" ? -rawDelta : rawDelta;
+      const delta = Math.round(direction === "rtl" ? -rawDelta : rawDelta);
       onChange(applyEdgeResize(startSizing, columnId, delta, { min, max }));
     },
     onEnd

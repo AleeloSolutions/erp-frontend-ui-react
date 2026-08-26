@@ -10,7 +10,6 @@ import {
 
 /** Invisible draggable hit zone, centered on the column border (px). Wider than the visible line so it stays grabbable at any column width. */
 const HIT_WIDTH_PX = 10;
-const HEADER_HEIGHT_PX = 40;
 const DEFAULT_MIN_SIZE = 44;
 const DEFAULT_MAX_SIZE = 640;
 
@@ -45,6 +44,16 @@ export interface DataTableColumnResizerProps<TData> {
   columnSizing: ColumnSizingState;
   onColumnSizingChange: (sizing: ColumnSizingState) => void;
   columnResizeDirection: "ltr" | "rtl";
+  /** Sticky `top` offset (px) — matches the header row's, since both stick against the page scroll. */
+  stickyTop: number;
+  /**
+   * Header row's real rendered height (px), pre-corrected for the current
+   * browser zoom (see DataTable's measuring effect) so that applying it as a
+   * plain inline `px` height — which the browser re-scales by zoom once more
+   * at render — reconstructs the header's true on-screen height instead of
+   * doubling the zoom.
+   */
+  headerHeight: number;
 }
 
 /**
@@ -62,6 +71,8 @@ export function DataTableColumnResizer<TData>({
   columnSizing,
   onColumnSizingChange,
   columnResizeDirection,
+  stickyTop,
+  headerHeight,
 }: DataTableColumnResizerProps<TData>) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -166,7 +177,7 @@ export function DataTableColumnResizer<TData>({
   }
 
   return (
-    <div className="pointer-events-none sticky top-0 z-20 h-0">
+    <div className="pointer-events-none sticky z-20 h-0" style={{ top: stickyTop }}>
       <div className="relative">
         {handles.map((handle) => (
           <div
@@ -178,7 +189,7 @@ export function DataTableColumnResizer<TData>({
             style={{
               insetInlineStart: handle.position - HIT_WIDTH_PX / 2,
               width: HIT_WIDTH_PX,
-              height: HEADER_HEIGHT_PX,
+              height: headerHeight,
             }}
             onClick={(event) => event.stopPropagation()}
             onPointerDown={(event) => {
@@ -190,9 +201,9 @@ export function DataTableColumnResizer<TData>({
           >
             <span
               className={cn(
-                "h-full w-[1.5px] bg-erp-text/25 transition-[width,background-color]",
-                "group-hover:w-[2.5px] group-hover:bg-erp-primary",
-                activeId === handle.id && "w-[2.5px] bg-erp-primary"
+                "h-full w-px bg-erp-text/25",
+                "group-hover:w-0.5 group-hover:bg-erp-primary",
+                activeId === handle.id && "w-0.5 bg-erp-primary"
               )}
             />
           </div>
