@@ -181,7 +181,7 @@ export function InvoiceOptionsPanel({
 
   return (
     <div
-      className="flex h-full w-[300px] shrink-0 flex-col border-r bg-white"
+      className="flex h-full w-[300px] shrink-0 flex-col border-r bg-white print:hidden"
       style={{ borderColor: "var(--ls-line)" }}
     >
       <div className="flex-1 overflow-y-auto px-[22px] py-6">

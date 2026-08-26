@@ -63,7 +63,7 @@ export function InvoiceCustomizer({
         onContinue={() => onContinue?.(settings)}
         onDiscard={handleDiscard}
       />
-      <div className="relative flex flex-1 justify-center overflow-auto px-8 py-8 print:block print:overflow-visible print:p-0">
+      <div className="relative flex flex-1 justify-center overflow-auto px-8 pt-16 print:block print:overflow-visible print:p-0">
         <Button
           variant="primary"
           size="sm"
