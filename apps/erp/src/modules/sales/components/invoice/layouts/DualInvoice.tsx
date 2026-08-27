@@ -1,6 +1,5 @@
 import type { InvoiceData, InvoiceSettings } from "../types/invoice";
 import { InvoiceMeta } from "../shared/InvoiceMeta";
-import { InvoiceSpine } from "../shared/InvoiceSpine";
 import { InvoiceSeal } from "../shared/InvoiceSeal";
 import { InvoiceStub } from "../shared/InvoiceStub";
 import { InvoiceFold } from "../shared/InvoiceFold";
@@ -10,6 +9,7 @@ import { LEDGER_SEAL_THEME_CSS, ledgerSealThemeVars, FRAUNCES } from "../shared/
 import { companyInitials } from "../lib/companyInitials";
 import { tableStyles } from "../config/tableStyles";
 import { buildInvoiceQrValue } from "../lib/buildQrValue";
+import { InvoiceSpine } from "../shared/InvoiceSpine";
 
 /**
  * Dual's own composition (left-anchored branding, right-anchored invoice
@@ -46,47 +46,39 @@ export function DualInvoice({ data, settings }: DualInvoiceProps) {
       <style>{"@page { size: A4; margin: 0; }"}</style>
       <style>{LEDGER_SEAL_THEME_CSS}</style>
 
-      <InvoiceSpine
-        mark={companyInitials(data.company.name)}
-        primary={primary}
-        secondary={secondary}
-      />
+      <InvoiceSpine primary={primary} secondary={secondary} />
 
       <div className="relative flex min-w-0 flex-1 flex-col px-11 pb-5 pt-6 print:px-8">
         <InvoiceFold />
 
-        <div className="relative z-[2] flex items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <InvoiceLogoBadge
-              logoUrl={logoUrl}
-              initials={companyInitials(data.company.name)}
-            />
+        <div className="relative z-[2] flex items-center gap-3">
+          <InvoiceLogoBadge
+            logoUrl={logoUrl}
+            initials={companyInitials(data.company.name)}
+          />
+          <div className="min-w-0">
             <div
-              className="min-w-0 truncate text-[17px] font-semibold"
+              className="truncate text-[17px] font-semibold"
               style={{ fontFamily: FRAUNCES }}
             >
               {companyName}
             </div>
           </div>
-          <div
-            className="shrink-0 whitespace-pre-line text-right text-[11.5px] leading-relaxed"
-            style={{ color: "var(--ls-ink-soft)" }}
-          >
-            {address}
-            {taxId ? <div>Tax ID {taxId}</div> : null}
-          </div>
         </div>
 
         <div className="relative z-[2] mt-6 flex items-end justify-between gap-4">
           <div className="min-w-0">
-            <div
-              className="text-[10px] font-semibold uppercase tracking-[.08em]"
-              style={{ color: "var(--ls-ink-soft)" }}
-            >
+            <div className="text-[10px] font-bold uppercase tracking-[.07em] text-black">
               Billed to
             </div>
             <div className="mt-1 truncate text-[15px] font-semibold">
               {data.customer.name}
+              <div
+                className="whitespace-pre-line text-[11.5px] leading-relaxed"
+                style={{ color: "var(--ls-ink-soft)" }}
+              >
+                {address}
+              </div>
             </div>
           </div>
           <InvoiceSeal
@@ -104,7 +96,7 @@ export function DualInvoice({ data, settings }: DualInvoiceProps) {
           />
         </div>
 
-        <div className="relative z-[2] mt-6 flex-1">
+        <div className="relative z-[2] mt-6">
           <Table
             items={data.items}
             currencySuffix={data.totals.currencySuffix}

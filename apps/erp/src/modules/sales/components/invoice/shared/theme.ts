@@ -21,32 +21,6 @@ export const LEDGER_SEAL_THEME_CSS = `
   --ls-ink: #2b2420;
   --ls-ink-soft: #6b6058;
 }
-
-/* Ledger-tick table foundation (see Step 3 of the Ledger Seal pass): a small
-   dot marker on each row's first cell and a two-tone gradient header rule —
-   the shared base every table style (Striped/Light/Bordered) builds on. */
-.ls-ledger-dot {
-  position: relative;
-}
-.ls-ledger-dot::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--ls-secondary);
-}
-.ls-ledger-tag {
-  font-size: 10.5px;
-  background: var(--ls-secondary-15);
-  color: color-mix(in srgb, var(--ls-primary) 80%, black);
-  padding: 1px 6px;
-  border-radius: 5px;
-  font-weight: 500;
-}
 `;
 
 /** The two-tone gradient bottom rule used on every ledger-tick table header. */

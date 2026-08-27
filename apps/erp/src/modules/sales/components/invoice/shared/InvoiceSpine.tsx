@@ -3,7 +3,7 @@ import { FRAUNCES } from "./theme";
 
 export interface InvoiceSpineProps {
   /** Logo-initial letter(s) or a logo `<img>` — rendered inside the diamond mark. */
-  mark: ReactNode;
+  mark?: ReactNode;
   primary: string;
   secondary: string;
   /**
@@ -58,7 +58,7 @@ export function InvoiceSpine({
       style={{ backgroundColor: primary }}
     >
       <div className="absolute inset-0" style={{ backgroundImage: stripeTexture }} />
-      <div className="absolute left-1/2 top-[34px] -translate-x-1/2">{diamond}</div>
+      {/* <div className="absolute left-1/2 top-[34px] -translate-x-1/2">{diamond}</div> */}
     </div>
   );
 }

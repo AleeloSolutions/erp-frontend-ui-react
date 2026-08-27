@@ -11,15 +11,15 @@ export interface InvoiceLayoutEntry {
 }
 
 export const invoiceLayouts: Record<LayoutKey, InvoiceLayoutEntry> = {
+  center: {
+    label: "Classic",
+    thumbnail: "/thumbnails/center.svg",
+    component: CenterInvoice,
+  },
   dual: {
     label: "Dual",
     thumbnail: "/thumbnails/dual.svg",
     component: DualInvoice,
-  },
-  center: {
-    label: "Center",
-    thumbnail: "/thumbnails/center.svg",
-    component: CenterInvoice,
   },
   bubble: {
     label: "Bubble",

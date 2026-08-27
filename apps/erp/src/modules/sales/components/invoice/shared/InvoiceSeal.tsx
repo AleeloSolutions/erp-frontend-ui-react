@@ -23,31 +23,31 @@ export interface InvoiceSealProps {
  */
 export function InvoiceSeal({ label, number, size = 118 }: InvoiceSealProps) {
   return (
-    <div
-      className="relative grid shrink-0 -rotate-[8deg] select-none place-items-center rounded-full shadow-lg"
-      style={{
-        width: size,
-        height: size,
-        background:
-          "radial-gradient(circle at 35% 30%, var(--ls-primary-70), var(--ls-primary))",
-        boxShadow: "0 8px 20px var(--ls-primary-40a)",
-      }}
-    >
-      <div className="absolute inset-[6px] rounded-full border-[1.5px] border-dashed border-white/45" />
-      <div className="px-2.5 text-center leading-tight text-white">
-        <span
-          className="block text-[8.5px] uppercase tracking-[.14em] opacity-75"
-          style={{ fontFamily: JETBRAINS_MONO }}
-        >
-          {label}
-        </span>
-        <span
-          className="block text-[12.5px] font-medium"
-          style={{ fontFamily: JETBRAINS_MONO }}
-        >
-          {number}
-        </span>
-      </div>
+    // <div
+    //   className="relative grid shrink-0 -rotate-[8deg] select-none place-items-center rounded-full shadow-lg"
+    //   style={{
+    //     width: size,
+    //     height: size,
+    //     background:
+    //       "radial-gradient(circle at 35% 30%, var(--ls-primary-70), var(--ls-primary))",
+    //     boxShadow: "0 8px 20px var(--ls-primary-40a)",
+    //   }}
+    // >
+    // <div className="absolute inset-[6px] rounded-full border-[1.5px] border-dashed border-white/45" />
+    <div className="px-2.5 text-center leading-tight">
+      <span
+        className="block text-[8.5px] uppercase tracking-[.14em] opacity-75"
+        style={{ fontFamily: JETBRAINS_MONO }}
+      >
+        {label}
+      </span>
+      <span
+        className="block text-[12.5px] font-medium"
+        style={{ fontFamily: JETBRAINS_MONO }}
+      >
+        {number}
+      </span>
     </div>
+    // </div>
   );
 }

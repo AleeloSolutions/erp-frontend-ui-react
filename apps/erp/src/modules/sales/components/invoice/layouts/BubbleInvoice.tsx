@@ -1,7 +1,6 @@
 import type { InvoiceData, InvoiceSettings } from "../types/invoice";
 import { InvoiceMeta } from "../shared/InvoiceMeta";
 import { InvoiceFooter } from "../shared/InvoiceFooter";
-import { InvoiceSpine } from "../shared/InvoiceSpine";
 import { InvoiceSeal } from "../shared/InvoiceSeal";
 import { InvoiceStub } from "../shared/InvoiceStub";
 import { InvoiceLogoBadge } from "../shared/InvoiceLogoBadge";
@@ -27,7 +26,6 @@ export function BubbleInvoice({ data, settings }: BubbleInvoiceProps) {
   const secondary = settings.secondaryColor;
   const logoUrl = settings.logoUrl ?? data.company.logoUrl;
   const address = settings.address || data.company.address;
-  const taxId = settings.taxId || data.company.taxId;
   const accountNumber = settings.bankAccount || data.invoice.accountNumber;
   const companyName = settings.tagline || data.company.name;
   const Table = tableStyles[settings.tableStyle].component;
@@ -83,46 +81,42 @@ export function BubbleInvoice({ data, settings }: BubbleInvoiceProps) {
         </svg>
       </div>
 
-      <InvoiceSpine
-        mark={companyInitials(data.company.name)}
-        primary={primary}
-        secondary={secondary}
-      />
-
       <div className="relative flex min-w-0 flex-1 flex-col px-11 pb-2 pt-3 print:px-8">
-        <div className="relative z-[2] flex items-start justify-between gap-4">
-          <div
-            className="min-w-0 truncate text-[16px] font-semibold"
-            style={{ fontFamily: FRAUNCES }}
-          >
-            {companyName}
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            <InvoiceLogoBadge
-              logoUrl={logoUrl}
-              initials={companyInitials(data.company.name)}
-              size={30}
-            />
+        <div className="relative z-[2] flex items-center justify-between gap-4">
+          <div className="min-w-0">
             <div
-              className="whitespace-pre-line text-right text-[11px] leading-snug"
+              className="truncate text-[16px] font-semibold"
+              style={{ fontFamily: FRAUNCES }}
+            >
+              {companyName}
+            </div>
+            {/* <div
+              className="whitespace-pre-line text-[11px] leading-snug"
               style={{ color: "var(--ls-ink-soft)" }}
             >
-              {address}
               {taxId ? <div>Tax ID {taxId}</div> : null}
-            </div>
+            </div> */}
           </div>
+          <InvoiceLogoBadge
+            logoUrl={logoUrl}
+            initials={companyInitials(data.company.name)}
+            size={80}
+          />
         </div>
 
         <div className="relative z-[2] mt-2 flex items-end justify-between gap-4">
           <div className="min-w-0">
-            <div
-              className="text-[10px] font-semibold uppercase tracking-[.08em]"
-              style={{ color: "var(--ls-ink-soft)" }}
-            >
+            <div className="text-[10px] font-bold uppercase tracking-[.07em] text-black">
               Billed to
             </div>
             <div className="mt-1 truncate text-[15px] font-semibold">
               {data.customer.name}
+            </div>
+            <div
+              className="whitespace-pre-line text-[11px] leading-snug"
+              style={{ color: "var(--ls-ink-soft)" }}
+            >
+              {address}
             </div>
           </div>
           <InvoiceSeal
@@ -132,7 +126,7 @@ export function BubbleInvoice({ data, settings }: BubbleInvoiceProps) {
           />
         </div>
 
-        <div className="relative z-[2] mt-2">
+        <div className="relative z-[2] mt-5">
           <InvoiceMeta
             date={data.invoice.date}
             dueDate={data.invoice.dueDate}
@@ -140,7 +134,7 @@ export function BubbleInvoice({ data, settings }: BubbleInvoiceProps) {
           />
         </div>
 
-        <div className="relative z-[2] mt-2">
+        <div className="relative z-[2] mt-6">
           <Table
             items={data.items}
             currencySuffix={data.totals.currencySuffix}

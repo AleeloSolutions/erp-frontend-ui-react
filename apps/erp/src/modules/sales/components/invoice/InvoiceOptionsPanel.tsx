@@ -332,11 +332,12 @@ export function InvoiceOptionsPanel({
           placeholder="Shown in the document header — supports multiple lines"
         />
 
-        <SectionLabel>Tagline</SectionLabel>
+        <SectionLabel>Company Name</SectionLabel>
         <Input
           value={settings.tagline ?? ""}
           onChange={(e) => onUpdate("tagline", e.target.value)}
           placeholder="Replaces your company name when set"
+          style={{ color: "var(--ls-ink-soft)" }}
         />
 
         <SectionLabel>Footer</SectionLabel>

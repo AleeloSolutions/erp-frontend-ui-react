@@ -8,35 +8,23 @@ import { ledgerHeaderRuleStyle } from "../shared/theme";
  * suffix here — that's a real difference between the two designs, not an
  * oversight.
  */
-export function StripedTable({ items, currencySuffix, secondaryColor }: TableStyleProps) {
+export function StripedTable({ items, currencySuffix }: TableStyleProps) {
   const lastItemId = items[items.length - 1]?.id;
 
   return (
     <table className="w-full border-collapse text-[11.5px]">
       <thead>
         <tr style={ledgerHeaderRuleStyle()}>
-          <th
-            className="pb-[9px] pl-4 text-left text-[10px] font-semibold uppercase tracking-[.07em]"
-            style={{ color: secondaryColor }}
-          >
+          <th className="pb-[9px] pl-4 text-left text-[10px] font-bold uppercase tracking-[.07em] text-black">
             Description
           </th>
-          <th
-            className="pb-[9px] text-right text-[10px] font-semibold uppercase tracking-[.07em]"
-            style={{ color: secondaryColor }}
-          >
+          <th className="pb-[9px] text-right text-[10px] font-bold uppercase tracking-[.07em] text-black">
             Quantity
           </th>
-          <th
-            className="pb-[9px] text-right text-[10px] font-semibold uppercase tracking-[.07em]"
-            style={{ color: secondaryColor }}
-          >
+          <th className="pb-[9px] text-right text-[10px] font-bold uppercase tracking-[.07em] text-black">
             Unit Price
           </th>
-          <th
-            className="pb-[9px] text-right text-[10px] font-semibold uppercase tracking-[.07em]"
-            style={{ color: secondaryColor }}
-          >
+          <th className="pb-[9px] text-right text-[10px] font-bold uppercase tracking-[.07em] text-black">
             Amount
           </th>
         </tr>
@@ -51,7 +39,7 @@ export function StripedTable({ items, currencySuffix, secondaryColor }: TableSty
                 item.id === lastItemId ? "1px solid var(--ls-line)" : undefined,
             }}
           >
-            <td className="ls-ledger-dot py-1 pl-4">{item.description}</td>
+            <td className="py-1 pl-4">{item.description}</td>
             <td className="py-1 text-right">{item.quantity.toFixed(2)}</td>
             <td className="py-1 text-right">
               {item.unitPrice.toFixed(2)} {currencySuffix}

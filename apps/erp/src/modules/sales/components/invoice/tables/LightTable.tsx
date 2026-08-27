@@ -11,35 +11,23 @@ export function LightTable({ items, currencySuffix }: TableStyleProps) {
   return (
     <table className="w-full border-collapse text-[11.5px]">
       <thead>
-        <tr style={ledgerHeaderRuleStyle()}>
-          <th
-            className="pb-[9px] pl-4 text-left text-[10px] font-semibold uppercase tracking-[.07em]"
-            style={{ color: "var(--ls-ink-soft)" }}
-          >
+        <tr
+          className="border-b"
+          style={(ledgerHeaderRuleStyle(), { borderColor: "var(--ls-line)" })}
+        >
+          <th className="pb-[9px] pl-4 text-left text-[10px] font-bold uppercase tracking-[.07em] text-black">
             Description
           </th>
-          <th
-            className="pb-[9px] text-right text-[10px] font-semibold uppercase tracking-[.07em]"
-            style={{ color: "var(--ls-ink-soft)" }}
-          >
+          <th className="pb-[9px] text-right text-[10px] font-bold uppercase tracking-[.07em] text-black">
             Quantity
           </th>
-          <th
-            className="pb-[9px] text-right text-[10px] font-semibold uppercase tracking-[.07em]"
-            style={{ color: "var(--ls-ink-soft)" }}
-          >
+          <th className="pb-[9px] text-right text-[10px] font-bold uppercase tracking-[.07em] text-black">
             Unit Price
           </th>
-          <th
-            className="pb-[9px] text-right text-[10px] font-semibold uppercase tracking-[.07em]"
-            style={{ color: "var(--ls-ink-soft)" }}
-          >
+          <th className="pb-[9px] text-right text-[10px] font-bold uppercase tracking-[.07em] text-black">
             Taxes
           </th>
-          <th
-            className="pb-[9px] text-right text-[10px] font-semibold uppercase tracking-[.07em]"
-            style={{ color: "var(--ls-ink-soft)" }}
-          >
+          <th className="pb-[9px] text-right text-[10px] font-bold uppercase tracking-[.07em] text-black">
             Amount
           </th>
         </tr>
@@ -51,7 +39,7 @@ export function LightTable({ items, currencySuffix }: TableStyleProps) {
             className="border-b"
             style={{ borderColor: "var(--ls-line)" }}
           >
-            <td className="ls-ledger-dot py-1 pl-4">{item.description}</td>
+            <td className=" py-1 pl-4">{item.description}</td>
             <td className="py-1 text-right">{item.quantity.toFixed(2)}</td>
             <td className="py-1 text-right">{item.unitPrice.toFixed(2)}</td>
             <td className="py-1 text-right">

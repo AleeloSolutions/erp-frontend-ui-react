@@ -29,14 +29,11 @@ function DateChip({
   accentColor: string;
 }) {
   return (
-    <div className="border-l-2 pl-2.5" style={{ borderColor: accentColor }}>
-      <div
-        className="text-[10px] font-semibold uppercase tracking-[.07em]"
-        style={{ color: "var(--ls-ink-soft)" }}
-      >
+    <div className="border-l-[3px] pl-2.5 pb-0.5" style={{ borderColor: accentColor }}>
+      <div className="text-[10px] font-bold uppercase tracking-[.07em] text-black">
         {label}
       </div>
-      <div className="mt-px text-[13.5px] font-medium" style={{ color: "var(--ls-ink)" }}>
+      <div className="mt-px text-[13.5px] font-semibold" style={{ color: accentColor }}>
         {value}
       </div>
     </div>

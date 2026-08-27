@@ -22,7 +22,7 @@ export function InvoiceLogoBadge({
   return (
     <div
       className="grid shrink-0 place-items-center overflow-hidden rounded-xl text-white"
-      style={{ width: size, height: size, backgroundColor: "var(--ls-primary)" }}
+      style={{ width: size, height: size }}
     >
       {logoUrl ? (
         <img
