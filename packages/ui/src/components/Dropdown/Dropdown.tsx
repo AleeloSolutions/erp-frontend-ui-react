@@ -30,6 +30,8 @@ export interface DropdownItem {
   onClick?: () => void;
   disabled?: boolean;
   danger?: boolean;
+  /** Overrides the default text/hover classes (including the `danger` red) for this item. */
+  className?: string;
 }
 
 export interface DropdownProps {
@@ -166,25 +168,80 @@ function DropdownCaret({ open }: { open: boolean }) {
   );
 }
 
+function useButtonMenuCoords(
+  anchorRef: RefObject<HTMLElement | null>,
+  align: "left" | "right",
+  open: boolean
+) {
+  const [coords, setCoords] = useState({
+    top: 0,
+    left: 0,
+    minWidth: 160,
+  });
+
+  useLayoutEffect(() => {
+    if (!open) return;
+
+    function update() {
+      const anchor = anchorRef.current;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      const pad = 8;
+      const minWidth = Math.max(160, rect.width);
+      let left = align === "right" ? rect.right - minWidth : rect.left;
+      left = Math.max(pad, Math.min(left, window.innerWidth - minWidth - pad));
+      setCoords({
+        top: rect.bottom + 4,
+        left,
+        minWidth,
+      });
+    }
+
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [anchorRef, align, open]);
+
+  return coords;
+}
+
 function ButtonMenu({
   items,
   align,
   menuId,
   onSelect,
+  anchorRef,
+  menuRef,
+  open,
 }: {
   items: DropdownItem[];
   align: "left" | "right";
   menuId: string;
   onSelect: (item: DropdownItem) => void;
+  anchorRef: RefObject<HTMLElement | null>;
+  menuRef: RefObject<HTMLDivElement | null>;
+  open: boolean;
 }) {
-  return (
+  const coords = useButtonMenuCoords(anchorRef, align, open);
+
+  return createPortal(
     <div
+      ref={menuRef}
       id={menuId}
       role="menu"
       className={cn(
-        "absolute top-[calc(100%+4px)] z-50 min-w-[160px] overflow-hidden rounded-md border border-erp-border bg-erp-surface py-1 shadow-lg",
-        align === "right" ? "end-0" : "start-0"
+        "z-[70] min-w-[160px] overflow-hidden rounded-md border border-erp-border bg-erp-surface py-1 shadow-lg"
       )}
+      style={{
+        position: "fixed",
+        top: coords.top,
+        left: coords.left,
+        minWidth: coords.minWidth,
+      }}
     >
       {items.map((item) => (
         <button
@@ -194,7 +251,8 @@ function ButtonMenu({
           disabled={item.disabled}
           className={cn(
             "flex w-full items-center px-2.5 py-1.5 text-left text-[11px] font-semibold text-erp-text hover:bg-erp-blue-50",
-            item.danger && "text-erp-error hover:bg-erp-error-bg",
+            item.danger && !item.className && "text-erp-error hover:bg-erp-error-bg",
+            item.className,
             item.disabled && "cursor-not-allowed opacity-50"
           )}
           onClick={() => onSelect(item)}
@@ -202,7 +260,8 @@ function ButtonMenu({
           {item.label}
         </button>
       ))}
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -421,7 +480,15 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
   if (isButtonTrigger) {
     const toggle = () => setIsOpen((open) => !open);
     const menu = isOpen ? (
-      <ButtonMenu items={items} align={align} menuId={menuId} onSelect={pickItem} />
+      <ButtonMenu
+        items={items}
+        align={align}
+        menuId={menuId}
+        onSelect={pickItem}
+        anchorRef={rootRef}
+        menuRef={menuRef}
+        open={isOpen}
+      />
     ) : null;
 
     return (

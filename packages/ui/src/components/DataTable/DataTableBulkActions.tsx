@@ -28,6 +28,10 @@ export function DataTableBulkActions<TData>({
     key: action.key ?? action.label,
     label: action.label,
     danger: action.variant === "danger",
+    className:
+      action.variant === "danger"
+        ? "text-erp-brand-third hover:bg-erp-brand-third-overlay"
+        : undefined,
     onClick: () => action.onClick(selectedRows),
   }));
 
@@ -37,7 +41,7 @@ export function DataTableBulkActions<TData>({
       role="status"
       aria-live="polite"
     >
-      <span className="inline-flex h-8 items-center gap-1 rounded-sm border border-erp-brand-third hover:bg-erp-brand-third-overlay px-4 text-[11px] text-erp-brand-third`">
+      <span className="inline-flex h-8 items-center gap-1 rounded-sm border border-erp-brand-third hover:bg-erp-brand-third-overlay px-4 text-[11px] text-erp-brand-third">
         <span>
           <strong className="font-bold">{selectedCount}</strong> {t("datatable.selected")}
         </span>
@@ -66,8 +70,9 @@ export function DataTableBulkActions<TData>({
             className: cn(
               "h-9 rounded-sm px-2.5 text-[11px] font-bold text-erp-text shadow-none",
               "border border-transparent bg-erp-secondary hover:bg-erp-secondary-hover",
-              "aria-expanded:border-erp-teal aria-expanded:bg-erp-teal-50 aria-expanded:text-erp-text",
-              "aria-expanded:hover:border-erp-teal aria-expanded:hover:bg-erp-teal-50"
+              "transition-[border-color,background-color] duration-150 ease-out",
+              "aria-expanded:border-erp-brand-third aria-expanded:bg-erp-brand-third-overlay aria-expanded:text-erp-text",
+              "aria-expanded:hover:border-erp-brand-third aria-expanded:hover:bg-erp-brand-third-overlay"
             ),
           }}
         />
