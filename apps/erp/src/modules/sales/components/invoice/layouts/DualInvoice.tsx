@@ -29,7 +29,6 @@ export function DualInvoice({ data, settings }: DualInvoiceProps) {
   const secondary = settings.secondaryColor;
   const logoUrl = settings.logoUrl ?? data.company.logoUrl;
   const address = settings.address || data.company.address;
-  const taxId = settings.taxId || data.company.taxId;
   const accountNumber = settings.bankAccount || data.invoice.accountNumber;
   const companyName = settings.tagline || data.company.name;
   const Table = tableStyles[settings.tableStyle].component;

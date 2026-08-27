@@ -21,7 +21,7 @@ export interface InvoiceSealProps {
  * rendering bug (a blue box clipped to each text line) rather than a
  * selection state.
  */
-export function InvoiceSeal({ label, number, size = 118 }: InvoiceSealProps) {
+export function InvoiceSeal({ label, number, size: _size = 118 }: InvoiceSealProps) {
   return (
     // <div
     //   className="relative grid shrink-0 -rotate-[8deg] select-none place-items-center rounded-full shadow-lg"
