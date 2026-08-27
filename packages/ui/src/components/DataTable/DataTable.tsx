@@ -34,7 +34,6 @@ import {
   type SizingColumnSpec,
 } from "./column-width";
 import { useDebounce } from "../../hooks/useDebounce";
-import { NAVBAR_HEIGHT, CONTROL_PANEL_HEIGHT } from "../../layout";
 import type {
   DataTableBulkAction,
   DataTableFilter,
@@ -208,13 +207,6 @@ export function DataTable<TData, TValue = unknown>({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [headerHeight, setHeaderHeight] = useState(40);
-  // Sticky `top` for the header/resizer — Navbar + (optional) ControlPanel. Must be
-  // measured: ControlPanel height is content-driven (`pt-2 pb-3` + row), not a fixed
-  // constant, and at non-100% browser zoom getBoundingClientRect subpixels make a
-  // hardcoded value (e.g. 99) drift into a 1px gap/overlap above the header.
-  const [stickyTop, setStickyTop] = useState(
-    () => NAVBAR_HEIGHT + (renderToolbar ? CONTROL_PANEL_HEIGHT : 0)
-  );
   const [grouping, setGrouping] = useState<string[]>([]);
   const [paginationState, setPaginationState] = useState<PaginationState>({
     pageIndex: isServerPagination ? Math.max(0, pagination.page - 1) : 0,
@@ -246,29 +238,8 @@ export function DataTable<TData, TValue = unknown>({
     const node = scrollRef.current;
     if (!node) return;
 
-    // The header row's real rendered height (not assumed) — table-cell `height`
-    // acts as a floor, not a cap, so the actual `<th>` row can render taller
-    // than its CSS `h-10`. DataTableColumnResizer's handles must match that
-    // real height, or they under/overshoot the header row's own edges.
-    //
-    // `getBoundingClientRect()` returns a page-zoom-scaled px value (e.g. a
-    // 40px header measures as ~60.5px at 150% browser zoom). Storing that raw
-    // number and reapplying it as an inline `px` height on an element in the
-    // same (zoomed) page scales it a *second* time at render — the handle
-    // would grow to ~1.5x the header's real height instead of matching it
-    // (confirmed live: 0px overshoot at 100% zoom, +30px at 150%). Every CSS
-    // length unit (px, rem, em, ...) is equally subject to this — zoom is a
-    // render-time multiplier applied after any unit resolves to a used value,
-    // so switching units doesn't avoid it (also confirmed live). The only way
-    // to compensate is to measure the *current zoom factor itself* — via a
-    // probe with a hardcoded, author-known size — and divide it back out
-    // before storing, so the browser's single (correct) re-multiplication at
-    // render reconstructs the original measurement instead of doubling it.
-    //
-    // The same zoom correction applies to stickyTop: ControlPanel's height is
-    // rem-padded/content-sized, so its CSS-px height shifts slightly across
-    // zoom levels. A hardcoded top (99) leaves a 1px gap/overlap that grows
-    // or shrinks with zoom and reads as the header "slipping" out of alignment.
+    // Header row real height for resize handles. Zoom-correct so inline `px`
+    // heights are not double-scaled by browser zoom.
     const measureZoomFactor = (parent: HTMLElement) => {
       const probe = document.createElement("div");
       probe.style.cssText =
@@ -291,26 +262,11 @@ export function DataTable<TData, TValue = unknown>({
         const height = theadEl.getBoundingClientRect().height;
         if (height > 0) setHeaderHeight(height / zoomFactor);
       }
-
-      // Navbar is fixed `h-[46px]`; ControlPanel (renderToolbar sibling above
-      // rootRef) must be measured. Divide zoom back out before storing.
-      let nextSticky = NAVBAR_HEIGHT;
-      if (renderToolbar) {
-        const panel = rootRef.current?.previousElementSibling;
-        if (panel instanceof HTMLElement) {
-          nextSticky += panel.getBoundingClientRect().height / zoomFactor;
-        } else {
-          nextSticky += CONTROL_PANEL_HEIGHT;
-        }
-      }
-      setStickyTop((prev) => (Math.abs(prev - nextSticky) > 0.05 ? nextSticky : prev));
     };
 
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(node);
-    const panel = rootRef.current?.previousElementSibling;
-    if (panel instanceof HTMLElement) observer.observe(panel);
     window.addEventListener("resize", measure);
     visualViewport?.addEventListener("resize", measure);
     return () => {
@@ -318,7 +274,7 @@ export function DataTable<TData, TValue = unknown>({
       window.removeEventListener("resize", measure);
       visualViewport?.removeEventListener("resize", measure);
     };
-  }, [loading, error, renderToolbar]);
+  }, [loading, error]);
 
   useEffect(() => {
     const readDirection = () => {
@@ -699,24 +655,10 @@ export function DataTable<TData, TValue = unknown>({
   const totalColumnsWidth = table
     .getVisibleLeafColumns()
     .reduce((sum, column) => sum + column.getSize(), 0);
-  // Exact sum only — never `max(container, sum)`. Stretching a narrower sum up to
-  // the container lets the browser redistribute extra pixels across columns while
-  // overlay handles stay at cumulative `getSize()` edges, so the resize line
-  // drifts off the real header/body boundary (especially after edge-shrink).
-  // `normalizeSizingToWidth` already expands flexible columns to fill the
-  // container at rest; interior resizes conserve that sum.
-  const tableWidth = totalColumnsWidth > 0 ? totalColumnsWidth : containerWidth;
-  // `overflow-x-auto` only goes on the wrapper when columns genuinely can't
-  // fit (even the normalize-to-width effect above couldn't shrink them
-  // enough) — not unconditionally. Browsers resolve a `position: sticky`
-  // descendant's `top` against its nearest ancestor with non-`visible`
-  // overflow on *either* axis (mixing rules force a lone `overflow-x` to
-  // count); since that wrapper never scrolls independently of the page,
-  // a sticky header inside it stops tracking the page scroll entirely once
-  // it's present — confirmed by toggling it live against the running app.
-  // Keeping the wrapper overflow-`visible` in the (overwhelmingly common)
-  // case where columns already fit is what lets the header stay sticky.
-  const needsHorizontalScroll = containerWidth > 0 && totalColumnsWidth > containerWidth;
+  // Fill the host container. Column sizes are kept summing to `containerWidth`
+  // via `normalizeSizingToWidth` (at rest + after resize), so header and body
+  // share one full-width grid.
+  const tableWidth = containerWidth > 0 ? containerWidth : totalColumnsWidth;
 
   const pager = enablePagination ? (
     <DataTablePagination
@@ -794,54 +736,25 @@ export function DataTable<TData, TValue = unknown>({
         ) : loading ? (
           <DataTableLoading
             columns={table.getVisibleLeafColumns().length || columns.length + 1}
-            stickyTop={stickyTop}
           />
         ) : (
-          <div className="relative">
-            {columnsMenu ? (
-              // Zero-height sticky wrapper (mirrors DataTableColumnResizer below) so the
-              // corner button tracks the sticky header without adding its own flow height
-              // or scrolling horizontally with the table — it stays pinned to the viewport
-              // edge the same way it sat outside `scrollRef` before.
-              //
-              // Must come *before* `scrollRef` in the DOM: `position: sticky` only holds an
-              // element back from continuing to scroll past `top` — it never pulls an element
-              // up to a position earlier than where it naturally sits in flow. As the last
-              // sibling (after every row), this div's resting position was below the whole
-              // table, and on a page short enough to never scroll that far it just stayed
-              // there instead of snapping to the header corner.
-              <div
-                style={{ top: stickyTop }}
-                className="pointer-events-none sticky z-30 h-0"
-              >
-                <div className="pointer-events-auto absolute end-0 top-0 grid h-10 w-9 place-items-center border-b border-erp-table-border bg-erp-table-header">
-                  {columnsMenu}
-                </div>
-              </div>
-            ) : null}
-            <div
-              ref={scrollRef}
-              className={cn("w-full", needsHorizontalScroll && "overflow-x-auto")}
-            >
+          <div className="relative w-full">
+            <div ref={scrollRef} className="relative w-full">
               <DataTableColumnResizer
                 table={table}
                 enabled={enableColumnResizing}
                 columnSizing={columnSizing}
                 onColumnSizingChange={(next) => {
                   sizingLockedRef.current = true;
-                  // Keep the table flush with the container when an edge-shrink
-                  // would leave sum(cols) < containerWidth. Expanding via
-                  // normalize (fill column absorbs the remainder) avoids the
-                  // browser stretching a too-narrow table — which desyncs
-                  // overlay handle positions from real cell edges. Overflow
-                  // widths (sum > container) are left alone for horizontal scroll.
+                  // Always keep column widths summing to the container so the
+                  // table stays full-width (header + body share one grid).
                   if (containerWidth > 0) {
                     const leafs = table.getVisibleLeafColumns();
                     const sum = leafs.reduce(
                       (total, column) => total + (next[column.id] ?? column.getSize()),
                       0
                     );
-                    if (sum < containerWidth) {
+                    if (sum !== containerWidth) {
                       const specs: SizingColumnSpec[] = leafs.map((column) => ({
                         id: column.id,
                         minSize: column.columnDef.minSize ?? DEFAULT_COLUMN_MIN_SIZE,
@@ -862,15 +775,8 @@ export function DataTable<TData, TValue = unknown>({
                   setColumnSizing(next);
                 }}
                 columnResizeDirection={columnResizeDirection}
-                stickyTop={stickyTop}
                 headerHeight={headerHeight}
               />
-              {/* `border-separate` (not `-collapse`) — a collapsed border shared between
-                  a sticky `<th>` and its row is resolved/painted against the table's
-                  static grid, not the cell's stuck position, so it silently drops once
-                  the header engages `position: sticky` on scroll. `separate` makes each
-                  cell own and paint its own border, immune to that. Safe here since every
-                  cell only declares `border-b` (no vertical/top borders to double up). */}
               <table
                 className="w-full table-fixed border-separate border-spacing-0 text-start tabular-nums"
                 style={{
@@ -882,11 +788,7 @@ export function DataTable<TData, TValue = unknown>({
                     <col key={column.id} style={getColumnWidthStyle(column)} />
                   ))}
                 </colgroup>
-                <DataTableHeader
-                  table={table}
-                  columnsMenu={columnsMenu}
-                  stickyTop={stickyTop}
-                />
+                <DataTableHeader table={table} columnsMenu={columnsMenu} />
                 <DataTableBody
                   table={table}
                   emptyMessage={emptyMessage}

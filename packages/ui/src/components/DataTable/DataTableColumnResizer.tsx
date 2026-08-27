@@ -4,11 +4,11 @@ import { cn } from "../../utils";
 import {
   getColumnRightEdges,
   startBorderColumnResize,
-  startEdgeColumnResize,
+  startTrailingEdgeColumnResize,
   type DonorColumn,
 } from "./column-width";
 
-/** Invisible draggable hit zone, centered on the column border (px). Wider than the visible line so it stays grabbable at any column width. */
+/** Invisible draggable hit zone, centered on the column border (px). */
 const HIT_WIDTH_PX = 10;
 const DEFAULT_MIN_SIZE = 44;
 const DEFAULT_MAX_SIZE = 640;
@@ -18,24 +18,15 @@ type HandleSpec =
       kind: "pair";
       id: string;
       position: number;
-      /**
-       * Resizable columns on each side of this border, nearest-to-border
-       * first. Dragging one way grows leftChain[0] by pulling from
-       * rightChain; dragging the other way grows rightChain[0] by pulling
-       * from leftChain. Either chain cascades past a column pinned at its
-       * own min/max by a different border's drag instead of getting stuck
-       * on just the immediate neighbor.
-       */
       leftChain: DonorColumn[];
       rightChain: DonorColumn[];
     }
   | {
-      kind: "edge";
+      kind: "trailing";
       id: string;
       position: number;
-      columnId: string;
-      min: number;
-      max: number;
+      column: DonorColumn;
+      leftDonors: DonorColumn[];
     };
 
 export interface DataTableColumnResizerProps<TData> {
@@ -44,26 +35,15 @@ export interface DataTableColumnResizerProps<TData> {
   columnSizing: ColumnSizingState;
   onColumnSizingChange: (sizing: ColumnSizingState) => void;
   columnResizeDirection: "ltr" | "rtl";
-  /** Sticky `top` offset (px) — matches the header row's, since both stick against the page scroll. */
-  stickyTop: number;
-  /**
-   * Header row's real rendered height (px), pre-corrected for the current
-   * browser zoom (see DataTable's measuring effect) so that applying it as a
-   * plain inline `px` height — which the browser re-scales by zoom once more
-   * at render — reconstructs the header's true on-screen height instead of
-   * doubling the zoom.
-   */
+  /** Header row height (px) — handles span the header only. */
   headerHeight: number;
 }
 
 /**
- * Resize handles rendered as a flat overlay layer (siblings of `<table>`, not
- * children of individual `<th>`s). A handle nested inside one `<th>` can't
- * visually/functionally extend into the neighboring `<th>`'s box — adjacent
- * table cells are separate stacking contexts, and the later one always paints
- * over the earlier one's overflow. Rendering handles as one overlay avoids
- * that entirely, which is what lets the hit zone stay wide and centered on
- * the border regardless of how narrow either column gets.
+ * Resize handles overlaid on the header row. Not sticky / not `position` on
+ * the `<th>` cells — this layer sits in the table wrapper and scrolls away
+ * with the header. Trailing-edge resize conserves total width so the table
+ * stays full-container-wide.
  */
 export function DataTableColumnResizer<TData>({
   table,
@@ -71,7 +51,6 @@ export function DataTableColumnResizer<TData>({
   columnSizing,
   onColumnSizingChange,
   columnResizeDirection,
-  stickyTop,
   headerHeight,
 }: DataTableColumnResizerProps<TData>) {
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -126,20 +105,22 @@ export function DataTableColumnResizer<TData>({
       break;
     }
   }
-  // The last resizable column's own trailing edge — e.g. when it's followed by a
-  // fixed __actions column, or when it's simply the last column in the table.
   if (
     lastResizableIndex !== -1 &&
     (lastResizableIndex === leafColumns.length - 1 || !canResize[lastResizableIndex + 1])
   ) {
     const column = leafColumns[lastResizableIndex];
+    const leftDonors: DonorColumn[] = [];
+    for (let j = lastResizableIndex - 1; j >= 0; j -= 1) {
+      if (!canResize[j]) continue;
+      leftDonors.push(donorSpec(leafColumns[j]));
+    }
     handles.push({
-      kind: "edge",
+      kind: "trailing",
       id: `edge-${column.id}`,
       position: rightEdges[lastResizableIndex],
-      columnId: column.id,
-      min: column.columnDef.minSize ?? DEFAULT_MIN_SIZE,
-      max: column.columnDef.maxSize ?? DEFAULT_MAX_SIZE,
+      column: donorSpec(column),
+      leftDonors,
     });
   }
 
@@ -160,15 +141,15 @@ export function DataTableColumnResizer<TData>({
         onEnd: () => setActiveId(null),
       });
     } else {
-      startEdgeColumnResize({
+      const startSizing: ColumnSizingState = { ...columnSizing };
+      [handle.column, ...handle.leftDonors].forEach((entry) => {
+        startSizing[entry.id] = table.getColumn(entry.id)?.getSize() ?? entry.min;
+      });
+      startTrailingEdgeColumnResize({
         event,
-        columnId: handle.columnId,
-        startSizing: {
-          ...columnSizing,
-          [handle.columnId]: table.getColumn(handle.columnId)?.getSize() ?? handle.min,
-        },
-        min: handle.min,
-        max: handle.max,
+        column: handle.column,
+        leftDonors: handle.leftDonors,
+        startSizing,
         direction: columnResizeDirection,
         onChange: onColumnSizingChange,
         onEnd: () => setActiveId(null),
@@ -177,7 +158,7 @@ export function DataTableColumnResizer<TData>({
   }
 
   return (
-    <div className="pointer-events-none sticky z-20 h-0" style={{ top: stickyTop }}>
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-0">
       <div className="relative">
         {handles.map((handle) => (
           <div

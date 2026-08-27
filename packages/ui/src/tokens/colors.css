@@ -5,7 +5,8 @@
   --brand-secondary: #e7e9ed;
   --brand-secondary-hover: #d8dadd;
   --brand-third: #00327d;
-  --brand-third-overlay: #f6f8fd;
+  --brand-third-overlay: #dde0eb;
+  --brand-third-halo: #92b5ef;
 
   /* Primitive palette — aligned to brand */
   --nav: var(--brand-primary);

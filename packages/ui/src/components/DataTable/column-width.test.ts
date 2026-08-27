@@ -1,6 +1,10 @@
 import type { ColumnSizingState } from "@tanstack/react-table";
 import { describe, expect, it } from "vitest";
-import { applyBorderResize, type DonorColumn } from "./column-width";
+import {
+  applyBorderResize,
+  applyTrailingEdgeResize,
+  type DonorColumn,
+} from "./column-width";
 
 /**
  * Mirrors how DataTable.tsx resolves column bounds for data columns that
@@ -93,5 +97,32 @@ describe("applyBorderResize", () => {
     );
 
     expect(next).toEqual(sizing);
+  });
+});
+
+describe("applyTrailingEdgeResize", () => {
+  it("grows Created from left donors and conserves total width", () => {
+    const sizing: ColumnSizingState = {
+      customer: 300,
+      email: 200,
+      phone: 120,
+      status: 110,
+      created: 120,
+    };
+    const total = 300 + 200 + 120 + 110 + 120;
+
+    const next = applyTrailingEdgeResize(
+      sizing,
+      col("created"),
+      [col("status"), col("phone"), col("email"), col("customer")],
+      80
+    );
+
+    expect(next.created).toBe(200);
+    expect(next.status).toBe(MIN);
+    expect(next.phone).toBe(106);
+    expect(next.customer + next.email + next.phone + next.status + next.created).toBe(
+      total
+    );
   });
 });

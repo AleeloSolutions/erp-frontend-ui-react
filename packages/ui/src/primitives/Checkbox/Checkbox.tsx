@@ -77,10 +77,10 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             className={cn(
               "pointer-events-none absolute inset-0 rounded-[4px] border border-erp-table-border bg-erp-table-bg",
               "transition-[border-color,background-color,box-shadow] duration-150 ease-out",
-              "peer-hover:border-erp-primary",
-              "peer-checked:border-erp-primary peer-checked:bg-erp-primary",
-              "group-data-[indeterminate]/cb:border-erp-primary group-data-[indeterminate]/cb:bg-erp-primary",
-              "group-data-[active]/cb:border-erp-primary",
+              "peer-hover:border-erp-brand-third",
+              "peer-checked:border-erp-brand-third peer-checked:bg-erp-brand-third",
+              "group-data-[indeterminate]/cb:border-erp-brand-third group-data-[indeterminate]/cb:bg-erp-brand-third",
+              "group-data-[active]/cb:border-erp-brand-third",
               hasHalo && [
                 "peer-hover:shadow-[0_0_0_4px_var(--primary-50)]",
                 "peer-checked:shadow-[0_0_0_4px_var(--primary-50)]",

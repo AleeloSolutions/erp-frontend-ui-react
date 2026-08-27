@@ -518,7 +518,7 @@ export function getColumnRightEdges<TData, TValue>(
   });
 }
 
-/** Grow/shrink a single column's own width — used by the trailing edge of the last resizable column. */
+/** Grow/shrink a single column's own width (changes total table width). */
 export function applyEdgeResize(
   sizing: ColumnSizingState,
   columnId: string,
@@ -531,9 +531,59 @@ export function applyEdgeResize(
 }
 
 /**
+ * Trailing-edge resize for the last resizable column (e.g. Created before
+ * `__actions`). Conserves total width so the table stays container-wide:
+ * drag right grows `column` from `leftDonors`; drag left returns space.
+ */
+export function applyTrailingEdgeResize(
+  sizing: ColumnSizingState,
+  column: DonorColumn,
+  leftDonors: DonorColumn[],
+  delta: number
+): ColumnSizingState {
+  const amount = Math.round(delta);
+  if (amount === 0) return { ...sizing };
+
+  if (amount > 0) {
+    return growFromChain(sizing, column, leftDonors, amount);
+  }
+
+  if (leftDonors.length === 0) {
+    return applyEdgeResize(sizing, column.id, amount, {
+      min: column.min,
+      max: column.max,
+    });
+  }
+  return growFromChain(sizing, leftDonors[0], [column, ...leftDonors.slice(1)], -amount);
+}
+
+/** Pointer drag for the last resizable column's trailing edge — sum conserved. */
+export function startTrailingEdgeColumnResize(options: {
+  event: ReactPointerEvent<HTMLElement>;
+  column: DonorColumn;
+  leftDonors: DonorColumn[];
+  startSizing: ColumnSizingState;
+  direction: "ltr" | "rtl";
+  onChange: (sizing: ColumnSizingState) => void;
+  onEnd?: () => void;
+}): void {
+  const { event, column, leftDonors, startSizing, direction, onChange, onEnd } = options;
+  const startClientX = event.clientX;
+
+  startPointerColumnDrag(
+    event,
+    (clientX) => {
+      const rawDelta = clientX - startClientX;
+      const delta = Math.round(direction === "rtl" ? -rawDelta : rawDelta);
+      onChange(applyTrailingEdgeResize(startSizing, column, leftDonors, delta));
+    },
+    onEnd
+  );
+}
+
+/**
  * Pointer drag that resizes a single column's own width (no neighbor pairing).
- * Used for the trailing edge of the last resizable column, where there is no
- * resizable column to its right to borrow space from/give space to.
+ * Prefer `startTrailingEdgeColumnResize` when the table must stay full-width.
  */
 export function startEdgeColumnResize(options: {
   event: ReactPointerEvent<HTMLElement>;
