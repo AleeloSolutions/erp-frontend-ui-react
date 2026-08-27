@@ -75,17 +75,17 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           />
           <span
             className={cn(
-              "pointer-events-none absolute inset-0 rounded-[4px] border border-erp-table-border bg-erp-table-bg",
+              "pointer-events-none absolute inset-0 rounded-[4px] border border-erp-checkbox-border bg-erp-table-bg",
               "transition-[border-color,background-color,box-shadow] duration-150 ease-out",
               "peer-hover:border-erp-brand-third",
               "peer-checked:border-erp-brand-third peer-checked:bg-erp-brand-third",
               "group-data-[indeterminate]/cb:border-erp-brand-third group-data-[indeterminate]/cb:bg-erp-brand-third",
               "group-data-[active]/cb:border-erp-brand-third",
               hasHalo && [
-                "peer-hover:shadow-[0_0_0_4px_var(--primary-50)]",
-                "peer-checked:shadow-[0_0_0_4px_var(--primary-50)]",
-                "group-data-[indeterminate]/cb:shadow-[0_0_0_4px_var(--primary-50)]",
-                "group-data-[active]/cb:shadow-[0_0_0_4px_var(--primary-50)]",
+                "peer-hover:shadow-[0_0_0_4px_var(--brand-third-halo)]",
+                "peer-checked:shadow-[0_0_0_4px_var(--brand-third-halo)]",
+                "group-data-[indeterminate]/cb:shadow-[0_0_0_4px_var(--brand-third-halo)]",
+                "group-data-[active]/cb:shadow-[0_0_0_4px_var(--brand-third-halo)]",
               ],
               "peer-focus-visible:ring-2 peer-focus-visible:ring-erp-primary/20"
             )}

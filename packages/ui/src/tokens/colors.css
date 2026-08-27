@@ -4,9 +4,10 @@
   --brand-primary-hover: #c24316;
   --brand-secondary: #e7e9ed;
   --brand-secondary-hover: #d8dadd;
-  --brand-third: #00327d;
-  --brand-third-overlay: #dde0eb;
-  --brand-third-halo: #92b5ef;
+  --brand-third: #2563eb;
+  --brand-third-overlay: #eff6ff;
+  --brand-third-halo: rgba(37, 99, 235, 0.2);
+  --checkbox-border: #bfdbfe;
 
   /* Primitive palette — aligned to brand */
   --nav: var(--brand-primary);
@@ -39,7 +40,12 @@
   --table-even-hover: rgba(0, 0, 0, 0.06);
   --table-selected: #faede7;
   --table-active: #fdf5f1;
-  --table-checked-active: rgba(0, 0, 0, 0.1); /* checked active for the checkbox */
+  --table-checked-active: rgba(
+    37,
+    99,
+    235,
+    0.08
+  ); /* checked active for the checkbox — blue-tinted to match --brand-third */
   --menu-hover: rgba(0, 0, 0, 0.08);
   --favourite: #e4a900;
   --text: #1f2937;
