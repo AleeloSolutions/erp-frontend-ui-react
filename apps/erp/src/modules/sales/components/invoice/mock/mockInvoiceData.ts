@@ -48,3 +48,12 @@ export const mockInvoiceData: InvoiceData = {
   items,
   totals: computeInvoiceTotals(items, "Sh."),
 };
+
+/** Shorter sample for document-layout modal preview — four readable line items. */
+const previewItems = items.slice(0, 4);
+
+export const mockInvoicePreviewData: InvoiceData = {
+  ...mockInvoiceData,
+  items: previewItems,
+  totals: computeInvoiceTotals(previewItems, "Sh."),
+};

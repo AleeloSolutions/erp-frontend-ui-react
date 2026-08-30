@@ -1,1 +1,1 @@
-export { Tabs, type TabsProps, type TabItem } from "./Tabs";
+export { Tabs, type TabsProps, type TabItem, type TabsAlign } from "./Tabs";

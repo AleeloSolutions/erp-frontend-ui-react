@@ -67,7 +67,7 @@ export default function CustomersPage() {
         cell: ({ row, getValue }) => (
           <button
             type="button"
-            className="font-bold text-erp-brand-third hover:underline"
+            className=" text-erp-brand-third hover:underline"
             onClick={() => setDetailCustomer(row.original)}
           >
             {String(getValue())}

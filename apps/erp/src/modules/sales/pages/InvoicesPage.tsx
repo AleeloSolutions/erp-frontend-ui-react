@@ -11,6 +11,7 @@ import { useDebounce } from "@erp/ui";
 import type { Invoice, InvoiceStatus } from "@/modules/sales/api";
 import type { DataTableFilter, DataTableFilterValues } from "@erp/ui";
 import { MockApiError } from "@/lib/mock";
+import { draftRowClassNameWhen } from "@/modules/sales/lib/draftRowClassName";
 
 const STATUS_OPTIONS: InvoiceStatus[] = ["Draft", "Posted"];
 
@@ -67,7 +68,7 @@ export default function InvoicesPage() {
         cell: ({ row, getValue }) => (
           <button
             type="button"
-            className="font-bold text-erp-primary hover:underline"
+            className="hover:underline"
             onClick={() => setDetailInvoice(row.original)}
           >
             {String(getValue())}
@@ -198,6 +199,7 @@ export default function InvoicesPage() {
             : null
         }
         getRowId={(row) => row.id}
+        getRowClassName={(invoice) => draftRowClassNameWhen(invoice.status)}
         pagination={{
           page,
           pageSize,

@@ -1,0 +1,101 @@
+import { useState } from "react";
+
+import { AppShell, useNavbarDefaults } from "@/app";
+
+import { Tabs } from "@erp/ui";
+
+import { DocumentLayoutModal } from "./components/DocumentLayoutModal";
+
+import { SettingsTabPanel } from "./components/SettingsTabPanels";
+
+import { SETTINGS_TABS, type SettingsTabKey } from "./settingsTabs";
+
+import { detailViewTab, type SettingsDetailView } from "./settingsViews";
+
+export type { SettingsTabKey } from "./settingsTabs";
+
+export type { SettingsDetailView } from "./settingsViews";
+
+export interface SettingsPageProps {
+  /** Storybook / tests only — production route always opens Users first. */
+
+  defaultTab?: SettingsTabKey;
+
+  defaultDetailView?: SettingsDetailView | null;
+
+  defaultDocumentLayoutOpen?: boolean;
+}
+
+export default function SettingsPage({
+  defaultTab = "users",
+
+  defaultDetailView = null,
+
+  defaultDocumentLayoutOpen = false,
+}: SettingsPageProps) {
+  const navbar = useNavbarDefaults({ brandLabel: "Settings" });
+
+  const [activeTab, setActiveTab] = useState<SettingsTabKey>(defaultTab);
+
+  const [detailView, setDetailView] = useState<SettingsDetailView | null>(
+    defaultDetailView
+  );
+
+  const [documentLayoutOpen, setDocumentLayoutOpen] = useState(defaultDocumentLayoutOpen);
+
+  function handleTabChange(key: SettingsTabKey) {
+    setActiveTab(key);
+
+    setDetailView(null);
+
+    setDocumentLayoutOpen(false);
+  }
+
+  function openDetail(view: SettingsDetailView) {
+    setActiveTab(detailViewTab(view));
+
+    setDetailView(view);
+  }
+
+  function handleBack() {
+    setDetailView(null);
+  }
+
+  function openDocumentLayout() {
+    setDocumentLayoutOpen(true);
+  }
+
+  function closeDocumentLayout() {
+    setDocumentLayoutOpen(false);
+  }
+
+  return (
+    <AppShell activeNavKey="settings" activeMobileKey="more" navbar={navbar}>
+      <Tabs
+        align="container"
+
+        items={SETTINGS_TABS}
+
+        activeKey={activeTab}
+
+        onChange={(key) => handleTabChange(key as SettingsTabKey)}
+
+        aria-label="Settings sections"
+      />
+
+      <SettingsTabPanel
+        activeTab={activeTab}
+
+        detailView={detailView}
+
+        onOpenDetail={openDetail}
+
+        onOpenDocumentLayout={openDocumentLayout}
+
+        onBack={handleBack}
+      />
+
+      <DocumentLayoutModal open={documentLayoutOpen} onClose={closeDocumentLayout} />
+    </AppShell>
+  );
+}

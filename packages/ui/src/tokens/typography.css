@@ -1,5 +1,5 @@
 :root {
-  --font-inter: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-inter: system-ui, -apple-system, "Segoe UI", sans-serif;
   /** App base text size — set once here, cascades to <body> and to the
    * Tailwind `text-base` utility (see the `--text-base` mapping in
    * tokens/index.css) so both "just inherit" and "opt into it explicitly"

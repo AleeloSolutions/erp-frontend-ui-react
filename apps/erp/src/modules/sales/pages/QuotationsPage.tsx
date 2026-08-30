@@ -11,6 +11,7 @@ import { useDebounce } from "@erp/ui";
 import type { Quotation, QuotationStatus } from "@/modules/sales/api";
 import type { DataTableFilter, DataTableFilterValues } from "@erp/ui";
 import { MockApiError } from "@/lib/mock";
+import { draftRowClassNameWhen } from "@/modules/sales/lib/draftRowClassName";
 
 const STATUS_OPTIONS: QuotationStatus[] = ["Draft", "Pending", "Approved"];
 
@@ -67,7 +68,7 @@ export default function QuotationsPage() {
         cell: ({ row, getValue }) => (
           <button
             type="button"
-            className="font-bold text-erp-primary hover:underline"
+            className="hover:underline"
             onClick={() => setDetailQuotation(row.original)}
           >
             {String(getValue())}
@@ -197,6 +198,7 @@ export default function QuotationsPage() {
             : null
         }
         getRowId={(row) => row.id}
+        getRowClassName={(quotation) => draftRowClassNameWhen(quotation.status)}
         pagination={{
           page,
           pageSize,

@@ -11,6 +11,7 @@ import { useDebounce } from "@erp/ui";
 import type { Contract } from "@/modules/sales/api";
 import type { DataTableFilter, DataTableFilterValues } from "@erp/ui";
 import { MockApiError } from "@/lib/mock";
+import { draftRowClassNameWhen } from "@/modules/sales/lib/draftRowClassName";
 
 export default function ContractsPage() {
   const navigate = useNavigate();
@@ -70,7 +71,7 @@ export default function ContractsPage() {
         cell: ({ row, getValue }) => (
           <button
             type="button"
-            className="font-bold text-erp-primary hover:underline"
+            className="hover:underline"
             onClick={() => setDetailContract(row.original)}
           >
             {String(getValue())}
@@ -194,6 +195,7 @@ export default function ContractsPage() {
             : null
         }
         getRowId={(row) => row.id}
+        getRowClassName={(contract) => draftRowClassNameWhen(contract.status)}
         pagination={{
           page,
           pageSize,

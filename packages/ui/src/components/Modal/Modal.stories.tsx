@@ -70,3 +70,21 @@ export const Medium: Story = {
 export const Large: Story = {
   render: () => <ModalDemo size="lg" initiallyOpen />,
 };
+
+export const Fullscreen: Story = {
+  render: function FullscreenModal() {
+    const [open, setOpen] = useState(true);
+    return (
+      <>
+        <Button variant="primary" onClick={() => setOpen(true)}>
+          Open fullscreen modal
+        </Button>
+        <Modal open={open} onClose={() => setOpen(false)} size="fullscreen">
+          <div className="grid h-full place-items-center bg-erp-bg text-sm text-erp-muted">
+            Fullscreen modal content
+          </div>
+        </Modal>
+      </>
+    );
+  },
+};

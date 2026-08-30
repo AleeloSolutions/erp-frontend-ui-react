@@ -1,4 +1,11 @@
-import { LayoutDashboard, BarChart3, Home, ListTodo, MoreHorizontal } from "lucide-react";
+import {
+  LayoutDashboard,
+  BarChart3,
+  Home,
+  ListTodo,
+  MoreHorizontal,
+  Settings,
+} from "lucide-react";
 import type { MobileNavItem, NavigationItem } from "@erp/ui";
 // import { inventoryManifest } from "@/modules/inventory/manifest";
 import { salesManifest } from "@/modules/sales/manifest";
@@ -18,6 +25,12 @@ export const coreNavigation: NavigationItem[] = [
   },
   salesManifest.nav,
   reportsManifest.nav,
+  {
+    key: "settings",
+    label: "Settings",
+    icon: Settings,
+    href: "/settings",
+  },
 ];
 
 export const navigation: NavigationItem[] = coreNavigation;

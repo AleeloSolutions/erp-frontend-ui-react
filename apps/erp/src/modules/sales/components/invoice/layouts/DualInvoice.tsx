@@ -30,7 +30,8 @@ export function DualInvoice({ data, settings }: DualInvoiceProps) {
   const logoUrl = settings.logoUrl ?? data.company.logoUrl;
   const address = settings.address || data.company.address;
   const accountNumber = settings.bankAccount || data.invoice.accountNumber;
-  const companyName = settings.tagline || data.company.name;
+  const companyName = data.company.name;
+  const tagline = settings.tagline?.trim();
   const Table = tableStyles[settings.tableStyle].component;
 
   return (
@@ -50,7 +51,7 @@ export function DualInvoice({ data, settings }: DualInvoiceProps) {
       <div className="relative flex min-w-0 flex-1 flex-col px-11 pb-5 pt-6 print:px-8">
         <InvoiceFold />
 
-        <div className="relative z-[2] flex items-center gap-3">
+        <div className="relative z-[2] flex flex-col items-start gap-2">
           <InvoiceLogoBadge
             logoUrl={logoUrl}
             initials={companyInitials(data.company.name)}
@@ -62,6 +63,14 @@ export function DualInvoice({ data, settings }: DualInvoiceProps) {
             >
               {companyName}
             </div>
+            {tagline ? (
+              <div
+                className="truncate text-[11px]"
+                style={{ color: "var(--ls-ink-soft)" }}
+              >
+                {tagline}
+              </div>
+            ) : null}
           </div>
         </div>
 

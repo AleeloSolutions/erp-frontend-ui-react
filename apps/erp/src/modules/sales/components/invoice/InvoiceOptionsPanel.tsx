@@ -11,6 +11,11 @@ export interface InvoiceOptionsPanelProps {
   onUpdate: <K extends keyof InvoiceSettings>(key: K, value: InvoiceSettings[K]) => void;
   onContinue: () => void;
   onDiscard: () => void;
+  showHeader?: boolean;
+  showActions?: boolean;
+  /** When false, panel grows with content (parent provides scroll). */
+  scrollable?: boolean;
+  className?: string;
 }
 
 const fontOptions = [
@@ -26,7 +31,7 @@ function SectionLabel({ children, first }: { children: ReactNode; first?: boolea
     <div
       className={cn(
         "text-[10.5px] font-semibold uppercase tracking-[.08em]",
-        first ? "mb-2.5 mt-0" : "mb-2.5 mt-5"
+        first ? "mb-1.5 mt-0" : " mt-3.5"
       )}
       style={{ color: "var(--ls-ink-soft)" }}
     >
@@ -163,6 +168,10 @@ export function InvoiceOptionsPanel({
   onUpdate,
   onContinue,
   onDiscard,
+  showHeader = true,
+  showActions = true,
+  scrollable = true,
+  className,
 }: InvoiceOptionsPanelProps) {
   const [logoPreview, setLogoPreview] = useState<string | undefined>(settings.logoUrl);
 
@@ -181,24 +190,37 @@ export function InvoiceOptionsPanel({
 
   return (
     <div
-      className="flex h-full w-[300px] shrink-0 flex-col border-r bg-white print:hidden"
+      className={cn(
+        "flex shrink-0 flex-col border-r bg-white print:hidden",
+        scrollable ? "h-full min-h-0 w-[300px]" : "h-auto",
+        className
+      )}
       style={{ borderColor: "var(--ls-line)" }}
     >
-      <div className="flex-1 overflow-y-auto px-[22px] py-6">
-        <div
-          className="text-[15px] font-semibold"
-          style={{ fontFamily: FRAUNCES, color: "var(--ls-ink)" }}
-        >
-          Document Layout
-        </div>
-        <p
-          className="mt-0.5 text-[11.5px] leading-relaxed"
-          style={{ color: "var(--ls-ink-soft)" }}
-        >
-          Change anything below and the preview updates live.
-        </p>
+      <div
+        className={cn(
+          "px-[22px] py-6",
+          scrollable && "min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]"
+        )}
+      >
+        {showHeader ? (
+          <>
+            <div
+              className="text-[15px] font-semibold"
+              style={{ fontFamily: FRAUNCES, color: "var(--ls-ink)" }}
+            >
+              Document Layout
+            </div>
+            <p
+              className="mt-0.5 text-[11.5px] leading-relaxed"
+              style={{ color: "var(--ls-ink-soft)" }}
+            >
+              Change anything below and the preview updates live.
+            </p>
+          </>
+        ) : null}
 
-        <SectionLabel first>Layout</SectionLabel>
+        <SectionLabel first={!showHeader}>Layout</SectionLabel>
         <div className="flex flex-wrap gap-2">
           {(Object.keys(invoiceLayouts) as LayoutKey[]).map((key) => (
             <ThumbnailButton
@@ -327,24 +349,23 @@ export function InvoiceOptionsPanel({
         <SectionLabel>Address</SectionLabel>
         <Textarea
           autoGrow
+          className="w-full"
           value={settings.address ?? ""}
           onChange={(e) => onUpdate("address", e.target.value)}
-          placeholder="Shown in the document header — supports multiple lines"
         />
 
-        <SectionLabel>Company Name</SectionLabel>
+        <SectionLabel>Tagline</SectionLabel>
         <Input
+          className="w-full"
           value={settings.tagline ?? ""}
           onChange={(e) => onUpdate("tagline", e.target.value)}
-          placeholder="Replaces your company name when set"
-          style={{ color: "var(--ls-ink-soft)" }}
         />
 
         <SectionLabel>Footer</SectionLabel>
         <Input
+          className="w-full"
           value={settings.footerText ?? ""}
           onChange={(e) => onUpdate("footerText", e.target.value)}
-          placeholder="Shown at the bottom of every page"
         />
 
         <SectionLabel>Paper format</SectionLabel>
@@ -361,16 +382,16 @@ export function InvoiceOptionsPanel({
 
         <SectionLabel>Tax ID</SectionLabel>
         <Input
+          className="w-full"
           value={settings.taxId ?? ""}
           onChange={(e) => onUpdate("taxId", e.target.value)}
-          placeholder="Your company's tax identification number"
         />
 
         <SectionLabel>Bank account</SectionLabel>
         <Input
+          className="w-full"
           value={settings.bankAccount ?? ""}
           onChange={(e) => onUpdate("bankAccount", e.target.value)}
-          placeholder="Default account for payment instructions"
         />
 
         <div className="mt-5">
@@ -382,17 +403,19 @@ export function InvoiceOptionsPanel({
         </div>
       </div>
 
-      <div
-        className="flex gap-2 border-t px-[22px] py-3"
-        style={{ borderColor: "var(--ls-line)" }}
-      >
-        <Button variant="primary" size="sm" onClick={onContinue} className="flex-1">
-          Continue
-        </Button>
-        <Button variant="secondary" size="sm" onClick={onDiscard} className="flex-1">
-          Discard
-        </Button>
-      </div>
+      {showActions ? (
+        <div
+          className="flex gap-2 border-t px-[22px] py-3"
+          style={{ borderColor: "var(--ls-line)" }}
+        >
+          <Button variant="primary" size="sm" onClick={onContinue} className="flex-1">
+            Continue
+          </Button>
+          <Button variant="secondary" size="sm" onClick={onDiscard} className="flex-1">
+            Discard
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

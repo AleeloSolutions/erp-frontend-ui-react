@@ -29,6 +29,32 @@ export const Interactive: Story = {
   },
 };
 
+export const ContainerAligned: Story = {
+  decorators: [
+    (Story) => (
+      <div className="max-w-3xl border border-erp-border bg-white">
+        <Story />
+      </div>
+    ),
+  ],
+  args: {
+    align: "container",
+  },
+};
+
+export const BleedAligned: Story = {
+  decorators: [
+    (Story) => (
+      <div className="max-w-3xl border border-erp-border bg-white px-12">
+        <Story />
+      </div>
+    ),
+  ],
+  args: {
+    align: "bleed",
+  },
+};
+
 export const WithDisabled: Story = {
   args: {
     items: [...demoItems, { key: "locked", label: "Locked", disabled: true }],

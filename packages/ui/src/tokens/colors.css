@@ -4,7 +4,7 @@
   --brand-primary-hover: #c24316;
   --brand-secondary: #e7e9ed;
   --brand-secondary-hover: #d8dadd;
-  --brand-third: #2563eb;
+  --brand-third: #03396c;
   --brand-third-overlay: #eff6ff;
   --brand-third-halo: rgba(37, 99, 235, 0.2);
   --checkbox-border: #bfdbfe;
@@ -74,7 +74,8 @@
   --info-border: var(--blue-100);
   --purple: #6d28d9;
   --purple-bg: #f3e8ff;
-  --input-border: #d7e1eb;
+  --input-border: #cbe0fa;
+  --input-border-focus: #2563eb;
   --focus-ring: #e8cfc6;
   --overlay: rgba(90, 28, 13, 0.45);
   --shadow-color: 90, 28, 13;

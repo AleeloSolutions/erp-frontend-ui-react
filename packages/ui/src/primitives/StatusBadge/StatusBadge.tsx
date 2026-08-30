@@ -43,6 +43,7 @@ function resolveStatus(status: string): StatusVariant {
   if (value.includes("paid")) return "paid";
   if (value.includes("pending")) return "pending";
   if (value.includes("approved")) return "approved";
+  if (value.includes("posted")) return "approved";
   if (value.includes("overdue")) return "overdue";
   if (value.includes("draft")) return "draft";
   if (value.includes("inactive")) return "inactive";

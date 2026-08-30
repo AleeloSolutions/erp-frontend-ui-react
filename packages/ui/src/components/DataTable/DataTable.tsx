@@ -115,6 +115,8 @@ export interface DataTableProps<TData, TValue = unknown> {
    */
   filtering?: DataTableFilteringConfig;
   className?: string;
+  /** Optional per-row `<tr>` classes (e.g. status text color on all cells). */
+  getRowClassName?: (row: TData) => string | undefined;
   /**
    * Render-prop that receives pre-built toolbar nodes. The page places these
    * inside a ControlPanel or any layout it wants. When omitted, no toolbar is
@@ -176,6 +178,7 @@ export function DataTable<TData, TValue = unknown>({
   sorting: controlledSorting,
   filtering: controlledFiltering,
   className,
+  getRowClassName,
   renderToolbar,
 }: DataTableProps<TData, TValue>) {
   const isServerPagination = typeof pagination === "object";
@@ -795,6 +798,7 @@ export function DataTable<TData, TValue = unknown>({
                   groupingColumnIds={grouping}
                   activeRowId={activeRowId}
                   onClearActiveRow={() => setActiveRowId(null)}
+                  getRowClassName={getRowClassName}
                 />
               </table>
             </div>

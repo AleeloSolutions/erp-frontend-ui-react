@@ -76,7 +76,7 @@ export function fieldChromeClasses({
     !isTick && "bg-transparent",
     "text-erp-text",
     "border-0 border-solid border-b border-t-0",
-    !isTick && (isCell ? "border-b-transparent" : "border-b-erp-border-soft"),
+    !isTick && (isCell ? "border-b-transparent" : "border-b-erp-input-border"),
     isTick && "erp-field-tick",
     isTick && (isEnd ? "erp-field-tick-end" : "erp-field-tick-start"),
     "placeholder:text-erp-placeholder placeholder:opacity-100",
@@ -86,42 +86,42 @@ export function fieldChromeClasses({
     !edge && "rounded-none border-e-0 border-s-0",
     isCorner && isEnd && "rounded-none rounded-ee-[2px] hover:rounded-ee-[3px]",
     isCorner && !isEnd && "rounded-none rounded-es-[2px] hover:rounded-es-[3px]",
-    isCorner && isEnd && "border-e border-s-0 border-e-erp-border-soft",
-    isCorner && !isEnd && "border-s border-e-0 border-s-erp-border-soft",
+    isCorner && isEnd && "border-e border-s-0 border-e-erp-input-border",
+    isCorner && !isEnd && "border-s border-e-0 border-s-erp-input-border",
     isTick && within && "erp-field-tick-within",
     isTick && active && "erp-field-tick-active",
     isTick && error && "erp-field-tick-error",
-    !error && !isTick && "hover:border-b-erp-border-strong",
-    isCorner && isEnd && !error && "hover:border-e-erp-border-strong",
-    isCorner && !isEnd && !error && "hover:border-s-erp-border-strong",
+    !error && !isTick && "hover:border-b-erp-input-border-focus",
+    isCorner && isEnd && !error && "hover:border-e-erp-input-border-focus",
+    isCorner && !isEnd && !error && "hover:border-s-erp-input-border-focus",
     !error &&
       !isTick &&
       !within &&
-      "focus:border-b-erp-primary focus-visible:border-b-erp-primary focus:hover:border-b-erp-primary",
+      "focus:border-b-erp-input-border-focus focus-visible:border-b-erp-input-border-focus focus:hover:border-b-erp-input-border-focus",
     !error &&
       !isTick &&
       within &&
-      "focus-within:border-b-erp-primary focus-within:hover:border-b-erp-primary",
+      "focus-within:border-b-erp-input-border-focus focus-within:hover:border-b-erp-input-border-focus",
     isCorner &&
       isEnd &&
       !error &&
       !within &&
-      "focus:border-e-erp-primary focus-visible:border-e-erp-primary focus:hover:border-e-erp-primary",
+      "focus:border-e-erp-input-border-focus focus-visible:border-e-erp-input-border-focus focus:hover:border-e-erp-input-border-focus",
     isCorner &&
       !isEnd &&
       !error &&
       !within &&
-      "focus:border-s-erp-primary focus-visible:border-s-erp-primary focus:hover:border-s-erp-primary",
+      "focus:border-s-erp-input-border-focus focus-visible:border-s-erp-input-border-focus focus:hover:border-s-erp-input-border-focus",
     isCorner &&
       isEnd &&
       !error &&
       within &&
-      "focus-within:border-e-erp-primary focus-within:hover:border-e-erp-primary",
+      "focus-within:border-e-erp-input-border-focus focus-within:hover:border-e-erp-input-border-focus",
     isCorner &&
       !isEnd &&
       !error &&
       within &&
-      "focus-within:border-s-erp-primary focus-within:hover:border-s-erp-primary",
+      "focus-within:border-s-erp-input-border-focus focus-within:hover:border-s-erp-input-border-focus",
     isCorner &&
       isEnd &&
       !within &&
@@ -136,13 +136,13 @@ export function fieldChromeClasses({
       !error &&
       !isTick &&
       cn(
-        "border-b-erp-primary hover:border-b-erp-primary",
+        "border-b-erp-input-border-focus hover:border-b-erp-input-border-focus",
         isCorner &&
           isEnd &&
-          "rounded-ee-[3px] border-e-erp-primary hover:border-e-erp-primary",
+          "rounded-ee-[3px] border-e-erp-input-border-focus hover:border-e-erp-input-border-focus",
         isCorner &&
           !isEnd &&
-          "rounded-es-[3px] border-s-erp-primary hover:border-s-erp-primary"
+          "rounded-es-[3px] border-s-erp-input-border-focus hover:border-s-erp-input-border-focus"
       ),
     active &&
       error &&
@@ -153,7 +153,7 @@ export function fieldChromeClasses({
         isCorner && !isEnd && "rounded-es-[3px] border-s-erp-error"
       ),
     "disabled:cursor-not-allowed disabled:opacity-60",
-    !isTick && "disabled:hover:border-b-erp-border-strong",
+    !isTick && "disabled:hover:border-b-erp-input-border",
     disabled && "cursor-not-allowed opacity-60",
     error &&
       !isTick &&

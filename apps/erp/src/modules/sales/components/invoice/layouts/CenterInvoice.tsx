@@ -102,7 +102,8 @@ export function CenterInvoice({ data, settings }: CenterInvoiceProps) {
   const logoUrl = settings.logoUrl ?? data.company.logoUrl;
   const address = settings.address || data.company.address;
   const accountNumber = settings.bankAccount || data.invoice.accountNumber;
-  const companyName = settings.tagline || data.company.name;
+  const companyName = data.company.name;
+  const tagline = settings.tagline?.trim();
   const Table = tableStyles[settings.tableStyle].component;
 
   return (
@@ -119,7 +120,7 @@ export function CenterInvoice({ data, settings }: CenterInvoiceProps) {
       {/* border-bottom: 2px solid var(--brand-primary); */}
       <div className="flex min-w-0 flex-1 flex-col px-11 pb-2 pt-8 print:px-8">
         <div className="flex items-start justify-between gap-4 pb-5 border-b-[2px] border-erp-primary">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 flex-col items-start gap-2">
             <InvoiceLogoBadge
               logoUrl={logoUrl}
               initials={companyInitials(data.company.name)}
@@ -131,6 +132,14 @@ export function CenterInvoice({ data, settings }: CenterInvoiceProps) {
               >
                 {companyName}
               </div>
+              {tagline ? (
+                <div
+                  className="truncate text-[11px]"
+                  style={{ color: "var(--ls-ink-soft)" }}
+                >
+                  {tagline}
+                </div>
+              ) : null}
             </div>
           </div>
           <div className="shrink-0 text-right">

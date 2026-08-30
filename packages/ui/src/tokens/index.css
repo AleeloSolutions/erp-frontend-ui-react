@@ -63,6 +63,7 @@
   --color-erp-purple: var(--purple);
   --color-erp-purple-bg: var(--purple-bg);
   --color-erp-input-border: var(--input-border);
+  --color-erp-input-border-focus: var(--input-border-focus);
   --color-erp-focus: var(--focus-ring);
   --color-erp-overlay: var(--overlay);
   --color-erp-primary: var(--primary-hover);
@@ -179,7 +180,7 @@ button {
  * Three layers: bottom bar, tick stem, corner arc. All use --field-line.
  */
 .erp-field-tick {
-  --field-line: var(--border-soft);
+  --field-line: var(--input-border);
   --field-tick-w: 1px;
   --field-tick-r: 4px;
   background-color: transparent;
@@ -234,20 +235,20 @@ button {
 }
 
 .erp-field-tick:hover:not(:disabled):not(.erp-field-tick-error) {
-  --field-line: var(--border-strong);
+  --field-line: var(--input-border-focus);
 }
 
 .erp-field-tick:not(.erp-field-tick-within):not(.erp-field-tick-error):focus,
 .erp-field-tick:not(.erp-field-tick-within):not(.erp-field-tick-error):focus-visible {
-  --field-line: var(--color-erp-primary);
+  --field-line: var(--input-border-focus);
 }
 
 .erp-field-tick-within:not(.erp-field-tick-error):focus-within {
-  --field-line: var(--color-erp-primary);
+  --field-line: var(--input-border-focus);
 }
 
 .erp-field-tick-active:not(.erp-field-tick-error) {
-  --field-line: var(--color-erp-primary);
+  --field-line: var(--input-border-focus);
 }
 
 .erp-field-tick-error {

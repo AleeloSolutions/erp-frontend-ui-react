@@ -1,0 +1,440 @@
+/**
+ * Trial page — Odoo trial picker layout using ERP design tokens.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap");
+
+.trial-display-title {
+  font-family: Caveat, cursive;
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.trial-category-title {
+  font-family: Caveat, cursive;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.trial-highlight {
+  position: relative;
+  z-index: 0;
+  white-space: nowrap;
+}
+
+.trial-highlight::before {
+  content: "";
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  bottom: 0.05em;
+  height: 0.35em;
+  background: var(--teal);
+  border-radius: 0.5em 0.35em 0.55em 0.4em;
+  transform: rotate(-1deg);
+  z-index: -1;
+  opacity: 0.9;
+}
+
+.trial-highlight-started::before {
+  background: var(--favourite);
+}
+
+.trial-app-card {
+  position: relative;
+  border: 1px solid var(--border-soft);
+  background: var(--table-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.trial-app-card:hover {
+  border-color: var(--border-control);
+  box-shadow: var(--shadow-md);
+}
+
+.trial-app-card.is-selected {
+  border: 2px solid var(--primary);
+  background: var(--table-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.trial-app-check {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+  display: grid;
+  height: 1.375rem;
+  width: 1.375rem;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-sm);
+}
+
+.trial-app-mark {
+  display: grid;
+  height: 2rem;
+  width: 2rem;
+  flex-shrink: 0;
+  place-items: center;
+}
+
+.trial-app-mark .app-mark {
+  transform: scale(0.55);
+  transform-origin: center;
+}
+
+.trial-sidebar-panel {
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.trial-sidebar-promo {
+  border-radius: var(--radius-sm);
+  background: var(--accent-teal-bg);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.45;
+  padding: 0.75rem 1rem;
+  text-align: center;
+}
+
+/* Step 2 — Odoo-style floating labels (trial-only; not shared @erp/ui fields) */
+.trial-step2-summary {
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.trial-step2-app-icon {
+  display: grid;
+  height: 2.5rem;
+  width: 2.5rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--table-bg);
+  padding: 0.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.trial-step2-app-icon .app-mark {
+  transform: scale(0.7);
+  transform-origin: center;
+}
+
+.trial-step2-change-btn {
+  cursor: pointer;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--table-bg);
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.trial-step2-change-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-control);
+}
+
+.trial-start-form-section {
+  background-color: #f3f4f6;
+}
+
+/* Step 2 — Bootstrap form-floating (Odoo trial signup; trial-only) */
+.trial-start-form .trial-form-floating {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.trial-start-form .trial-form-floating > .trial-form-control,
+.trial-start-form .trial-form-floating > .trial-form-select {
+  display: block;
+  width: 100%;
+  height: calc(3.5rem + 2px);
+  min-height: calc(3.5rem + 2px);
+  padding: 1rem 0.75rem;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background-color: var(--table-bg);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.25;
+  appearance: none;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.trial-start-form .trial-form-floating > .trial-form-control:hover,
+.trial-start-form .trial-form-floating > .trial-form-select:hover {
+  border-bottom-color: var(--nav);
+}
+
+.trial-start-form .trial-form-floating > .trial-form-control:focus,
+.trial-start-form .trial-form-floating > .trial-form-select:focus,
+.trial-start-form .trial-form-floating > .trial-form-control:focus-visible,
+.trial-start-form .trial-form-floating > .trial-form-select:focus-visible {
+  border-bottom-color: var(--nav-hover);
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+.trial-start-form .trial-form-floating > .trial-form-control:focus,
+.trial-start-form .trial-form-floating > .trial-form-control:not(:placeholder-shown),
+.trial-start-form .trial-form-floating > .trial-form-control:-webkit-autofill {
+  padding-top: 1.625rem;
+  padding-bottom: 0.625rem;
+}
+
+.trial-start-form .trial-form-floating > .trial-form-select {
+  padding-top: 1.625rem;
+  padding-bottom: 0.625rem;
+  padding-inline-end: 2.25rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+}
+
+.trial-start-form .trial-form-floating > .trial-form-control::placeholder {
+  color: transparent;
+}
+
+.trial-start-form .trial-form-floating > label {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 2;
+  height: 100%;
+  padding: 1rem 0.75rem;
+  overflow: hidden;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  border: 1px solid transparent;
+  transform-origin: 0 0;
+  transition:
+    opacity 0.1s ease-in-out,
+    transform 0.1s ease-in-out;
+  color: #6c757d;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.trial-start-form .trial-form-floating > .trial-form-control:focus ~ label,
+.trial-start-form
+  .trial-form-floating
+  > .trial-form-control:not(:placeholder-shown)
+  ~ label,
+.trial-start-form .trial-form-floating > .trial-form-select ~ label {
+  color: #6c757d;
+  opacity: 0.85;
+  transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+}
+
+.trial-start-form .trial-form-floating > .trial-form-control:-webkit-autofill {
+  -webkit-text-fill-color: var(--text);
+  box-shadow: 0 0 0 1000px var(--table-bg) inset !important;
+  transition: background-color 9999s ease-out 0s;
+}
+
+.trial-start-form .trial-form-floating > .trial-form-control:-webkit-autofill ~ label {
+  color: #6c757d;
+  opacity: 0.85;
+  transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+}
+
+.trial-agreement-link {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.trial-agreement-link:hover {
+  color: var(--primary-hover);
+}
+
+/* Extra icon marks for trial catalog */
+.mark-website::before,
+.mark-commerce::before,
+.mark-discuss::before,
+.mark-knowledge::before,
+.mark-sales::before,
+.mark-pos::before,
+.mark-subscriptions::before,
+.mark-sign::before,
+.mark-timesheets::before,
+.mark-field::before,
+.mark-helpdesk::before,
+.mark-calendar::before,
+.mark-planning::before,
+.mark-manufacturing::before,
+.mark-purchase::before,
+.mark-maintenance::before,
+.mark-quality::before,
+.mark-repair::before,
+.mark-email::before,
+.mark-social::before,
+.mark-hr::before,
+.mark-fleet::before,
+.mark-studio::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: var(--radius-sm);
+  transform: rotate(-8deg);
+}
+
+.mark-website::before {
+  background: linear-gradient(25deg, var(--brand-third) 48%, var(--teal) 49%);
+  border-radius: 50%;
+}
+
+.mark-commerce::before {
+  background: var(--primary);
+  border-radius: 8px 8px 18px 18px;
+}
+
+.mark-discuss::before {
+  background: var(--primary-hover);
+  border-radius: 50% 50% 50% 6px;
+}
+
+.mark-knowledge::before {
+  background: linear-gradient(140deg, var(--teal) 48%, var(--primary) 49%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+}
+
+.mark-sales::before {
+  background: linear-gradient(90deg, var(--primary) 40%, var(--favourite) 41%);
+}
+
+.mark-pos::before {
+  background: linear-gradient(
+    90deg,
+    var(--favourite) 30%,
+    var(--primary) 30% 65%,
+    var(--primary-hover) 65%
+  );
+}
+
+.mark-subscriptions::before {
+  background: conic-gradient(var(--teal) 0 70%, var(--favourite) 0);
+  border-radius: 50%;
+}
+
+.mark-sign::before {
+  background: var(--brand-third);
+  clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%);
+}
+
+.mark-timesheets::before {
+  background: var(--brand-third);
+  border-radius: 50%;
+  box-shadow: 9px -4px 0 var(--teal);
+}
+
+.mark-field::before {
+  background: linear-gradient(140deg, var(--primary) 48%, var(--favourite) 49%);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.mark-helpdesk::before {
+  background: var(--teal);
+  border-radius: 50% 50% 6px 50%;
+}
+
+.mark-calendar::before {
+  background: linear-gradient(
+    var(--primary) 35%,
+    var(--surface) 36% 44%,
+    var(--primary) 45%
+  );
+  border-radius: 4px;
+}
+
+.mark-planning::before {
+  background: repeating-linear-gradient(90deg, var(--teal) 0 4px, transparent 4px 8px);
+}
+
+.mark-manufacturing::before {
+  background: linear-gradient(
+    90deg,
+    var(--teal) 45%,
+    var(--primary-hover) 46% 72%,
+    var(--favourite) 73%
+  );
+}
+
+.mark-purchase::before {
+  background: linear-gradient(
+    var(--teal) 32%,
+    var(--brand-third) 33% 58%,
+    var(--primary) 59%
+  );
+}
+
+.mark-maintenance::before {
+  background: var(--brand-third);
+  border-radius: 50%;
+}
+
+.mark-quality::before {
+  background: var(--success);
+  clip-path: polygon(
+    50% 0,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+}
+
+.mark-repair::before {
+  background: var(--primary-hover);
+  transform: rotate(45deg);
+}
+
+.mark-email::before {
+  background: linear-gradient(140deg, var(--brand-third) 48%, var(--primary) 49%);
+  clip-path: polygon(0 75%, 100% 0, 65% 100%);
+}
+
+.mark-social::before {
+  background: radial-gradient(circle at 30% 30%, var(--favourite), var(--primary));
+  border-radius: 50%;
+}
+
+.mark-hr::before {
+  background: linear-gradient(var(--primary) 50%, var(--favourite) 51%);
+  border-radius: 50%;
+}
+
+.mark-fleet::before {
+  background: var(--primary);
+  clip-path: polygon(0 40%, 60% 40%, 60% 20%, 100% 50%, 60% 80%, 60% 60%, 0 60%);
+}
+
+.mark-studio::before {
+  background: linear-gradient(135deg, var(--brand-third), var(--teal));
+}
