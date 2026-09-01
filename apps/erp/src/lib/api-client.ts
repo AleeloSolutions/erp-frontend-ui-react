@@ -55,14 +55,6 @@ function joinUrl(path: string): string {
   return `${API_BASE}${normalized}`;
 }
 
-function getCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(
-    new RegExp(`(?:^|; )${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}=([^;]*)`)
-  );
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
 type ErrorEnvelope = {
   error?: { code?: string; message?: string; fields?: Record<string, string[]> };
   detail?: string;
@@ -128,7 +120,6 @@ export async function apiFetch<T = unknown>(
   options: ApiFetchOptions = {}
 ): Promise<T> {
   const { body, rawBody, headers, ...rest } = options;
-  const method = (rest.method ?? "GET").toUpperCase();
   // Auth endpoints authenticate by credentials/token in the body — a 401
   // there is a real answer, never something a refresh could fix.
   const isAuthEndpoint = path.includes("/auth/");
@@ -148,15 +139,13 @@ export async function apiFetch<T = unknown>(
     if (typeof window !== "undefined" && !finalHeaders.has("X-Tenant-Host")) {
       finalHeaders.set("X-Tenant-Host", window.location.host);
     }
-    // Django session auth fallback: send CSRF token on unsafe methods
-    if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
-      const csrf = getCookie("csrftoken");
-      if (csrf && !finalHeaders.has("X-CSRFToken")) {
-        finalHeaders.set("X-CSRFToken", csrf);
-      }
-    }
+    // No cookies, ever: auth is JWT-only (Authorization header), and the
+    // frontend/backend are on different origins/subdomains where a
+    // session cookie couldn't be shared correctly anyway. Sending
+    // credentials cross-origin would additionally require the backend to
+    // echo Access-Control-Allow-Credentials, which it deliberately does
+    // not for a stateless API.
     return fetch(joinUrl(path), {
-      credentials: "include",
       ...rest,
       headers: finalHeaders,
       body:
