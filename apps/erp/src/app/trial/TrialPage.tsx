@@ -2,14 +2,33 @@ import { useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { cn } from "@erp/ui";
+import { ApiError } from "@/lib/api-client";
+import { signup } from "@/app/auth/api";
 import { TRIAL_APPS, TRIAL_CATEGORIES } from "./trialApps";
 import { TrialAppCard, TrialSidebar } from "./components/TrialAppCard";
 import { TrialGetStartedForm } from "./components/TrialGetStartedForm";
 import "@/app/landing/landing.css";
 import "./trial.css";
 
-const DASHBOARD = "/dashboard";
+const SIGN_IN = "/login";
 const TRIAL_THANKS = "/thanks/trial";
+
+/** Form option values (Odoo-style) -> backend choice values. */
+const LANGUAGE_MAP: Record<string, string> = {
+  en_US: "en",
+  ar_001: "ar",
+  fr_FR: "fr",
+};
+const INTEREST_MAP: Record<string, string> = {
+  plan_to_use: "use_in_company",
+  plan_to_sell: "partner",
+  plan_to_test_student: "student",
+  plan_to_test_teacher: "teacher",
+};
+
+function fieldValue(form: FormData, name: string): string {
+  return String(form.get(name) ?? "").trim();
+}
 
 const headerCta = cn(
   "inline-flex items-center justify-center rounded-[var(--radius-sm)] border border-btn-hover",
@@ -53,13 +72,40 @@ export default function TrialPage() {
     });
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    navigate(TRIAL_THANKS, {
-      state: {
-        apps: selectedApps.map((app) => t(app.labelKey)),
-      },
-    });
+    const form = new FormData(event.currentTarget);
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const result = await signup({
+        full_name: fieldValue(form, "username"),
+        company_name: fieldValue(form, "company_name"),
+        email: fieldValue(form, "email"),
+        // Backend expects strict E.164 (+252612345678)
+        phone_number: fieldValue(form, "phone").replace(/[\s\-().]/g, ""),
+        country: fieldValue(form, "country_id") || "SO",
+        language: LANGUAGE_MAP[fieldValue(form, "lang")] ?? "en",
+        company_size: fieldValue(form, "company_size"),
+        primary_interest: INTEREST_MAP[fieldValue(form, "plan")] ?? "use_in_company",
+        accept_terms: true, // clicking Start Now IS the acceptance (see agreement copy)
+      });
+      navigate(TRIAL_THANKS, {
+        state: {
+          apps: selectedApps.map((app) => t(app.labelKey)),
+          tenantUrl: result.tenant_url,
+          autoLoginToken: result.auto_login_token,
+        },
+      });
+    } catch (err) {
+      setSubmitError(
+        err instanceof ApiError ? err.message : "Something went wrong. Please try again."
+      );
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -97,7 +143,7 @@ export default function TrialPage() {
           <div className="flex items-center gap-[1.625rem] text-[0.9375rem] font-semibold">
             <Link
               className="text-erp-text no-underline transition-colors hover:text-nav"
-              to={DASHBOARD}
+              to={SIGN_IN}
             >
               {t("signIn")}
             </Link>
@@ -174,6 +220,8 @@ export default function TrialPage() {
             selectedApps={selectedApps}
             onChangeSelection={() => setStep(1)}
             onSubmit={handleSubmit}
+            submitting={submitting}
+            error={submitError}
           />
         )}
 

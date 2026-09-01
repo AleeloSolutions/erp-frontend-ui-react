@@ -21,7 +21,10 @@ export default defineConfig({
     proxy: {
       "/api": {
         target: "http://127.0.0.1:8000",
-        changeOrigin: true,
+        // Keep the ORIGINAL Host header: the backend resolves the tenant
+        // from the subdomain (hodan-store.localhost -> Client). Vite 7
+        // already accepts *.localhost hosts by default.
+        changeOrigin: false,
         secure: false,
       },
     },

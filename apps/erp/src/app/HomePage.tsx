@@ -2,10 +2,12 @@ import { Link } from "react-router-dom";
 import { LayoutDashboard } from "lucide-react";
 import { AppShell, PageHeader } from "@/app";
 import { Card, CardContent, CardHeader, CardTitle } from "@erp/ui";
+import { VerificationBanner } from "@/app/auth/VerificationBanner";
 
 export default function HomePage() {
   return (
     <AppShell activeNavKey="dashboard" activeMobileKey="home">
+      <VerificationBanner />
       <PageHeader
         module="Platform"
         section="Home"

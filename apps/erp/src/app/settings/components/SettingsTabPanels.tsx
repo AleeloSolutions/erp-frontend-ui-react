@@ -1,7 +1,8 @@
 import type { ReactElement, ReactNode } from "react";
 import { CircleHelp, Users } from "lucide-react";
+import { useCompanyInfo } from "../api";
 import { CompanyInfoForm } from "../CompanyInfoForm";
-import { defaultCompanyInfo } from "../settingsCompany";
+import type { CompanyInfo } from "../settingsCompany";
 import type { SettingsTabKey } from "../settingsTabs";
 import type { SettingsDetailView } from "../settingsViews";
 import { settingsOverviewStats } from "../settingsViews";
@@ -69,10 +70,13 @@ function SettingsUsersManagePanel({ onBack }: Pick<SettingsTabPanelProps, "onBac
 }
 
 function SettingsCompanyOverview({
+  info,
   onOpenDetail,
   onOpenDocumentLayout,
-}: Pick<SettingsTabPanelProps, "onOpenDetail" | "onOpenDocumentLayout">) {
-  const { name, address, taxId } = defaultCompanyInfo;
+}: Pick<SettingsTabPanelProps, "onOpenDetail" | "onOpenDocumentLayout"> & {
+  info: CompanyInfo;
+}) {
+  const { name, address, taxId } = info;
 
   return (
     <SettingsOverviewShell>
@@ -113,11 +117,25 @@ function SettingsCompanyOverview({
   );
 }
 
-function SettingsCompanyEditPanel({ onBack }: Pick<SettingsTabPanelProps, "onBack">) {
+function SettingsCompanyEditPanel({
+  info,
+  loaded,
+  onSave,
+  onBack,
+}: Pick<SettingsTabPanelProps, "onBack"> & {
+  info: CompanyInfo;
+  loaded: boolean;
+  onSave: (values: CompanyInfo) => Promise<void>;
+}) {
   return (
     <div role="tabpanel" aria-label="Company Info">
       <SettingsDetailBack onBack={onBack} />
-      <CompanyInfoForm initialValues={defaultCompanyInfo} />
+      {/* key: re-seed the form when the live values arrive */}
+      <CompanyInfoForm
+        key={loaded ? "live" : "demo"}
+        initialValues={info}
+        onSave={onSave}
+      />
     </div>
   );
 }
@@ -149,18 +167,28 @@ export function SettingsTabPanel({
   onOpenDocumentLayout,
   onBack,
 }: SettingsTabPanelProps) {
+  const { info, loaded, save } = useCompanyInfo();
+
   if (detailView === "users-manage" && activeTab === "users") {
     return <SettingsUsersManagePanel onBack={onBack} />;
   }
 
   if (detailView === "company-edit" && activeTab === "company") {
-    return <SettingsCompanyEditPanel onBack={onBack} />;
+    return (
+      <SettingsCompanyEditPanel
+        info={info}
+        loaded={loaded}
+        onSave={save}
+        onBack={onBack}
+      />
+    );
   }
 
   const overviews: Record<SettingsTabKey, () => ReactElement> = {
     users: () => <SettingsUsersOverview onOpenDetail={onOpenDetail} />,
     company: () => (
       <SettingsCompanyOverview
+        info={info}
         onOpenDetail={onOpenDetail}
         onOpenDocumentLayout={onOpenDocumentLayout}
       />

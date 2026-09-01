@@ -7,6 +7,10 @@ const DASHBOARD = "/dashboard";
 
 type ThanksLocationState = {
   apps?: string[];
+  /** From the signup response: where the provisioned workspace lives. */
+  tenantUrl?: string;
+  /** Single-use token that logs the owner straight into it. */
+  autoLoginToken?: string;
 };
 
 type Phase = "idle" | "welcome" | "tagline" | "building" | "done";
@@ -55,11 +59,12 @@ export default function TrialThanksPage() {
   const [searchParams] = useSearchParams();
   const showError = searchParams.get("error") === "1";
 
+  const state = location.state as ThanksLocationState | null;
+
   const apps = useMemo(() => {
-    const state = location.state as ThanksLocationState | null;
     if (state?.apps?.length) return state.apps;
     return [t("defaultApp")];
-  }, [location.state, t]);
+  }, [state, t]);
 
   const buildingLabel = apps[0] ?? t("defaultApp");
 
@@ -98,11 +103,19 @@ export default function TrialThanksPage() {
 
     const redirectTimer = window.setTimeout(() => {
       setPhase("done");
+      if (state?.tenantUrl && state.autoLoginToken) {
+        // Enter the freshly provisioned workspace on its own subdomain,
+        // signed in via the single-use token from the signup response.
+        window.location.replace(
+          `${state.tenantUrl}/welcome?token=${encodeURIComponent(state.autoLoginToken)}`
+        );
+        return;
+      }
       navigate(DASHBOARD, { replace: true });
     }, REDIRECT_DELAY);
 
     return () => window.clearTimeout(redirectTimer);
-  }, [showError, phase, typewriterDone, navigate]);
+  }, [showError, phase, typewriterDone, navigate, state]);
 
   return (
     <div

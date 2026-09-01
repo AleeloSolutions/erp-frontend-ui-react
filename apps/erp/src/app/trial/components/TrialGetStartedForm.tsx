@@ -10,12 +10,18 @@ export interface TrialGetStartedFormProps {
   selectedApps: TrialApp[];
   onChangeSelection: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  /** Disables Start Now while the workspace is being provisioned. */
+  submitting?: boolean;
+  /** Server-side rejection (email taken, invalid phone, ...). */
+  error?: string | null;
 }
 
 export function TrialGetStartedForm({
   selectedApps,
   onChangeSelection,
   onSubmit,
+  submitting = false,
+  error = null,
 }: TrialGetStartedFormProps) {
   const { t } = useTranslation("trial");
 
@@ -200,11 +206,21 @@ export function TrialGetStartedForm({
               </Link>
             </p>
 
+            {error ? (
+              <p
+                role="alert"
+                className="mb-4 text-center text-sm font-semibold text-erp-danger"
+              >
+                {error}
+              </p>
+            ) : null}
+
             <div className="text-center">
               <Button
                 type="submit"
                 variant="primary"
                 size="lg"
+                loading={submitting}
                 className="px-8 py-3 text-base font-bold"
               >
                 {t("step2.startNow")}

@@ -6,7 +6,7 @@ import { LANDING_APPS, LANDING_NAV } from "./landingApps";
 import { AppTile } from "./components/AppTile";
 import "./landing.css";
 
-const DASHBOARD = "/dashboard";
+const SIGN_IN = "/login";
 const TRIAL = "/trial";
 
 const primaryCta = cn(
@@ -59,7 +59,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-[1.625rem] text-[0.9375rem] font-semibold">
           <Link
             className="text-erp-text no-underline transition-colors hover:text-nav"
-            to={DASHBOARD}
+            to={SIGN_IN}
           >
             {t("signIn")}
           </Link>
