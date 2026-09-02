@@ -1,11 +1,8 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { cn } from "@erp/ui";
 import { ApiError } from "@/lib/api-client";
 import { signup } from "@/app/auth/api";
-import { TRIAL_APPS, TRIAL_CATEGORIES } from "./trialApps";
-import { TrialAppCard, TrialSidebar } from "./components/TrialAppCard";
 import { TrialGetStartedForm } from "./components/TrialGetStartedForm";
 import "@/app/landing/landing.css";
 import "./trial.css";
@@ -30,12 +27,6 @@ function fieldValue(form: FormData, name: string): string {
   return String(form.get(name) ?? "").trim();
 }
 
-const headerCta = cn(
-  "inline-flex items-center justify-center rounded-[var(--radius-sm)] border border-btn-hover",
-  "bg-btn-hover px-4 py-2 text-[0.875rem] font-bold text-erp-primary-foreground shadow-sm",
-  "transition-colors hover:bg-nav hover:border-nav"
-);
-
 const TRIAL_NAV = [
   { href: "/#apps", labelKey: "nav.apps" as const },
   { href: "/#industries", labelKey: "nav.industries" as const },
@@ -47,30 +38,6 @@ const TRIAL_NAV = [
 export default function TrialPage() {
   const { t } = useTranslation("trial");
   const navigate = useNavigate();
-  const [step, setStep] = useState<1 | 2>(1);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-
-  const selectedApps = useMemo(
-    () => TRIAL_APPS.filter((app) => selected.has(app.id)),
-    [selected]
-  );
-
-  const toggleApp = (id: string) => {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const removeApp = (id: string) => {
-    setSelected((current) => {
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
-  };
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -95,7 +62,6 @@ export default function TrialPage() {
       });
       navigate(TRIAL_THANKS, {
         state: {
-          apps: selectedApps.map((app) => t(app.labelKey)),
           tenantUrl: result.tenant_url,
           autoLoginToken: result.auto_login_token,
         },
@@ -147,7 +113,10 @@ export default function TrialPage() {
             >
               {t("signIn")}
             </Link>
-            <span className={headerCta} aria-current="page">
+            <span
+              className="inline-flex items-center justify-center rounded-[var(--radius-sm)] border border-btn-hover bg-btn-hover px-4 py-2 text-[0.875rem] font-bold text-erp-primary-foreground shadow-sm transition-colors hover:bg-nav hover:border-nav"
+              aria-current="page"
+            >
               {t("tryFree")}
             </span>
           </div>
@@ -155,85 +124,11 @@ export default function TrialPage() {
       </header>
 
       <main id="trial-main" className="flex flex-1 flex-col">
-        {step === 1 ? (
-          <section className="bg-erp-table-bg pt-4 text-center">
-            <div className="mx-auto max-w-[960px] px-6 pb-8">
-              <h1 className="trial-display-title mb-4">
-                {t("step1.titleBefore")}{" "}
-                <span className="trial-highlight">{t("step1.titleEmphasis")}</span>
-              </h1>
-              <p className="m-0 text-base text-erp-muted">{t("step1.subtitle")}</p>
-            </div>
-          </section>
-        ) : null}
-
-        {step === 1 ? (
-          <section
-            className={cn(
-              "relative flex-1 bg-erp-bg",
-              selected.size > 0 ? "pb-20 xl:pb-12" : "pb-12"
-            )}
-          >
-            <div className="mx-auto w-full max-w-[1280px] px-6">
-              <div className="flex justify-center gap-10">
-                <div
-                  className={cn(
-                    "w-full max-w-[900px] py-8",
-                    selected.size > 0 && "lg:ms-[8%]"
-                  )}
-                >
-                  {TRIAL_CATEGORIES.map((category) => (
-                    <div key={category.id} className="mb-8">
-                      <h2 className="trial-category-title mb-3">
-                        {t(category.labelKey)}
-                      </h2>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                        {category.apps.map((app) => (
-                          <TrialAppCard
-                            key={app.id}
-                            app={app}
-                            selected={selected.has(app.id)}
-                            onToggle={toggleApp}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {selected.size > 0 ? (
-                  <aside className="hidden w-[min(100%,320px)] shrink-0 pt-8 xl:block xl:w-[300px]">
-                    <div className="sticky top-24">
-                      <TrialSidebar
-                        selectedApps={selectedApps}
-                        onRemove={removeApp}
-                        onContinue={() => setStep(2)}
-                      />
-                    </div>
-                  </aside>
-                ) : null}
-              </div>
-            </div>
-          </section>
-        ) : (
-          <TrialGetStartedForm
-            selectedApps={selectedApps}
-            onChangeSelection={() => setStep(1)}
-            onSubmit={handleSubmit}
-            submitting={submitting}
-            error={submitError}
-          />
-        )}
-
-        {step === 1 && selected.size > 0 ? (
-          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-erp-border-soft bg-erp-table-bg p-4 shadow-lg xl:hidden">
-            <TrialSidebar
-              selectedApps={selectedApps}
-              onRemove={removeApp}
-              onContinue={() => setStep(2)}
-            />
-          </div>
-        ) : null}
+        <TrialGetStartedForm
+          onSubmit={handleSubmit}
+          submitting={submitting}
+          error={submitError}
+        />
       </main>
     </div>
   );

@@ -2,13 +2,9 @@ import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@erp/ui";
-import type { TrialApp } from "../trialApps";
-import { AppMark } from "@/app/landing/components/AppMark";
 import { TrialFloatingInput, TrialFloatingSelect } from "./TrialFloatingField";
 
 export interface TrialGetStartedFormProps {
-  selectedApps: TrialApp[];
-  onChangeSelection: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   /** Disables Start Now while the workspace is being provisioned. */
   submitting?: boolean;
@@ -17,8 +13,6 @@ export interface TrialGetStartedFormProps {
 }
 
 export function TrialGetStartedForm({
-  selectedApps,
-  onChangeSelection,
   onSubmit,
   submitting = false,
   error = null,
@@ -36,39 +30,6 @@ export function TrialGetStartedForm({
             </span>
           </h1>
           <p className="mb-8 text-base text-erp-muted">{t("step2.subtitle")}</p>
-
-          <div className="mx-auto max-w-[880px]">
-            <div className="trial-step2-summary flex flex-col items-center justify-between gap-3 p-3 sm:flex-row">
-              <div className="trial-step2-apps flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:justify-start">
-                {selectedApps.length === 0 ? (
-                  <p className="m-0 text-base font-semibold text-erp-text">
-                    {t("step2.noApps")}
-                  </p>
-                ) : (
-                  selectedApps.map((app) => (
-                    <div
-                      key={app.id}
-                      className="trial-step2-app-header flex items-center justify-center"
-                    >
-                      <span className="trial-step2-app-icon me-2">
-                        <AppMark kind={app.kind} />
-                      </span>
-                      <span className="text-base font-semibold text-erp-text">
-                        {t(app.labelKey)}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-              <button
-                type="button"
-                className="trial-step2-change-btn shrink-0"
-                onClick={onChangeSelection}
-              >
-                {t("step2.changeSelection")}
-              </button>
-            </div>
-          </div>
         </div>
       </section>
 
