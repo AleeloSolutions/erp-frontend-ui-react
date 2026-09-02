@@ -8,16 +8,28 @@ import LoginPage from "@/app/auth/LoginPage";
 import WelcomePage from "@/app/auth/WelcomePage";
 import VerifyEmailPage from "@/app/auth/VerifyEmailPage";
 import { RequireAuth } from "@/app/auth/RequireAuth";
+import { isAuthenticated } from "@/lib/auth";
 import { SalesRoutes } from "./modules/sales/routes";
 import { InventoryRoutes } from "./modules/inventory/routes";
 import { ReportsRoutes } from "./modules/reports/routes";
 
-export function AppRoutes() {
+export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/trial" element={<TrialPage />} />
-      <Route path="/thanks/trial" element={<TrialThanksPage />} />
+      {isTenantHost ? (
+        // Tenant subdomains are the workspace, never the marketing site:
+        // "/" resolves straight to the dashboard or the login form.
+        <Route
+          path="/"
+          element={<Navigate to={isAuthenticated() ? "/dashboard" : "/login"} replace />}
+        />
+      ) : (
+        <>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/trial" element={<TrialPage />} />
+          <Route path="/thanks/trial" element={<TrialThanksPage />} />
+        </>
+      )}
       {/* Auth flow (public) */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/welcome" element={<WelcomePage />} />

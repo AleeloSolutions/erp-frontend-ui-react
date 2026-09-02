@@ -73,3 +73,14 @@ export function requestWorkspaceHandoff() {
 export function fetchMe() {
   return apiGet<Me>("/v1/users/me/");
 }
+
+export interface TenantPublic {
+  name: string;
+  slug: string;
+}
+
+/** Public probe: does the current subdomain map to a real tenant?
+ * Rejects with a 404 ApiError when it doesn't. */
+export function resolveTenant() {
+  return apiGet<TenantPublic>("/v1/clients/resolve/");
+}
