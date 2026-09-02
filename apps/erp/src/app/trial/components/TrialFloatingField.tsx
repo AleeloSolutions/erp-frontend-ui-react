@@ -1,4 +1,9 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import {
+  forwardRef,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+} from "react";
 import { cn } from "@erp/ui";
 
 type TrialFieldProps = {
@@ -7,19 +12,30 @@ type TrialFieldProps = {
   className?: string;
 };
 
-export function TrialFloatingInput({
-  id,
-  label,
-  className,
-  ...props
-}: TrialFieldProps & InputHTMLAttributes<HTMLInputElement>) {
+export const TrialFloatingInput = forwardRef<
+  HTMLInputElement,
+  TrialFieldProps & InputHTMLAttributes<HTMLInputElement> & { addon?: ReactNode }
+>(function TrialFloatingInput({ id, label, className, addon, ...props }, ref) {
   return (
-    <div className={cn("trial-form-floating", className)}>
-      <input id={id} className="trial-form-control" placeholder={label} {...props} />
+    <div
+      className={cn(
+        "trial-form-floating",
+        addon && "trial-form-floating-addon",
+        className
+      )}
+    >
+      <input
+        ref={ref}
+        id={id}
+        className="trial-form-control"
+        placeholder={label}
+        {...props}
+      />
       <label htmlFor={id}>{label}</label>
+      {addon ? <span className="trial-form-addon">{addon}</span> : null}
     </div>
   );
-}
+});
 
 export function TrialFloatingSelect({
   id,

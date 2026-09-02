@@ -1,9 +1,12 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "@/lib/api-client";
 import { signup } from "@/app/auth/api";
-import { TrialGetStartedForm } from "./components/TrialGetStartedForm";
+import {
+  TrialGetStartedForm,
+  type SignupFormValues,
+} from "./components/TrialGetStartedForm";
 import "@/app/landing/landing.css";
 import "./trial.css";
 
@@ -23,10 +26,6 @@ const INTEREST_MAP: Record<string, string> = {
   plan_to_test_teacher: "teacher",
 };
 
-function fieldValue(form: FormData, name: string): string {
-  return String(form.get(name) ?? "").trim();
-}
-
 const TRIAL_NAV = [
   { href: "/#apps", labelKey: "nav.apps" as const },
   { href: "/#industries", labelKey: "nav.industries" as const },
@@ -40,24 +39,25 @@ export default function TrialPage() {
   const navigate = useNavigate();
 
   const [submitting, setSubmitting] = useState(false);
+  const [serverErrors, setServerErrors] = useState<Record<string, string[]> | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
+  const handleSubmit = async (values: SignupFormValues) => {
     setSubmitting(true);
+    setServerErrors(null);
     setSubmitError(null);
     try {
       const result = await signup({
-        full_name: fieldValue(form, "username"),
-        company_name: fieldValue(form, "company_name"),
-        email: fieldValue(form, "email"),
+        full_name: values.full_name,
+        company_name: values.company_name,
+        slug: values.slug,
+        email: values.email,
         // Backend expects strict E.164 (+252612345678)
-        phone_number: fieldValue(form, "phone").replace(/[\s\-().]/g, ""),
-        country: fieldValue(form, "country_id") || "SO",
-        language: LANGUAGE_MAP[fieldValue(form, "lang")] ?? "en",
-        company_size: fieldValue(form, "company_size"),
-        primary_interest: INTEREST_MAP[fieldValue(form, "plan")] ?? "use_in_company",
+        phone_number: values.phone.replace(/[\s\-().]/g, ""),
+        country: values.country_id || "SO",
+        language: LANGUAGE_MAP[values.lang] ?? "en",
+        company_size: values.company_size,
+        primary_interest: INTEREST_MAP[values.primary_interest] ?? "use_in_company",
         accept_terms: true, // clicking Start Now IS the acceptance (see agreement copy)
       });
       navigate(TRIAL_THANKS, {
@@ -67,9 +67,15 @@ export default function TrialPage() {
         },
       });
     } catch (err) {
-      setSubmitError(
-        err instanceof ApiError ? err.message : "Something went wrong. Please try again."
-      );
+      if (err instanceof ApiError && err.fields) {
+        setServerErrors(err.fields);
+      } else {
+        setSubmitError(
+          err instanceof ApiError
+            ? err.message
+            : "Something went wrong. Please try again."
+        );
+      }
       setSubmitting(false);
     }
   };
@@ -127,7 +133,8 @@ export default function TrialPage() {
         <TrialGetStartedForm
           onSubmit={handleSubmit}
           submitting={submitting}
-          error={submitError}
+          serverErrors={serverErrors}
+          submitError={submitError}
         />
       </main>
     </div>

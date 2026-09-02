@@ -26,6 +26,8 @@ export interface Me {
 export interface SignupPayload {
   full_name: string;
   company_name: string;
+  /** The domain picker's final slug -- <slug>.erpeast.com. */
+  slug: string;
   email: string;
   phone_number: string;
   country: string;
@@ -72,6 +74,21 @@ export function requestWorkspaceHandoff() {
 
 export function fetchMe() {
   return apiGet<Me>("/v1/users/me/");
+}
+
+export interface SlugAvailability {
+  available: boolean;
+  suggestion: string | null;
+}
+
+/** The signup form's domain picker, checked once on idle (never on
+ * every keystroke). Pass an AbortSignal so a stale in-flight check can
+ * be cancelled the moment the user resumes typing. */
+export function checkSlugAvailability(slug: string, signal?: AbortSignal) {
+  return apiGet<SlugAvailability>(
+    `/v1/clients/slug-availability/?slug=${encodeURIComponent(slug)}`,
+    { signal }
+  );
 }
 
 export interface TenantPublic {

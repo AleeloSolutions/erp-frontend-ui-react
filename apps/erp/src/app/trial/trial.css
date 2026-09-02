@@ -259,6 +259,140 @@
   transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
 }
 
+/* Domain row (Odoo-style picker: preview + pencil, or an expanded input).
+   Absent entirely until there's a slug to show, sliding in and out rather
+   than popping. */
+.trial-domain-row {
+  margin-bottom: 1.5rem;
+  max-height: 8rem;
+  overflow: hidden;
+  opacity: 1;
+  transition:
+    max-height 0.25s ease-in-out,
+    opacity 0.2s ease-in-out,
+    margin-bottom 0.25s ease-in-out;
+}
+
+.trial-domain-row.is-hidden {
+  max-height: 0;
+  margin-bottom: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trial-domain-row {
+    transition: none;
+  }
+}
+
+.trial-domain-collapsed {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: calc(3.5rem + 2px);
+  padding: 1rem 0.75rem;
+}
+
+.trial-domain-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.trial-domain-suffix-static {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.trial-domain-suffix {
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.trial-domain-warning-icon {
+  width: 0.9375rem;
+  height: 0.9375rem;
+  color: var(--danger);
+  flex-shrink: 0;
+}
+
+.trial-domain-checking {
+  font-size: 0.8125rem;
+  color: #6c757d;
+}
+
+.trial-domain-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  /* Sits directly after the domain text (Odoo's `ms-2`), not pushed right. */
+  margin-inline-start: 0.5rem;
+  padding: 0;
+  border: 1px solid #d1d5db;
+  border-radius: var(--radius-sm);
+  background-color: #fff;
+  color: #6b7280;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease-in-out,
+    color 0.15s ease-in-out;
+}
+
+.trial-domain-edit-btn:hover {
+  border-color: var(--nav);
+  color: var(--nav);
+}
+
+/* Expanded mode: the same floating-field control, plus a grey addon box
+   on the right for the fixed .erpeast.<tld> suffix. */
+.trial-form-floating.trial-form-floating-addon {
+  display: flex;
+  align-items: stretch;
+}
+
+.trial-form-floating-addon > .trial-form-control {
+  flex: 1;
+  min-width: 0;
+}
+
+.trial-form-addon {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0 1.5rem;
+  background-color: #e9ecef;
+  color: #495057;
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.trial-domain-addon-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* Per-field inline validation. The negative top margin pulls the box up
+   under its field, which carries its own 1.5rem bottom margin (Odoo does
+   the same with `mt-n2`). */
+.trial-field-error {
+  margin: -1rem 0 1.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--danger-bg);
+  color: var(--danger);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: start;
+}
+
 .trial-agreement-link {
   color: var(--primary);
   text-decoration: underline;

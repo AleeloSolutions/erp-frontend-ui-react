@@ -6,7 +6,7 @@
 
 /** Root domain of the current host: hodan-store.localhost -> localhost,
  * hodan-store.erpeast.com -> erpeast.com, localhost -> localhost. */
-function rootDomain(hostname: string): string {
+export function rootDomain(hostname: string): string {
   if (hostname === "localhost" || hostname.endsWith(".localhost")) {
     return "localhost";
   }

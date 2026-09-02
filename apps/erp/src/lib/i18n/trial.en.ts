@@ -29,6 +29,14 @@ export const trialEn = {
     termsLink: "Subscription Agreement",
     privacyLink: "Privacy Policy",
     startNow: "Start Now",
+    errors: {
+      name: "Please enter your name",
+      companyName: "Please enter your company name",
+      domainRequired: "A domain is required",
+      domainTaken: "This domain is already taken",
+      email: "Please double-check your email",
+      phone: "A valid phone number is required",
+    },
   },
   companySizes: {
     "1-5": "1 - 5 employees",
