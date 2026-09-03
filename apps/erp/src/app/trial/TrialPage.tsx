@@ -56,7 +56,7 @@ export default function TrialPage() {
         phone_number: values.phone.replace(/[\s\-().]/g, ""),
         country: values.country_id || "SO",
         language: LANGUAGE_MAP[values.lang] ?? "en",
-        company_size: values.company_size,
+        team_size: values.company_size,
         primary_interest: INTEREST_MAP[values.primary_interest] ?? "use_in_company",
         accept_terms: true, // clicking Start Now IS the acceptance (see agreement copy)
       });

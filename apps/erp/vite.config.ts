@@ -27,6 +27,13 @@ export default defineConfig({
         changeOrigin: false,
         secure: false,
       },
+      // Uploaded files (e.g. the document-layout logo) come back as URLs
+      // on the app's own origin; Django serves them in DEBUG.
+      "/media": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: false,
+        secure: false,
+      },
     },
   },
 });

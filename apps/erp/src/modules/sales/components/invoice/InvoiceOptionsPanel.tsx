@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { Button, FormFileUpload, Input, Select, Switch, Textarea, cn } from "@erp/ui";
+import { Button, FormFileUpload, Input, Select, Switch, cn } from "@erp/ui";
+import { formatAddress, type AddressPartKey } from "@/lib/address";
 import type { InvoiceSettings, LayoutKey, TableStyleKey } from "./types/invoice";
 import { invoiceLayouts } from "./config/invoiceLayouts";
 import { tableStyles } from "./config/tableStyles";
@@ -17,6 +18,15 @@ export interface InvoiceOptionsPanelProps {
   scrollable?: boolean;
   className?: string;
 }
+
+/** The structured address the backend stores; the preview prints one line. */
+const addressFields: { key: AddressPartKey; placeholder: string }[] = [
+  { key: "addressLine1", placeholder: "Address line 1" },
+  { key: "addressLine2", placeholder: "Address line 2" },
+  { key: "city", placeholder: "City" },
+  { key: "state", placeholder: "State / region" },
+  { key: "postalCode", placeholder: "Postal code" },
+];
 
 const fontOptions = [
   { label: "Lato", value: "Lato, sans-serif" },
@@ -188,6 +198,12 @@ export function InvoiceOptionsPanel({
     onUpdate("secondaryColor", defaultSettings.secondaryColor);
   }
 
+  function updateAddress(key: AddressPartKey, value: string) {
+    onUpdate(key, value);
+    // Keep the printed line in step with the parts so the preview is live.
+    onUpdate("address", formatAddress({ ...settings, [key]: value }) || undefined);
+  }
+
   return (
     <div
       className={cn(
@@ -347,12 +363,18 @@ export function InvoiceOptionsPanel({
         </div>
 
         <SectionLabel>Address</SectionLabel>
-        <Textarea
-          autoGrow
-          className="w-full"
-          value={settings.address ?? ""}
-          onChange={(e) => onUpdate("address", e.target.value)}
-        />
+        <div className="flex flex-col gap-1.5">
+          {addressFields.map(({ key, placeholder }) => (
+            <Input
+              key={key}
+              className="w-full"
+              placeholder={placeholder}
+              aria-label={placeholder}
+              value={settings[key] ?? ""}
+              onChange={(e) => updateAddress(key, e.target.value)}
+            />
+          ))}
+        </div>
 
         <SectionLabel>Tagline</SectionLabel>
         <Input

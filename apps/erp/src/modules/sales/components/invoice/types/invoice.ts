@@ -107,7 +107,17 @@ export interface InvoiceSettings {
   primaryColor: string;
   secondaryColor: string;
   logoUrl?: string;
+  /**
+   * The single line every layout prints, composed from the structured
+   * parts below (which are what the customizer edits and what persists to
+   * `al_client_settings`). Mock data may set `address` alone.
+   */
   address?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
   tagline?: string;
   footerText?: string;
   paperFormat: "A4" | "Letter";

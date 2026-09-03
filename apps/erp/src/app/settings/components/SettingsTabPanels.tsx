@@ -2,7 +2,7 @@ import type { ReactElement, ReactNode } from "react";
 import { CircleHelp, Users } from "lucide-react";
 import { useCompanyInfo } from "../api";
 import { CompanyInfoForm } from "../CompanyInfoForm";
-import type { CompanyInfo } from "../settingsCompany";
+import { formatAddress, type CompanyInfo } from "../settingsCompany";
 import type { SettingsTabKey } from "../settingsTabs";
 import type { SettingsDetailView } from "../settingsViews";
 import { settingsOverviewStats } from "../settingsViews";
@@ -76,7 +76,8 @@ function SettingsCompanyOverview({
 }: Pick<SettingsTabPanelProps, "onOpenDetail" | "onOpenDocumentLayout"> & {
   info: CompanyInfo;
 }) {
-  const { name, address, taxId } = info;
+  const { name, taxNumber } = info;
+  const address = formatAddress(info);
 
   return (
     <SettingsOverviewShell>
@@ -84,10 +85,14 @@ function SettingsCompanyOverview({
         <SettingsOverviewTile
           title={name}
           description={
-            <>
-              <div>{address}</div>
-              <div>VAT: {taxId}</div>
-            </>
+            address || taxNumber ? (
+              <>
+                {address ? <div>{address}</div> : null}
+                {taxNumber ? <div>VAT: {taxNumber}</div> : null}
+              </>
+            ) : (
+              <div className="text-erp-muted">No address or VAT number yet</div>
+            )
           }
           action={
             <SettingsOverviewLink onClick={() => onOpenDetail("company-edit")}>

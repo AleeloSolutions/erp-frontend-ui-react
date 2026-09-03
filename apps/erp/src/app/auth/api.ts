@@ -3,23 +3,29 @@
 import { apiGet, apiPost } from "@/lib/api-client";
 import type { TokenPair } from "@/lib/auth";
 
+/** Records are identified by `uuid` only -- the backend never exposes ids. */
 export interface ClientSummary {
-  id: string;
+  uuid: string;
   name: string;
   slug: string;
   status: "trial" | "active" | "suspended";
   trial_ends_at: string | null;
 }
 
+export type UserType = "platform" | "owner" | "member";
+
 export interface Me {
-  id: string;
+  uuid: string;
   email: string;
   first_name: string;
   last_name: string;
   phone_number: string;
-  is_owner: boolean;
+  /** owner = created at signup (holds every permission); member = normal user. */
+  user_type: UserType;
   /** false → the dashboard shows the pending-verification banner. */
   email_verified: boolean;
+  /** The permission codes this user holds (`<module>.<resource>.<action>`). */
+  permissions: string[];
   client: ClientSummary | null;
 }
 
@@ -32,7 +38,8 @@ export interface SignupPayload {
   phone_number: string;
   country: string;
   language: string;
-  company_size: string;
+  /** The form's "company size" answer; the backend column is team_size. */
+  team_size: string;
   primary_interest: string;
   accept_terms: boolean;
 }
