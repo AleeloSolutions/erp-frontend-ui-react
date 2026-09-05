@@ -8,7 +8,9 @@ import { DocumentLayoutModal } from "./components/DocumentLayoutModal";
 
 import { SettingsTabPanel } from "./components/SettingsTabPanels";
 
-import { SETTINGS_TABS, type SettingsTabKey } from "./settingsTabs";
+import { settingsTabsFor, type SettingsTabKey } from "./settingsTabs";
+
+import { useSession } from "@/app/session";
 
 import { detailViewTab, type SettingsDetailView } from "./settingsViews";
 
@@ -35,7 +37,16 @@ export default function SettingsPage({
 }: SettingsPageProps) {
   const navbar = useNavbarDefaults({ brandLabel: "Settings" });
 
+  const session = useSession();
+  const tabs = settingsTabsFor(session?.permissions ?? null);
+
   const [activeTab, setActiveTab] = useState<SettingsTabKey>(defaultTab);
+
+  // Land on a tab this account can actually open: the default is Users,
+  // which a "Document Layout only" grant has no business seeing.
+  const openTab = (
+    tabs.some((tab) => tab.key === activeTab) ? activeTab : (tabs[0]?.key ?? activeTab)
+  ) as SettingsTabKey;
 
   const [detailView, setDetailView] = useState<SettingsDetailView | null>(
     defaultDetailView
@@ -74,9 +85,9 @@ export default function SettingsPage({
       <Tabs
         align="container"
 
-        items={SETTINGS_TABS}
+        items={tabs}
 
-        activeKey={activeTab}
+        activeKey={openTab}
 
         onChange={(key) => handleTabChange(key as SettingsTabKey)}
 
@@ -84,7 +95,7 @@ export default function SettingsPage({
       />
 
       <SettingsTabPanel
-        activeTab={activeTab}
+        activeTab={openTab}
 
         detailView={detailView}
 
