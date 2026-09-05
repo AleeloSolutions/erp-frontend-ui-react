@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { setTokens } from "@/lib/auth";
+import { forgetSession } from "@/app/session";
 import { exchangeAutoLoginToken } from "./api";
 
 /**
@@ -27,6 +28,7 @@ export default function WelcomePage() {
     }
     exchangeAutoLoginToken(token)
       .then((pair) => {
+        forgetSession();
         setTokens(pair);
         navigate("/dashboard", { replace: true });
       })

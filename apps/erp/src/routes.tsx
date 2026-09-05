@@ -9,6 +9,8 @@ import LoginPage from "@/app/auth/LoginPage";
 import WelcomePage from "@/app/auth/WelcomePage";
 import VerifyEmailPage from "@/app/auth/VerifyEmailPage";
 import { RequireAuth } from "@/app/auth/RequireAuth";
+import { RequirePermission } from "@/app/auth/RequirePermission";
+import { NAV_REQUIREMENTS } from "@/app/access";
 import { isAuthenticated } from "@/lib/auth";
 import { SalesRoutes } from "./modules/sales/routes";
 import { InventoryRoutes } from "./modules/inventory/routes";
@@ -40,7 +42,9 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         path="/settings"
         element={
           <RequireAuth>
-            <SettingsPage />
+            <RequirePermission anyOf={NAV_REQUIREMENTS.settings}>
+              <SettingsPage />
+            </RequirePermission>
           </RequireAuth>
         }
       />
@@ -48,7 +52,9 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         path="/settings/users/new"
         element={
           <RequireAuth>
-            <UserFormPage />
+            <RequirePermission anyOf={["settings.user.manage"]}>
+              <UserFormPage />
+            </RequirePermission>
           </RequireAuth>
         }
       />
@@ -56,7 +62,9 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         path="/settings/users/:uuid"
         element={
           <RequireAuth>
-            <UserFormPage />
+            <RequirePermission anyOf={["settings.user.manage"]}>
+              <UserFormPage />
+            </RequirePermission>
           </RequireAuth>
         }
       />
@@ -72,7 +80,9 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         path="/sales/*"
         element={
           <RequireAuth>
-            <SalesRoutes />
+            <RequirePermission anyOf={NAV_REQUIREMENTS.sales}>
+              <SalesRoutes />
+            </RequirePermission>
           </RequireAuth>
         }
       />
@@ -80,7 +90,9 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         path="/inventory/*"
         element={
           <RequireAuth>
-            <InventoryRoutes />
+            <RequirePermission anyOf={NAV_REQUIREMENTS.inventory}>
+              <InventoryRoutes />
+            </RequirePermission>
           </RequireAuth>
         }
       />
@@ -88,7 +100,9 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         path="/reports/*"
         element={
           <RequireAuth>
-            <ReportsRoutes />
+            <RequirePermission anyOf={NAV_REQUIREMENTS.reports}>
+              <ReportsRoutes />
+            </RequirePermission>
           </RequireAuth>
         }
       />

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button, Card, CardContent, FormField, FormInput } from "@erp/ui";
 import { ApiError } from "@/lib/api-client";
 import { setTokens } from "@/lib/auth";
+import { forgetSession } from "@/app/session";
 import { onTenantHost, tenantOrigin } from "@/lib/tenant";
 import { fetchMe, login, requestWorkspaceHandoff } from "./api";
 
@@ -21,6 +22,7 @@ export default function LoginPage() {
     setBusy(true);
     setError(null);
     try {
+      forgetSession();
       setTokens(await login(email.trim(), password));
       const me = await fetchMe();
       if (me.client && !onTenantHost(me.client.slug)) {

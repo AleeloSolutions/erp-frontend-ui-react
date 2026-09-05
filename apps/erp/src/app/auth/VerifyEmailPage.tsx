@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Card, CardContent, FormField, FormInput } from "@erp/ui";
 import { ApiError } from "@/lib/api-client";
 import { setTokens } from "@/lib/auth";
+import { forgetSession } from "@/app/session";
 import { verifyEmail } from "./api";
 
 /**
@@ -33,6 +34,7 @@ export default function VerifyEmailPage() {
     setBusy(true);
     setError(null);
     try {
+      forgetSession();
       setTokens(await verifyEmail(token, password));
       navigate("/dashboard", { replace: true });
     } catch (err) {
