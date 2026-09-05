@@ -10,6 +10,7 @@ import WelcomePage from "@/app/auth/WelcomePage";
 import VerifyEmailPage from "@/app/auth/VerifyEmailPage";
 import { RequireAuth } from "@/app/auth/RequireAuth";
 import { RequirePermission } from "@/app/auth/RequirePermission";
+import { RedirectIfAuthenticated } from "@/app/auth/RedirectIfAuthenticated";
 import { NAV_REQUIREMENTS } from "@/app/access";
 import { isAuthenticated } from "@/lib/auth";
 import { SalesRoutes } from "./modules/sales/routes";
@@ -34,7 +35,14 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         </>
       )}
       {/* Auth flow (public) */}
-      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/login"
+        element={
+          <RedirectIfAuthenticated>
+            <LoginPage />
+          </RedirectIfAuthenticated>
+        }
+      />
       <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       {/* Workspace (requires a session) */}

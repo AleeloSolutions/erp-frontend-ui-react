@@ -4,8 +4,8 @@ import { Button, Card, CardContent, FormField, FormInput } from "@erp/ui";
 import { ApiError } from "@/lib/api-client";
 import { setTokens } from "@/lib/auth";
 import { forgetSession } from "@/app/session";
-import { onTenantHost, tenantOrigin } from "@/lib/tenant";
-import { fetchMe, login, requestWorkspaceHandoff } from "./api";
+import { login } from "./api";
+import { crossToWorkspace } from "./workspace";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -24,16 +24,9 @@ export default function LoginPage() {
     try {
       forgetSession();
       setTokens(await login(email.trim(), password));
-      const me = await fetchMe();
-      if (me.client && !onTenantHost(me.client.slug)) {
-        // JWTs are per-origin: cross to the tenant subdomain with a
-        // single-use handoff token instead of a bare redirect.
-        const { token } = await requestWorkspaceHandoff();
-        window.location.assign(
-          `${tenantOrigin(me.client.slug)}/welcome?token=${encodeURIComponent(token)}`
-        );
-        return;
-      }
+      // JWTs are per-origin, so a session started here crosses to the
+      // tenant subdomain with a single-use handoff token.
+      if (await crossToWorkspace()) return;
       navigate(from, { replace: true });
     } catch (err) {
       setError(
