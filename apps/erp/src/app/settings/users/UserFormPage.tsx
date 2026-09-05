@@ -219,11 +219,16 @@ export default function UserFormPage() {
             </Button>
           </div>
         }
-        endSlot={creating ? null : <StageIndicator confirmed={confirmed} />}
+        // Shown while creating too: it is the lifecycle this account is
+        // about to enter, and Invited is where it starts.
+        endSlot={<StageIndicator confirmed={confirmed} />}
       />
 
       <PageContainer>
-        <div className="rounded-sm border border-erp-border bg-white px-4 py-4">
+        {/* The same card the other settings forms use (FormShell): inset
+            from the page edges, or its border lands off-screen and the
+            sheet reads as a bare page. 16px of padding inside. */}
+        <div className="mx-4 rounded-sm border border-erp-border bg-white px-4 py-4 shadow-sm">
           {/* Identity */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
             <div
