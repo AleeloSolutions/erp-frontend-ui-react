@@ -147,7 +147,21 @@ export default function UserFormPage() {
   const isAdministrator = values.baseRole === "admin";
   const isOwner = user?.user_type === "owner";
   const canManage = Boolean(me?.permissions.includes(MANAGE_USERS));
+  const held = me?.permissions ?? null;
+
+  /** You cannot hand out access you do not hold: the API refuses it, so
+   * the level is not offered either. Unknown codes (still loading) leave
+   * everything enabled -- the API is the boundary, not this. */
+  function canConfer(codes: string[]): boolean {
+    if (held === null) return true;
+    return codes.every((code) => held.includes(code));
+  }
   const groups = useMemo(() => byGroup(modules), [modules]);
+  /** Every code the catalogue can confer -- what "Administrator" means. */
+  const everyCode = useMemo(
+    () => modules.flatMap((module) => module.levels.at(-1)?.codes ?? []),
+    [modules]
+  );
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -355,7 +369,9 @@ export default function UserFormPage() {
                   name="base-role"
                   label="Administrator"
                   checked={isAdministrator}
-                  disabled={isOwner}
+                  // Administrator is the whole catalogue: conferring it
+                  // means holding it.
+                  disabled={isOwner || !canConfer(everyCode)}
                   onChange={() => update("baseRole", "admin")}
                 />
               </div>
@@ -364,7 +380,9 @@ export default function UserFormPage() {
                   ? "This is the workspace owner: they always hold every permission."
                   : isAdministrator
                     ? "Administrators hold every permission, so the modules below follow automatically."
-                    : "Pick what this user may do, module by module."}
+                    : held && !canConfer(everyCode)
+                      ? "Pick what this user may do. Levels beyond your own access are not yours to give."
+                      : "Pick what this user may do, module by module."}
               </p>
 
               <div className="grid gap-x-10 gap-y-1 lg:grid-cols-2">
@@ -393,6 +411,10 @@ export default function UserFormPage() {
                             options={module.levels.map((level) => ({
                               label: level.label,
                               value: level.key,
+                              // Except the level they are already on, which
+                              // must stay selectable for the form to save.
+                              disabled:
+                                !canConfer(level.codes) && level.key !== levelOf(module),
                             }))}
                             onChange={(event) => setLevel(module.key, event.target.value)}
                           />
