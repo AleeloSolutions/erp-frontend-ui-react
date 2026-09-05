@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { NavbarProps } from "@erp/ui";
-import { displayName, roleLabel, useSession } from "./session";
+import { displayName, roleLabel, signOut, useSession } from "./session";
 
 /** Shared user/session defaults for the Navbar. Pages override brandLabel/submenu. */
 export function useNavbarDefaults(overrides?: Partial<NavbarProps>): NavbarProps {
@@ -16,6 +16,9 @@ export function useNavbarDefaults(overrides?: Partial<NavbarProps>): NavbarProps
     userFullName: displayName(session),
     userDatabase: session?.client?.slug ?? "",
     userOnline: true,
+    userMenuItems: [
+      { key: "logout", label: "Log out", danger: true, onClick: () => void signOut() },
+    ],
     ...overrides,
   };
 }

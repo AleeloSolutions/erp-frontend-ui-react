@@ -69,6 +69,12 @@ export function verifyEmail(token: string, password: string) {
   return apiPost<TokenPair>("/v1/auth/verify/", { token, password });
 }
 
+/** End the session for real: the refresh token is revoked server-side,
+ * so a copy of it cannot mint access tokens for the rest of the week. */
+export function logout(refresh: string) {
+  return apiPost<void>("/v1/auth/logout/", { refresh });
+}
+
 export function resendVerification() {
   return apiPost<void>("/v1/auth/resend-verification/");
 }

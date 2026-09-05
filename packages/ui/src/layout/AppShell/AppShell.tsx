@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../../utils";
-import { Sidebar } from "../Sidebar";
+import { Sidebar, type SidebarProps } from "../Sidebar";
 // import { MobileNav } from "../MobileNav"; // not in use currently
 import { Navbar, type NavbarProps } from "../Navbar";
 import { PageContainer } from "../PageContainer";
@@ -14,6 +14,8 @@ export interface AppShellProps {
   activeMobileKey?: string;
   /** Navbar configuration. When provided, renders at the top of the page container. */
   navbar?: NavbarProps;
+  /** Who the sidebar footer names. Omitted, it keeps the sample identity. */
+  sidebarUser?: Pick<SidebarProps, "userName" | "userRole" | "userInitials">;
   className?: string;
   contentClassName?: string;
 }
@@ -23,12 +25,13 @@ export function AppShell({
   navigationItems = [],
   activeNavKey,
   navbar,
+  sidebarUser,
   className,
   contentClassName,
 }: AppShellProps) {
   return (
     <div data-app-shell className={cn("min-h-screen", className)}>
-      <Sidebar items={navigationItems} activeKey={activeNavKey} />
+      <Sidebar items={navigationItems} activeKey={activeNavKey} {...sidebarUser} />
       <main className="min-w-0 min-[721px]:ms-[220px] max-[980px]:min-[721px]:ms-16">
         {navbar ? <Navbar {...navbar} /> : null}
         <PageContainer className={contentClassName}>{children}</PageContainer>

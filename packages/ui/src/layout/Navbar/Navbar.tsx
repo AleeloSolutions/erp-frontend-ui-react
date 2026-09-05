@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../../utils";
+import { Dropdown, type DropdownItem } from "../../components/Dropdown";
 import { PageSubmenu } from "../PageSubmenu";
 import type { SubmenuItem } from "../../types/navigation";
 
@@ -26,6 +27,12 @@ export interface NavbarProps {
   userDatabase?: string;
   /** Callback when user menu is clicked */
   onUserClick?: () => void;
+  /**
+   * Account menu behind the avatar (sign out, and whatever else an app
+   * puts there). With items, the avatar becomes the menu's trigger; with
+   * none, it stays a plain button calling `onUserClick`.
+   */
+  userMenuItems?: DropdownItem[];
   className?: string;
 }
 
@@ -40,8 +47,24 @@ export function Navbar({
   userOnline = false,
   userFullName,
   onUserClick,
+  userMenuItems,
   className,
 }: NavbarProps) {
+  const avatar = (
+    <span className="relative inline-block h-[26px] w-[26px] shrink-0">
+      {userAvatar ? (
+        <img src={userAvatar} alt="" className="h-full w-full rounded object-cover" />
+      ) : (
+        <span className="grid h-full w-full place-items-center rounded bg-[#e7e9ed] text-[11px] font-bold text-[#374151]">
+          {(userFullName ?? userName ?? "U").charAt(0).toUpperCase()}
+        </span>
+      )}
+      {userOnline ? (
+        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-erp-primary" />
+      ) : null}
+    </span>
+  );
+
   return (
     <header
       className={cn(
@@ -73,7 +96,16 @@ export function Navbar({
 
       {/* Right: User name + avatar */}
       <div className="flex items-center gap-0.5">
-        {userName ? (
+        {/* With a menu, the avatar is the only account control -- the name
+            beside it is a label, not a second button that does nothing. */}
+        {userName && userMenuItems?.length ? (
+          <span
+            className="hidden h-[26px] items-center truncate px-2 text-[0.875rem] text-[#111827] md:flex"
+            title={userName}
+          >
+            <span className="truncate">{userName}</span>
+          </span>
+        ) : userName ? (
           <button
             type="button"
             onClick={onUserClick}
@@ -84,29 +116,24 @@ export function Navbar({
           </button>
         ) : null}
 
-        <button
-          type="button"
-          onClick={onUserClick}
-          className="flex h-[26px] items-center gap-2 rounded px-1 hover:bg-[#e7e9ed]"
-          aria-label="User menu"
-        >
-          <span className="relative inline-block h-[26px] w-[26px] shrink-0">
-            {userAvatar ? (
-              <img
-                src={userAvatar}
-                alt=""
-                className="h-full w-full rounded object-cover"
-              />
-            ) : (
-              <span className="grid h-full w-full place-items-center rounded bg-[#e7e9ed] text-[11px] font-bold text-[#374151]">
-                {(userFullName ?? userName ?? "U").charAt(0).toUpperCase()}
-              </span>
-            )}
-            {userOnline ? (
-              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-erp-primary" />
-            ) : null}
-          </span>
-        </button>
+        {userMenuItems?.length ? (
+          <Dropdown
+            trigger="button"
+            align="right"
+            items={userMenuItems}
+            label={avatar}
+            buttonProps={{ variant: "ghost", size: "icon", "aria-label": "User menu" }}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={onUserClick}
+            className="flex h-[26px] items-center gap-2 rounded px-1 hover:bg-[#e7e9ed]"
+            aria-label="User menu"
+          >
+            {avatar}
+          </button>
+        )}
       </div>
     </header>
   );

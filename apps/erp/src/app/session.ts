@@ -10,8 +10,9 @@
  */
 
 import { useEffect, useState } from "react";
+import { logout as revokeRefreshToken } from "@/app/auth/api";
 import { apiGet } from "@/lib/api-client";
-import { isAuthenticated } from "@/lib/auth";
+import { clearTokens, getRefreshToken, isAuthenticated } from "@/lib/auth";
 
 export interface Session {
   uuid: string;
@@ -33,6 +34,27 @@ function load(): Promise<Session | null> {
 /** Drop the cached session — call it when the tokens change (sign in/out). */
 export function forgetSession() {
   pending = null;
+}
+
+/**
+ * Sign out: revoke the refresh token, drop what this tab holds, and land
+ * on the login screen.
+ *
+ * The redirect is a real navigation, not a router push -- it clears every
+ * cache in memory (React Query included) so the next person to sign in on
+ * this machine starts from nothing. A failed revoke still signs you out
+ * locally: the network being down is no reason to stay logged in.
+ */
+export async function signOut() {
+  const refresh = getRefreshToken();
+  try {
+    if (refresh) await revokeRefreshToken(refresh);
+  } catch {
+    // Already expired, or offline -- either way the session ends here.
+  }
+  clearTokens();
+  forgetSession();
+  window.location.assign("/login");
 }
 
 /** null until it arrives, or when signed out. */
