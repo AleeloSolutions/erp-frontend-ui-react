@@ -10,18 +10,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Mail, Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
 import {
-  Button,
   ControlPanel,
   FormField,
   FormInput,
+  FormStatusBar,
+  PageActions,
   PageContainer,
   Radio,
   Select,
   Tabs,
-  cn,
   useToast,
+  type StatusStep,
 } from "@erp/ui";
 import { AppShell, useNavbarDefaults } from "@/app";
 import { ApiError } from "@/lib/api-client";
@@ -40,6 +41,12 @@ import {
 import { SecurityTab } from "./SecurityTab";
 
 const MANAGE_USERS = "settings.user.manage";
+
+/** The account's own lifecycle, shown in the form's statusbar. */
+const INVITE_STEPS: StatusStep[] = [
+  { key: "invited", label: "Invited" },
+  { key: "confirmed", label: "Confirmed" },
+];
 
 type BaseRole = "member" | "admin";
 
@@ -201,27 +208,41 @@ export default function UserFormPage() {
     <AppShell activeNavKey="settings" activeMobileKey="more" navbar={navbar}>
       <ControlPanel
         pageActions={
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/settings")}>
-              <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-              Users
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              loading={saving}
-              onClick={() => void handleSave()}
-            >
-              {creating ? "Create User" : "Save"}
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => navigate("/settings")}>
-              Discard
-            </Button>
-          </div>
+          <PageActions
+            breadcrumb={creating ? "New User" : user?.full_name || user?.email || "User"}
+          />
         }
-        // Shown while creating too: it is the lifecycle this account is
-        // about to enter, and Invited is where it starts.
-        endSlot={<StageIndicator confirmed={confirmed} />}
+      />
+
+      <FormStatusBar
+        belowControlPanel
+        steps={INVITE_STEPS}
+        // Display-only on purpose: an invite is confirmed by the person
+        // signing in, so passing onStepChange would let an admin claim it
+        // happened. The bar follows the record instead.
+        currentStepKey={confirmed ? "confirmed" : "invited"}
+        actions={[
+          {
+            key: "users",
+            label: "Users",
+            variant: "ghost",
+            onClick: () => navigate("/settings"),
+          },
+          {
+            key: "save",
+            label: creating ? "Create User" : "Save",
+            variant: "primary",
+            loading: saving,
+            onClick: () => void handleSave(),
+          },
+          {
+            key: "discard",
+            label: "Discard",
+            variant: "secondary",
+            disabled: saving,
+            onClick: () => navigate("/settings"),
+          },
+        ]}
       />
 
       <PageContainer>
@@ -386,35 +407,6 @@ export default function UserFormPage() {
         </div>
       </PageContainer>
     </AppShell>
-  );
-}
-
-/** Invited -> Confirmed, the account's own lifecycle. */
-function StageIndicator({ confirmed }: { confirmed: boolean }) {
-  const stages: [string, boolean][] = [
-    ["Invited", !confirmed],
-    ["Confirmed", confirmed],
-  ];
-  return (
-    <div
-      role="status"
-      aria-label={confirmed ? "Confirmed" : "Invited"}
-      className="flex overflow-hidden rounded-sm border border-erp-border text-[12px]"
-    >
-      {stages.map(([label, active]) => (
-        <span
-          key={label}
-          className={cn(
-            "px-3 py-1",
-            active
-              ? "bg-erp-primary font-semibold text-erp-primary-foreground"
-              : "bg-erp-header text-erp-subtle"
-          )}
-        >
-          {label}
-        </span>
-      ))}
-    </div>
   );
 }
 
