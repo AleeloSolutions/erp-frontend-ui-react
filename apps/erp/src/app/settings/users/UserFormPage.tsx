@@ -31,6 +31,7 @@ import {
   inviteUser,
   isConfirmed,
   updateUser,
+  uploadAvatar,
   useAccessModules,
   useCurrentUser,
   useTenantRoles,
@@ -38,6 +39,7 @@ import {
   type AccessModule,
   type TenantUser,
 } from "../usersApi";
+import { AvatarField } from "./AvatarField";
 import { SecurityTab } from "./SecurityTab";
 
 const MANAGE_USERS = "settings.user.manage";
@@ -114,6 +116,8 @@ export default function UserFormPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [activeTab, setActiveTab] = useState("access");
   const [saving, setSaving] = useState(false);
+  // Chosen before the account exists; uploaded once it does.
+  const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
 
   // Re-seed once the record arrives (creating starts from EMPTY).
   useEffect(() => {
@@ -177,6 +181,7 @@ export default function UserFormPage() {
           roles: baseRole ? [baseRole.uuid] : [],
           access,
         });
+        if (pendingAvatar) await uploadAvatar(created.uuid, pendingAvatar);
         toast({
           title: "Invite sent",
           description: `${created.email} can now set a password.`,
@@ -249,15 +254,18 @@ export default function UserFormPage() {
         {/* The same card the other settings forms use (FormShell): inset
             from the page edges, or its border lands off-screen and the
             sheet reads as a bare page. 16px of padding inside. */}
-        <div className="mx-4 rounded-sm border border-erp-border bg-white px-4 py-4 shadow-sm">
+        <div className="mx-4 mt-4 rounded-sm border border-erp-border bg-white px-4 py-4 shadow-sm">
           {/* Identity */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-            <div
-              className="grid h-[104px] w-[104px] shrink-0 place-items-center rounded-[10px] bg-erp-primary text-[38px] font-semibold text-erp-primary-foreground"
-              aria-hidden
-            >
-              {initialsOf(values.name, values.email)}
-            </div>
+            <AvatarField
+              userUuid={uuid ?? null}
+              src={user?.avatar ?? null}
+              initials={initialsOf(values.name, values.email)}
+              editable={canManage || creating}
+              pendingFile={pendingAvatar}
+              onPendingFileChange={setPendingAvatar}
+              onChanged={reload}
+            />
             <div className="grid w-full max-w-xl gap-3">
               <FormField
                 label="Name"

@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
+import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
 
 export interface TenantRole {
@@ -45,6 +45,8 @@ export interface TenantUser {
   last_name: string;
   full_name: string;
   phone_number: string;
+  /** Absolute URL of the profile picture; null → show initials. */
+  avatar: string | null;
   user_type: "platform" | "owner" | "member";
   is_active: boolean;
   /** null → invited but the link has not been opened yet. */
@@ -102,6 +104,18 @@ export function inviteUser(input: InviteUserInput) {
 
 export function updateUser(uuid: string, input: UpdateUserInput) {
   return apiPatch<TenantUser>(`/v1/users/${uuid}/`, input);
+}
+
+/** The pencil on the avatar: upload a new picture (multipart). */
+export function uploadAvatar(uuid: string, file: File) {
+  const form = new FormData();
+  form.append("avatar", file);
+  return apiPost<TenantUser>(`/v1/users/${uuid}/avatar/`, form, { rawBody: true });
+}
+
+/** The bin on the avatar: back to initials. */
+export function deleteAvatar(uuid: string) {
+  return apiDelete<TenantUser>(`/v1/users/${uuid}/avatar/`);
 }
 
 /** Security tab: set a password on someone's behalf. Never your own -- the

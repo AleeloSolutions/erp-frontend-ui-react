@@ -68,7 +68,7 @@ export function FormStatusBar({
         style={{ top: stickyTop }}
         className={cn(
           "sticky z-20 flex flex-wrap items-center justify-between gap-2 px-4 py-2 transition-colors",
-          isStuck && "border-b border-erp-border bg-erp-bg shadow-sm",
+          isStuck && "border-b border-erp-border bg-erp-bg",
           className
         )}
       >
