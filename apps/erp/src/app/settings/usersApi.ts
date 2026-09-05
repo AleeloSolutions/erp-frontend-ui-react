@@ -19,6 +19,25 @@ export interface TenantRole {
   name: string;
 }
 
+/** The level key meaning "this user cannot reach the module at all". */
+export const NO_ACCESS = "none";
+
+export interface AccessLevel {
+  key: string;
+  label: string;
+  /** The permission codes this level grants; shown as the row's tooltip. */
+  codes: string[];
+}
+
+/** One row of the Access Rights grid, from /api/v1/access-modules/. */
+export interface AccessModule {
+  key: string;
+  group: string;
+  label: string;
+  help: string;
+  levels: AccessLevel[];
+}
+
 export interface TenantUser {
   uuid: string;
   email: string;
@@ -31,6 +50,8 @@ export interface TenantUser {
   /** null → invited but the link has not been opened yet. */
   email_verified_at: string | null;
   roles: TenantRole[];
+  /** {module key: level key} — what the Access Rights grid renders. */
+  access: Record<string, string>;
   created_at: string;
 }
 
@@ -54,6 +75,8 @@ export interface InviteUserInput {
   last_name: string;
   phone_number: string;
   roles: string[];
+  /** Omitted for an administrator: the admin role already grants everything. */
+  access?: Record<string, string>;
 }
 
 export type UpdateUserInput = Partial<Omit<InviteUserInput, "email">> & {
@@ -118,6 +141,55 @@ export function useTenantUsers(params: TenantUserListParams) {
   const reload = useCallback(() => setReloadToken((token) => token + 1), []);
 
   return { ...result, loading, error, reload };
+}
+
+/** One user by uuid; null while creating (no uuid) or before it loads. */
+export function useTenantUser(uuid: string | undefined) {
+  const [user, setUser] = useState<TenantUser | null>(null);
+  const [loading, setLoading] = useState(Boolean(uuid));
+
+  useEffect(() => {
+    if (!uuid || !isAuthenticated()) return;
+    let cancelled = false;
+    setLoading(true);
+    void apiGet<TenantUser>(`/v1/users/${uuid}/`)
+      .then((data) => {
+        if (!cancelled) setUser(data);
+      })
+      .catch(() => {
+        // Gone, or another tenant's: the form stays on its defaults.
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uuid]);
+
+  return { user, loading };
+}
+
+/** The Access Rights catalogue: every module and the levels it offers. */
+export function useAccessModules() {
+  const [modules, setModules] = useState<AccessModule[]>([]);
+
+  useEffect(() => {
+    if (!isAuthenticated()) return;
+    let cancelled = false;
+    void apiGet<AccessModule[]>("/v1/access-modules/")
+      .then((data) => {
+        if (!cancelled) setModules(data);
+      })
+      .catch(() => {
+        // No tenant context: the grid renders empty rather than guessing.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return modules;
 }
 
 /** Who is looking, and what they may do.

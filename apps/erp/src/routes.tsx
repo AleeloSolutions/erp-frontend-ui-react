@@ -4,6 +4,7 @@ import LandingPage from "@/app/landing/LandingPage";
 import TrialPage from "@/app/trial/TrialPage";
 import TrialThanksPage from "@/app/trial/TrialThanksPage";
 import SettingsPage from "@/app/settings/SettingsPage";
+import UserFormPage from "@/app/settings/users/UserFormPage";
 import LoginPage from "@/app/auth/LoginPage";
 import WelcomePage from "@/app/auth/WelcomePage";
 import VerifyEmailPage from "@/app/auth/VerifyEmailPage";
@@ -40,6 +41,22 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         element={
           <RequireAuth>
             <SettingsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings/users/new"
+        element={
+          <RequireAuth>
+            <UserFormPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings/users/:uuid"
+        element={
+          <RequireAuth>
+            <UserFormPage />
           </RequireAuth>
         }
       />

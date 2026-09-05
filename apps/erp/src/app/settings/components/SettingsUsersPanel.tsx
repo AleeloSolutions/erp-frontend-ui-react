@@ -8,6 +8,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import {
   ConfirmDialog,
@@ -23,15 +24,7 @@ import {
 } from "@erp/ui";
 import { ApiError } from "@/lib/api-client";
 import { SettingsDetailBack } from "./SettingsDetailBack";
-import { UserFormDrawer, type UserFormValues } from "./UserFormDrawer";
-import {
-  inviteUser,
-  updateUser,
-  useCurrentUser,
-  useTenantRoles,
-  useTenantUsers,
-  type TenantUser,
-} from "../usersApi";
+import { updateUser, useCurrentUser, useTenantUsers, type TenantUser } from "../usersApi";
 
 const MANAGE_USERS = "settings.user.manage";
 
@@ -48,17 +41,15 @@ function formatDate(value: string): string {
 }
 
 export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const me = useCurrentUser();
-  const roles = useTenantRoles();
 
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState<DataTableFilterValues>({});
   const [sorting, setSorting] = useState<SortingState>([{ id: "email", desc: false }]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const [editing, setEditing] = useState<TenantUser | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [pendingDeactivation, setPendingDeactivation] = useState<TenantUser | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
@@ -113,10 +104,7 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
                 <button
                   type="button"
                   className="border-0 bg-transparent p-0 text-left text-erp-brand-third hover:underline"
-                  onClick={() => {
-                    setEditing(user);
-                    setDrawerOpen(true);
-                  }}
+                  onClick={() => navigate(`/settings/users/${user.uuid}`)}
                 >
                   {label}
                 </button>
@@ -166,7 +154,7 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
       },
     ];
     return base;
-  }, [canManage]);
+  }, [canManage, navigate]);
 
   /** Only the actions this viewer may actually perform are offered. */
   function rowActions(user: TenantUser): DataTableRowAction[] {
@@ -175,10 +163,7 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
       {
         key: "edit",
         label: "Edit",
-        onClick: () => {
-          setEditing(user);
-          setDrawerOpen(true);
-        },
+        onClick: () => navigate(`/settings/users/${user.uuid}`),
       },
     ];
     // The owner cannot be deactivated, and nobody can deactivate themselves —
@@ -226,34 +211,6 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
     }
   }
 
-  async function submitForm(values: UserFormValues) {
-    const target = editing;
-    try {
-      if (target) {
-        await updateUser(target.uuid, {
-          first_name: values.first_name,
-          last_name: values.last_name,
-          phone_number: values.phone_number,
-          roles: values.roles,
-        });
-        toast({ title: "User updated", variant: "success" });
-      } else {
-        await inviteUser(values);
-        toast({
-          title: "Invite sent",
-          description: `${values.email} can now set a password.`,
-          variant: "success",
-        });
-      }
-      setDrawerOpen(false);
-      setEditing(null);
-      reload();
-    } catch (error) {
-      reportFailure(error, target ? "Could not update the user" : "Could not invite");
-      throw error; // the drawer keeps the field-level messages
-    }
-  }
-
   return (
     <div role="tabpanel" aria-label="Manage Users">
       <SettingsDetailBack onBack={onBack} />
@@ -271,10 +228,7 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
                       children: "New",
                       variant: "primary",
                       size: "sm",
-                      onClick: () => {
-                        setEditing(null);
-                        setDrawerOpen(true);
-                      },
+                      onClick: () => navigate("/settings/users/new"),
                     },
                   ]}
                 />
@@ -327,17 +281,6 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
           },
         }}
         emptyMessage="No users match this search."
-      />
-
-      <UserFormDrawer
-        open={drawerOpen}
-        user={editing}
-        roles={roles}
-        onClose={() => {
-          setDrawerOpen(false);
-          setEditing(null);
-        }}
-        onSubmit={submitForm}
       />
 
       <ConfirmDialog
