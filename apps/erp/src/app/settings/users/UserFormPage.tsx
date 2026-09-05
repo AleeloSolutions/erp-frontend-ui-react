@@ -16,10 +16,11 @@ import {
   ControlPanel,
   FormField,
   FormInput,
+  PageContainer,
   Radio,
   Select,
-  StatusBadge,
   Tabs,
+  cn,
   useToast,
 } from "@erp/ui";
 import { AppShell, useNavbarDefaults } from "@/app";
@@ -27,6 +28,7 @@ import { ApiError } from "@/lib/api-client";
 import {
   NO_ACCESS,
   inviteUser,
+  isConfirmed,
   updateUser,
   useAccessModules,
   useCurrentUser,
@@ -96,7 +98,7 @@ export default function UserFormPage() {
   const { toast } = useToast();
   const navbar = useNavbarDefaults({ brandLabel: "Settings" });
 
-  const { user, loading } = useTenantUser(uuid);
+  const { user, loading, reload } = useTenantUser(uuid);
   const modules = useAccessModules();
   const roles = useTenantRoles();
   const me = useCurrentUser();
@@ -112,6 +114,23 @@ export default function UserFormPage() {
   }, [user]);
 
   const creating = uuid === undefined;
+  const confirmed = isConfirmed(user);
+
+  // An invite is confirmed elsewhere -- in their inbox, or at the login
+  // screen -- so the indicator follows the record rather than this form:
+  // poll while it is still outstanding, and re-check on refocus. It stops
+  // the moment it flips, and never runs while creating.
+  useEffect(() => {
+    if (creating || confirmed) return;
+    const timer = window.setInterval(reload, 10_000);
+    const onFocus = () => reload();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [creating, confirmed, reload]);
+
   // An administrator holds the whole catalogue, so the grid below is a
   // consequence rather than a choice — shown, but not editable.
   const isAdministrator = values.baseRole === "admin";
@@ -193,183 +212,204 @@ export default function UserFormPage() {
               loading={saving}
               onClick={() => void handleSave()}
             >
-              {creating ? "Create user" : "Save"}
+              {creating ? "Create User" : "Save"}
             </Button>
             <Button variant="secondary" size="sm" onClick={() => navigate("/settings")}>
               Discard
             </Button>
           </div>
         }
-        endSlot={
-          creating ? null : (
-            <div className="flex items-center gap-2 pe-1">
-              <StatusBadge
-                status={user?.email_verified_at ? "Confirmed" : "Pending"}
-                label={user?.email_verified_at ? "Confirmed" : "Invited"}
-              />
-              <StatusBadge status={user?.is_active ? "Active" : "Inactive"} />
-            </div>
-          )
-        }
+        endSlot={creating ? null : <StageIndicator confirmed={confirmed} />}
       />
 
-      <div className="rounded-sm border border-erp-border-soft bg-white px-4 py-5 sm:px-6">
-        {/* Identity */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <div
-            className="grid h-[104px] w-[104px] shrink-0 place-items-center rounded-[10px] bg-erp-brand text-[38px] font-semibold text-white"
-            aria-hidden
-          >
-            {initialsOf(values.name, values.email)}
-          </div>
-          <div className="grid w-full max-w-xl gap-3">
-            <FormField
-              label="Name"
-              htmlFor="user-name"
-              required
-              error={fieldErrors.name?.[0]}
+      <PageContainer>
+        <div className="rounded-sm border border-erp-border bg-white px-4 py-4">
+          {/* Identity */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div
+              className="grid h-[104px] w-[104px] shrink-0 place-items-center rounded-[10px] bg-erp-primary text-[38px] font-semibold text-erp-primary-foreground"
+              aria-hidden
             >
-              <FormInput
-                id="user-name"
-                value={values.name}
-                placeholder="e.g. Hodan Ali"
-                onChange={(event) => update("name", event.target.value)}
-              />
-            </FormField>
-            <FormField
-              label="Login"
-              htmlFor="user-login"
-              required
-              description="The email address they sign in with."
-              error={fieldErrors.email?.[0]}
-            >
-              <div className="flex items-center gap-2">
-                <Mail className="h-3.5 w-3.5 shrink-0 text-erp-muted" aria-hidden />
+              {initialsOf(values.name, values.email)}
+            </div>
+            <div className="grid w-full max-w-xl gap-3">
+              <FormField
+                label="Name"
+                htmlFor="user-name"
+                required
+                error={fieldErrors.name?.[0]}
+              >
                 <FormInput
-                  id="user-login"
-                  type="email"
-                  value={values.email}
-                  placeholder="name@company.com"
-                  // The login identifier is set once, when the invite is sent.
-                  disabled={!creating}
-                  onChange={(event) => update("email", event.target.value)}
+                  id="user-name"
+                  value={values.name}
+                  placeholder="e.g. Hodan Ali"
+                  onChange={(event) => update("name", event.target.value)}
+                />
+              </FormField>
+              <FormField
+                label="Login"
+                htmlFor="user-login"
+                required
+                description="The email address they sign in with."
+                error={fieldErrors.email?.[0]}
+              >
+                <div className="flex items-center gap-2">
+                  <Mail className="h-3.5 w-3.5 shrink-0 text-erp-muted" aria-hidden />
+                  <FormInput
+                    id="user-login"
+                    type="email"
+                    value={values.email}
+                    placeholder="name@company.com"
+                    // The login identifier is set once, when the invite is sent.
+                    disabled={!creating}
+                    onChange={(event) => update("email", event.target.value)}
+                  />
+                </div>
+              </FormField>
+              <FormField
+                label="Phone"
+                htmlFor="user-phone"
+                error={fieldErrors.phone_number?.[0]}
+              >
+                <div className="flex items-center gap-2">
+                  <Phone className="h-3.5 w-3.5 shrink-0 text-erp-muted" aria-hidden />
+                  <FormInput
+                    id="user-phone"
+                    type="tel"
+                    value={values.phone_number}
+                    placeholder="+252612345678"
+                    onChange={(event) => update("phone_number", event.target.value)}
+                  />
+                </div>
+              </FormField>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <Tabs
+              align="container"
+              // Nothing to secure until the account exists.
+              items={
+                creating
+                  ? [{ key: "access", label: "Access Rights" }]
+                  : [
+                      { key: "access", label: "Access Rights" },
+                      { key: "security", label: "Security" },
+                    ]
+              }
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              aria-label="User sections"
+            />
+          </div>
+
+          {activeTab === "access" ? (
+            <div role="tabpanel" aria-label="Access Rights" className="pt-5">
+              <SectionHeading>Roles</SectionHeading>
+              <div className="flex items-center gap-6 pb-2">
+                <span className="w-[92px] text-[12px] text-erp-text">Role</span>
+                <Radio
+                  id="role-member"
+                  name="base-role"
+                  label="User"
+                  checked={values.baseRole === "member"}
+                  disabled={isOwner}
+                  onChange={() => update("baseRole", "member")}
+                />
+                <Radio
+                  id="role-admin"
+                  name="base-role"
+                  label="Administrator"
+                  checked={isAdministrator}
+                  disabled={isOwner}
+                  onChange={() => update("baseRole", "admin")}
                 />
               </div>
-            </FormField>
-            <FormField
-              label="Phone"
-              htmlFor="user-phone"
-              error={fieldErrors.phone_number?.[0]}
-            >
-              <div className="flex items-center gap-2">
-                <Phone className="h-3.5 w-3.5 shrink-0 text-erp-muted" aria-hidden />
-                <FormInput
-                  id="user-phone"
-                  type="tel"
-                  value={values.phone_number}
-                  placeholder="+252612345678"
-                  onChange={(event) => update("phone_number", event.target.value)}
-                />
-              </div>
-            </FormField>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <Tabs
-            align="container"
-            // Nothing to secure until the account exists.
-            items={
-              creating
-                ? [{ key: "access", label: "Access Rights" }]
-                : [
-                    { key: "access", label: "Access Rights" },
-                    { key: "security", label: "Security" },
-                  ]
-            }
-            activeKey={activeTab}
-            onChange={setActiveTab}
-            aria-label="User sections"
-          />
-        </div>
-
-        {activeTab === "access" ? (
-          <div role="tabpanel" aria-label="Access Rights" className="pt-5">
-            <SectionHeading>Roles</SectionHeading>
-            <div className="flex items-center gap-6 pb-2">
-              <span className="w-[92px] text-[12px] text-erp-text">Role</span>
-              <Radio
-                id="role-member"
-                name="base-role"
-                label="User"
-                checked={values.baseRole === "member"}
-                disabled={isOwner}
-                onChange={() => update("baseRole", "member")}
-              />
-              <Radio
-                id="role-admin"
-                name="base-role"
-                label="Administrator"
-                checked={isAdministrator}
-                disabled={isOwner}
-                onChange={() => update("baseRole", "admin")}
-              />
-            </div>
-            <p className="m-0 mb-4 text-[11px] text-erp-muted">
-              {isOwner
-                ? "This is the workspace owner: they always hold every permission."
-                : isAdministrator
-                  ? "Administrators hold every permission, so the modules below follow automatically."
-                  : "Pick what this user may do, module by module."}
-            </p>
-
-            <div className="grid gap-x-10 gap-y-1 lg:grid-cols-2">
-              {groups.map(([group, groupModules]) => (
-                <section key={group} className="break-inside-avoid">
-                  <SectionHeading>{group}</SectionHeading>
-                  <div className="mb-4">
-                    {groupModules.map((module) => (
-                      <div
-                        key={module.key}
-                        className="flex items-center justify-between gap-3 py-1"
-                      >
-                        <label
-                          className="text-[12px] text-erp-text"
-                          htmlFor={`access-${module.key}`}
-                          title={module.help}
-                        >
-                          {module.label}
-                        </label>
-                        <Select
-                          id={`access-${module.key}`}
-                          chrome="underline"
-                          className="w-[190px]"
-                          disabled={isAdministrator || isOwner}
-                          value={levelOf(module)}
-                          options={module.levels.map((level) => ({
-                            label: level.label,
-                            value: level.key,
-                          }))}
-                          onChange={(event) => setLevel(module.key, event.target.value)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ))}
-            </div>
-
-            {modules.length === 0 && !loading ? (
-              <p className="m-0 text-[12px] text-erp-muted">
-                Sign in to a workspace to configure access rights.
+              <p className="m-0 mb-4 text-[11px] text-erp-muted">
+                {isOwner
+                  ? "This is the workspace owner: they always hold every permission."
+                  : isAdministrator
+                    ? "Administrators hold every permission, so the modules below follow automatically."
+                    : "Pick what this user may do, module by module."}
               </p>
-            ) : null}
-          </div>
-        ) : user ? (
-          <SecurityTab user={user} me={me} canManage={canManage} />
-        ) : null}
-      </div>
+
+              <div className="grid gap-x-10 gap-y-1 lg:grid-cols-2">
+                {groups.map(([group, groupModules]) => (
+                  <section key={group} className="break-inside-avoid">
+                    <SectionHeading>{group}</SectionHeading>
+                    <div className="mb-4">
+                      {groupModules.map((module) => (
+                        <div
+                          key={module.key}
+                          className="flex items-center justify-between gap-3 py-1"
+                        >
+                          <label
+                            className="text-[12px] text-erp-text"
+                            htmlFor={`access-${module.key}`}
+                            title={module.help}
+                          >
+                            {module.label}
+                          </label>
+                          <Select
+                            id={`access-${module.key}`}
+                            chrome="underline"
+                            className="w-[190px]"
+                            disabled={isAdministrator || isOwner}
+                            value={levelOf(module)}
+                            options={module.levels.map((level) => ({
+                              label: level.label,
+                              value: level.key,
+                            }))}
+                            onChange={(event) => setLevel(module.key, event.target.value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+
+              {modules.length === 0 && !loading ? (
+                <p className="m-0 text-[12px] text-erp-muted">
+                  Sign in to a workspace to configure access rights.
+                </p>
+              ) : null}
+            </div>
+          ) : user ? (
+            <SecurityTab user={user} me={me} canManage={canManage} />
+          ) : null}
+        </div>
+      </PageContainer>
     </AppShell>
+  );
+}
+
+/** Invited -> Confirmed, the account's own lifecycle. */
+function StageIndicator({ confirmed }: { confirmed: boolean }) {
+  const stages: [string, boolean][] = [
+    ["Invited", !confirmed],
+    ["Confirmed", confirmed],
+  ];
+  return (
+    <div
+      role="status"
+      aria-label={confirmed ? "Confirmed" : "Invited"}
+      className="flex overflow-hidden rounded-sm border border-erp-border text-[12px]"
+    >
+      {stages.map(([label, active]) => (
+        <span
+          key={label}
+          className={cn(
+            "px-3 py-1",
+            active
+              ? "bg-erp-primary font-semibold text-erp-primary-foreground"
+              : "bg-erp-header text-erp-subtle"
+          )}
+        >
+          {label}
+        </span>
+      ))}
+    </div>
   );
 }
 

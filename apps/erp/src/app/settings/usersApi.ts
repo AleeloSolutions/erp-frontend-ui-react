@@ -49,6 +49,8 @@ export interface TenantUser {
   is_active: boolean;
   /** null → invited but the link has not been opened yet. */
   email_verified_at: string | null;
+  /** null → they have never signed in. */
+  last_login_at: string | null;
   roles: TenantRole[];
   /** {module key: level key} — what the Access Rights grid renders. */
   access: Record<string, string>;
@@ -163,6 +165,7 @@ export function useTenantUsers(params: TenantUserListParams) {
 export function useTenantUser(uuid: string | undefined) {
   const [user, setUser] = useState<TenantUser | null>(null);
   const [loading, setLoading] = useState(Boolean(uuid));
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     if (!uuid || !isAuthenticated()) return;
@@ -181,9 +184,17 @@ export function useTenantUser(uuid: string | undefined) {
     return () => {
       cancelled = true;
     };
-  }, [uuid]);
+  }, [uuid, reloadToken]);
 
-  return { user, loading };
+  const reload = useCallback(() => setReloadToken((token) => token + 1), []);
+
+  return { user, loading, reload };
+}
+
+/** True once the invite has been taken up: the address is verified, or
+ * they have simply signed in. */
+export function isConfirmed(user: TenantUser | null): boolean {
+  return Boolean(user && (user.email_verified_at || user.last_login_at));
 }
 
 /** The Access Rights catalogue: every module and the levels it offers. */
