@@ -34,15 +34,28 @@ export function SecurityTab({ user, me, canManage }: SecurityTabProps) {
   // is shown instead of silently going nowhere.
   const [fallbackLink, setFallbackLink] = useState<string | null>(null);
 
-  // Nothing to act on until the account exists; the controls stay visible
-  // but plainly unavailable rather than disappearing and reappearing.
+  // Nothing to act on until the account exists. The controls still look
+  // like themselves -- pressing one says why it cannot run yet rather
+  // than sitting there greyed out with no explanation.
   const creating = user === null;
   const isSelf = Boolean(user) && me?.uuid === user?.uuid;
   const ownerIsOffLimits =
     user?.user_type === "owner" &&
     me?.user_type !== "owner" &&
     me?.user_type !== "platform";
-  const allowed = canManage && !ownerIsOffLimits && !creating;
+  const allowed = canManage && !ownerIsOffLimits;
+
+  /** True when the click was handled by explaining instead of acting. */
+  function blockedByMissingUser() {
+    if (!creating) return false;
+    toast({
+      title: "Create the user first",
+      description:
+        "These act on an existing account. Press Create User -- they are emailed a link to verify their address and set a password.",
+      variant: "info",
+    });
+    return true;
+  }
 
   function report(error: unknown, title: string) {
     toast({
@@ -83,7 +96,7 @@ export function SecurityTab({ user, me, canManage }: SecurityTabProps) {
   }
 
   async function handleSend() {
-    if (!user) return;
+    if (blockedByMissingUser() || !user) return;
     setBusy("send");
     try {
       await sendPasswordReset(user.uuid);
@@ -100,7 +113,7 @@ export function SecurityTab({ user, me, canManage }: SecurityTabProps) {
   }
 
   async function handleCopy() {
-    if (!user) return;
+    if (blockedByMissingUser() || !user) return;
     setBusy("link");
     try {
       const { link } = await createPasswordResetLink(user.uuid);
@@ -136,7 +149,9 @@ export function SecurityTab({ user, me, canManage }: SecurityTabProps) {
               variant="secondary"
               size="sm"
               disabled={!allowed}
-              onClick={() => setChanging(true)}
+              onClick={() => {
+                if (!blockedByMissingUser()) setChanging(true);
+              }}
             >
               Change password
             </Button>
@@ -162,12 +177,7 @@ export function SecurityTab({ user, me, canManage }: SecurityTabProps) {
         </div>
       </div>
 
-      {creating ? (
-        <p className="m-0 pt-3 text-[11px] text-erp-muted">
-          Available once the user exists. Creating them already emails a link to verify
-          the address and choose their own password.
-        </p>
-      ) : ownerIsOffLimits ? (
+      {ownerIsOffLimits ? (
         <p className="m-0 pt-3 text-[11px] text-erp-muted">
           Only the workspace owner can reset the owner&apos;s password.
         </p>
