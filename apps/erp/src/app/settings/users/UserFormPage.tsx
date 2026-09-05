@@ -29,11 +29,15 @@ import {
   inviteUser,
   updateUser,
   useAccessModules,
+  useCurrentUser,
   useTenantRoles,
   useTenantUser,
   type AccessModule,
   type TenantUser,
 } from "../usersApi";
+import { SecurityTab } from "./SecurityTab";
+
+const MANAGE_USERS = "settings.user.manage";
 
 type BaseRole = "member" | "admin";
 
@@ -95,6 +99,7 @@ export default function UserFormPage() {
   const { user, loading } = useTenantUser(uuid);
   const modules = useAccessModules();
   const roles = useTenantRoles();
+  const me = useCurrentUser();
 
   const [values, setValues] = useState<FormState>(EMPTY);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
@@ -111,6 +116,7 @@ export default function UserFormPage() {
   // consequence rather than a choice — shown, but not editable.
   const isAdministrator = values.baseRole === "admin";
   const isOwner = user?.user_type === "owner";
+  const canManage = Boolean(me?.permissions.includes(MANAGE_USERS));
   const groups = useMemo(() => byGroup(modules), [modules]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -272,10 +278,15 @@ export default function UserFormPage() {
         <div className="mt-6">
           <Tabs
             align="container"
-            items={[
-              { key: "access", label: "Access Rights" },
-              { key: "security", label: "Security" },
-            ]}
+            // Nothing to secure until the account exists.
+            items={
+              creating
+                ? [{ key: "access", label: "Access Rights" }]
+                : [
+                    { key: "access", label: "Access Rights" },
+                    { key: "security", label: "Security" },
+                  ]
+            }
             activeKey={activeTab}
             onChange={setActiveTab}
             aria-label="User sections"
@@ -354,33 +365,9 @@ export default function UserFormPage() {
               </p>
             ) : null}
           </div>
-        ) : (
-          <div
-            role="tabpanel"
-            aria-label="Security"
-            className="grid gap-3 pt-5 text-[12px]"
-          >
-            <SectionHeading>Sign-in</SectionHeading>
-            <Fact label="Email verified">
-              {user?.email_verified_at
-                ? new Date(user.email_verified_at).toLocaleString()
-                : "Not yet — the invite link is still unopened."}
-            </Fact>
-            <Fact label="Status">
-              {user?.is_active === false
-                ? "Deactivated — this account cannot sign in."
-                : "Active — this account may sign in."}
-            </Fact>
-            <Fact label="Roles held">
-              {user?.roles.length
-                ? user.roles.map((role) => role.name).join(", ")
-                : "None yet"}
-            </Fact>
-            <p className="m-0 text-[11px] text-erp-muted">
-              Deactivate or reactivate this user from the row menu on Manage Users.
-            </p>
-          </div>
-        )}
+        ) : user ? (
+          <SecurityTab user={user} me={me} canManage={canManage} />
+        ) : null}
       </div>
     </AppShell>
   );
@@ -390,15 +377,6 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <div className="mb-2 mt-4 border-b border-erp-border-soft pb-1 text-[11px] font-bold uppercase tracking-[.06em] text-erp-text">
       {children}
-    </div>
-  );
-}
-
-function Fact({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex gap-3">
-      <span className="w-[120px] shrink-0 text-erp-subtle">{label}</span>
-      <span className="text-erp-text">{children}</span>
     </div>
   );
 }

@@ -102,6 +102,22 @@ export function updateUser(uuid: string, input: UpdateUserInput) {
   return apiPatch<TenantUser>(`/v1/users/${uuid}/`, input);
 }
 
+/** Security tab: set a password on someone's behalf. Never your own -- the
+ * backend refuses that, so the UI offers a reset link instead. */
+export function setUserPassword(uuid: string, password: string) {
+  return apiPost<TenantUser>(`/v1/users/${uuid}/set-password/`, { password });
+}
+
+/** Email the set-a-password link. */
+export function sendPasswordReset(uuid: string) {
+  return apiPost<void>(`/v1/users/${uuid}/password-reset/`);
+}
+
+/** The same link, handed back once so it can be copied. */
+export function createPasswordResetLink(uuid: string) {
+  return apiPost<{ link: string }>(`/v1/users/${uuid}/password-reset-link/`);
+}
+
 /**
  * One page of tenant users, refetched whenever the table's parameters
  * change. `reload` re-runs the current page after a write.
@@ -199,15 +215,19 @@ export function useAccessModules() {
  * Here an unauthenticated render simply resolves to null and the screen
  * offers no management controls.
  */
+export interface CurrentUser {
+  uuid: string;
+  user_type: TenantUser["user_type"];
+  permissions: string[];
+}
+
 export function useCurrentUser() {
-  const [me, setMe] = useState<
-    (Pick<TenantUser, "uuid"> & { permissions: string[] }) | null
-  >(null);
+  const [me, setMe] = useState<CurrentUser | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated()) return;
     let cancelled = false;
-    void apiGet<{ uuid: string; permissions: string[] }>("/v1/users/me/")
+    void apiGet<CurrentUser>("/v1/users/me/")
       .then((data) => {
         if (!cancelled) setMe(data);
       })
