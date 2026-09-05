@@ -17,7 +17,8 @@ import {
 } from "../usersApi";
 
 export interface SecurityTabProps {
-  user: TenantUser;
+  /** null while the account is still being created. */
+  user: TenantUser | null;
   me: CurrentUser | null;
   canManage: boolean;
 }
@@ -33,12 +34,15 @@ export function SecurityTab({ user, me, canManage }: SecurityTabProps) {
   // is shown instead of silently going nowhere.
   const [fallbackLink, setFallbackLink] = useState<string | null>(null);
 
-  const isSelf = me?.uuid === user.uuid;
+  // Nothing to act on until the account exists; the controls stay visible
+  // but plainly unavailable rather than disappearing and reappearing.
+  const creating = user === null;
+  const isSelf = Boolean(user) && me?.uuid === user?.uuid;
   const ownerIsOffLimits =
-    user.user_type === "owner" &&
+    user?.user_type === "owner" &&
     me?.user_type !== "owner" &&
     me?.user_type !== "platform";
-  const allowed = canManage && !ownerIsOffLimits;
+  const allowed = canManage && !ownerIsOffLimits && !creating;
 
   function report(error: unknown, title: string) {
     toast({
@@ -57,6 +61,7 @@ export function SecurityTab({ user, me, canManage }: SecurityTabProps) {
     setBusy("save");
     setFieldError(undefined);
     try {
+      if (!user) return;
       await setUserPassword(user.uuid, password);
       toast({
         title: "Password changed",
@@ -78,6 +83,7 @@ export function SecurityTab({ user, me, canManage }: SecurityTabProps) {
   }
 
   async function handleSend() {
+    if (!user) return;
     setBusy("send");
     try {
       await sendPasswordReset(user.uuid);
@@ -94,6 +100,7 @@ export function SecurityTab({ user, me, canManage }: SecurityTabProps) {
   }
 
   async function handleCopy() {
+    if (!user) return;
     setBusy("link");
     try {
       const { link } = await createPasswordResetLink(user.uuid);
@@ -155,7 +162,12 @@ export function SecurityTab({ user, me, canManage }: SecurityTabProps) {
         </div>
       </div>
 
-      {ownerIsOffLimits ? (
+      {creating ? (
+        <p className="m-0 pt-3 text-[11px] text-erp-muted">
+          Available once the user exists. Creating them already emails a link to verify
+          the address and choose their own password.
+        </p>
+      ) : ownerIsOffLimits ? (
         <p className="m-0 pt-3 text-[11px] text-erp-muted">
           Only the workspace owner can reset the owner&apos;s password.
         </p>
@@ -165,7 +177,7 @@ export function SecurityTab({ user, me, canManage }: SecurityTabProps) {
         open={changing}
         onClose={() => setChanging(false)}
         title="Change password"
-        description={`Set a new password for ${user.full_name || user.email}.`}
+        description={`Set a new password for ${user?.full_name || user?.email}.`}
         footer={
           <>
             <Button variant="secondary" onClick={() => setChanging(false)}>

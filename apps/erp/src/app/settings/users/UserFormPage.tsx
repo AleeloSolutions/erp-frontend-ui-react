@@ -409,9 +409,9 @@ export default function UserFormPage() {
                 </p>
               ) : null}
             </div>
-          ) : user ? (
+          ) : (
             <SecurityTab user={user} me={me} canManage={canManage} />
-          ) : null}
+          )}
         </div>
       </PageContainer>
     </AppShell>
