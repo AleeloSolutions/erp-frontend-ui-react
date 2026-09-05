@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { CircleHelp, Users } from "lucide-react";
 import { useCompanyInfo } from "../api";
+import { useTenantUsers } from "../usersApi";
 import { CompanyInfoForm } from "../CompanyInfoForm";
 import { formatAddress, type CompanyInfo } from "../settingsCompany";
 import type { SettingsTabKey } from "../settingsTabs";
@@ -10,6 +11,7 @@ import { SettingsDetailBack } from "./SettingsDetailBack";
 import { SettingsOverviewLink } from "./SettingsOverviewLink";
 import { SettingsOverviewTile } from "./SettingsOverviewTile";
 import { SettingsSection } from "./SettingsSection";
+import { SettingsUsersPanel } from "./SettingsUsersPanel";
 
 export interface SettingsTabPanelProps {
   activeTab: SettingsTabKey;
@@ -33,6 +35,16 @@ function SettingsOverviewShell({ children }: { children: ReactNode }) {
 function SettingsUsersOverview({
   onOpenDetail,
 }: Pick<SettingsTabPanelProps, "onOpenDetail">) {
+  // One page of one row: we only need meta.total, not the users themselves.
+  const { total, loading } = useTenantUsers({
+    search: "",
+    isActive: "true",
+    ordering: "email",
+    page: 1,
+    pageSize: 1,
+  });
+  const activeUsers = loading ? settingsOverviewStats.activeUsers : total;
+
   return (
     <SettingsOverviewShell>
       <SettingsSection title="Users">
@@ -40,7 +52,7 @@ function SettingsUsersOverview({
           icon={<Users className="h-[18px] w-[18px]" aria-hidden />}
           title={
             <span className="inline-flex items-center gap-1.5">
-              {settingsOverviewStats.activeUsers} Active User
+              {activeUsers} Active {activeUsers === 1 ? "User" : "Users"}
               <CircleHelp
                 className="h-3.5 w-3.5 text-erp-brand-third"
                 aria-label="Counts users with access to this workspace"
@@ -55,17 +67,6 @@ function SettingsUsersOverview({
         />
       </SettingsSection>
     </SettingsOverviewShell>
-  );
-}
-
-function SettingsUsersManagePanel({ onBack }: Pick<SettingsTabPanelProps, "onBack">) {
-  return (
-    <div role="tabpanel" aria-label="Manage Users">
-      <SettingsDetailBack onBack={onBack} />
-      <div className="rounded-sm border border-erp-border-soft bg-erp-table-bg px-6 py-10 text-center">
-        <p className="m-0 text-sm text-erp-muted">User management — coming soon</p>
-      </div>
-    </div>
   );
 }
 
@@ -175,7 +176,7 @@ export function SettingsTabPanel({
   const { info, loaded, save } = useCompanyInfo();
 
   if (detailView === "users-manage" && activeTab === "users") {
-    return <SettingsUsersManagePanel onBack={onBack} />;
+    return <SettingsUsersPanel onBack={onBack} />;
   }
 
   if (detailView === "company-edit" && activeTab === "company") {

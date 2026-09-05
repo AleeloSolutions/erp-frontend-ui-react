@@ -113,13 +113,32 @@ export type ApiFetchOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   /** Skip JSON Content-Type (e.g. FormData uploads). */
   rawBody?: boolean;
+  /**
+   * Keep the whole envelope instead of unwrapping `{"data": ...}`. Needed
+   * for list endpoints, whose `meta` carries the row count the table pages
+   * through — see `apiGetPage`.
+   */
+  unwrap?: boolean;
 };
+
+/** Page metadata every list endpoint returns alongside its rows. */
+export interface PageMeta {
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface Page<T> {
+  data: T[];
+  meta: PageMeta;
+}
 
 export async function apiFetch<T = unknown>(
   path: string,
   options: ApiFetchOptions = {}
 ): Promise<T> {
-  const { body, rawBody, headers, ...rest } = options;
+  const { body, rawBody, headers, unwrap = true, ...rest } = options;
   // Auth endpoints authenticate by credentials/token in the body — a 401
   // there is a real answer, never something a refresh could fix.
   const isAuthEndpoint = path.includes("/auth/");
@@ -178,7 +197,7 @@ export async function apiFetch<T = unknown>(
     return undefined as T;
   }
 
-  if (payload && typeof payload === "object" && "data" in payload) {
+  if (unwrap && payload && typeof payload === "object" && "data" in payload) {
     return (payload as { data: T }).data;
   }
   return payload as T;
@@ -186,6 +205,11 @@ export async function apiFetch<T = unknown>(
 
 export function apiGet<T>(path: string, init?: ApiFetchOptions) {
   return apiFetch<T>(path, { ...init, method: "GET" });
+}
+
+/** A paginated list: rows in `data`, the total in `meta.total`. */
+export function apiGetPage<T>(path: string, init?: ApiFetchOptions) {
+  return apiFetch<Page<T>>(path, { ...init, method: "GET", unwrap: false });
 }
 
 export function apiPost<T>(path: string, body?: unknown, init?: ApiFetchOptions) {
