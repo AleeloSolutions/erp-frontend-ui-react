@@ -265,12 +265,11 @@ export default function UserFormPage() {
       />
 
       <PageContainer>
-        {/* The same card the other settings forms use (FormShell): inset
-            from the page edges, or its border lands off-screen and the
-            sheet reads as a bare page. 16px of padding inside. */}
-        <div className="mx-4 mt-4 rounded-sm border border-erp-border bg-white px-4 py-4 shadow-sm">
+        {/* The contained form card: inset from the page edges, or its
+            border lands off-screen and the sheet reads as a bare page. */}
+        <div className="mx-4 mt-4 rounded-sm border border-erp-border bg-white p-6 shadow-sm sm:p-8">
           {/* Identity */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
             <AvatarField
               userUuid={uuid ?? null}
               src={user?.avatar ?? null}
@@ -280,7 +279,7 @@ export default function UserFormPage() {
               onPendingFileChange={setPendingAvatar}
               onChanged={reload}
             />
-            <div className="grid w-full max-w-xl gap-3">
+            <div className="grid w-full max-w-3xl gap-4">
               <FormField
                 label="Name"
                 htmlFor="user-name"
@@ -289,6 +288,7 @@ export default function UserFormPage() {
               >
                 <FormInput
                   id="user-name"
+                  chrome="underline"
                   value={values.name}
                   placeholder="e.g. Hodan Ali"
                   onChange={(event) => update("name", event.target.value)}
@@ -305,6 +305,7 @@ export default function UserFormPage() {
                   <Mail className="h-3.5 w-3.5 shrink-0 text-erp-muted" aria-hidden />
                   <FormInput
                     id="user-login"
+                    chrome="underline"
                     type="email"
                     value={values.email}
                     placeholder="name@company.com"
@@ -323,6 +324,7 @@ export default function UserFormPage() {
                   <Phone className="h-3.5 w-3.5 shrink-0 text-erp-muted" aria-hidden />
                   <FormInput
                     id="user-phone"
+                    chrome="underline"
                     type="tel"
                     value={values.phone_number}
                     placeholder="+252612345678"
@@ -336,15 +338,11 @@ export default function UserFormPage() {
           <div className="mt-6">
             <Tabs
               align="container"
-              // Nothing to secure until the account exists.
-              items={
-                creating
-                  ? [{ key: "access", label: "Access Rights" }]
-                  : [
-                      { key: "access", label: "Access Rights" },
-                      { key: "security", label: "Security" },
-                    ]
-              }
+              variant="underline"
+              items={[
+                { key: "access", label: "Access Rights" },
+                { key: "security", label: "Security" },
+              ]}
               activeKey={activeTab}
               onChange={setActiveTab}
               aria-label="User sections"
@@ -354,10 +352,11 @@ export default function UserFormPage() {
           {activeTab === "access" ? (
             <div role="tabpanel" aria-label="Access Rights" className="pt-5">
               <SectionHeading>Roles</SectionHeading>
-              <div className="flex items-center gap-6 pb-2">
-                <span className="w-[92px] text-[12px] text-erp-text">Role</span>
+              <div className="flex flex-wrap items-center gap-x-8 gap-y-2 pb-2">
+                <span className="w-[92px] text-erp-form-label">Role</span>
                 <Radio
                   id="role-member"
+                  className="[&>input]:border-erp-checkbox-border"
                   name="base-role"
                   label="User"
                   checked={values.baseRole === "member"}
@@ -366,6 +365,7 @@ export default function UserFormPage() {
                 />
                 <Radio
                   id="role-admin"
+                  className="[&>input]:border-erp-checkbox-border"
                   name="base-role"
                   label="Administrator"
                   checked={isAdministrator}
@@ -375,7 +375,7 @@ export default function UserFormPage() {
                   onChange={() => update("baseRole", "admin")}
                 />
               </div>
-              <p className="m-0 mb-4 text-[11px] text-erp-muted">
+              <p className="m-0 mb-6 border-b border-erp-border-soft pb-6 text-[12px] text-erp-muted">
                 {isOwner
                   ? "This is the workspace owner: they always hold every permission."
                   : isAdministrator
@@ -385,18 +385,18 @@ export default function UserFormPage() {
                       : "Pick what this user may do, module by module."}
               </p>
 
-              <div className="grid gap-x-10 gap-y-1 lg:grid-cols-2">
+              <div className="grid gap-x-16 gap-y-2 lg:grid-cols-2">
                 {groups.map(([group, groupModules]) => (
                   <section key={group} className="break-inside-avoid">
                     <SectionHeading>{group}</SectionHeading>
-                    <div className="mb-4">
+                    <div className="mb-6">
                       {groupModules.map((module) => (
                         <div
                           key={module.key}
-                          className="flex items-center justify-between gap-3 py-1"
+                          className="flex items-center justify-between gap-3 border-b border-erp-border-soft py-2.5"
                         >
                           <label
-                            className="text-[12px] text-erp-text"
+                            className="text-erp-text"
                             htmlFor={`access-${module.key}`}
                             title={module.help}
                           >
@@ -405,7 +405,7 @@ export default function UserFormPage() {
                           <Select
                             id={`access-${module.key}`}
                             chrome="underline"
-                            className="w-[190px]"
+                            className="w-[200px]"
                             disabled={isAdministrator || isOwner}
                             value={levelOf(module)}
                             options={module.levels.map((level) => ({
@@ -442,7 +442,7 @@ export default function UserFormPage() {
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-2 mt-4 border-b border-erp-border-soft pb-1 text-[11px] font-bold uppercase tracking-[.06em] text-erp-text">
+    <div className="mb-3 mt-6 text-[11px] font-bold uppercase tracking-[.08em] text-erp-brand-third">
       {children}
     </div>
   );

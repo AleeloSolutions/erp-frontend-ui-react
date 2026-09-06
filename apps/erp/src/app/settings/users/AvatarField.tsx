@@ -118,8 +118,9 @@ export function AvatarField({
     <div className="group relative h-[104px] w-[104px] shrink-0">
       <div
         className={cn(
-          "grid h-full w-full place-items-center overflow-hidden rounded-[10px]",
-          "bg-erp-primary text-[38px] font-semibold text-erp-primary-foreground",
+          "grid h-full w-full place-items-center overflow-hidden rounded-xl",
+          // The brand primitive itself — it has no erp-* utility of its own.
+          "bg-[var(--brand-primary)] text-[38px] font-semibold text-white",
           busy && "opacity-70"
         )}
       >

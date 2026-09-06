@@ -60,3 +60,9 @@ export const WithDisabled: Story = {
     items: [...demoItems, { key: "locked", label: "Locked", disabled: true }],
   },
 };
+
+/** Flat strip whose active tab is marked by a rule beneath it — used by
+ * form pages that already sit inside their own card. */
+export const Underline: Story = {
+  args: { variant: "underline", align: "container" },
+};
