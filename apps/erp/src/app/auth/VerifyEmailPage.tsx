@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Button, Card, CardContent, FormField, FormInput } from "@erp/ui";
+import { Button } from "@erp/ui";
 import { ApiError } from "@/lib/api-client";
 import { setTokens } from "@/lib/auth";
 import { forgetSession } from "@/app/session";
+import { AUTH_SUBMIT_CLASS, AuthCard, AuthField } from "./AuthCard";
 import { verifyEmail } from "./api";
 
 /**
@@ -51,70 +52,74 @@ export default function VerifyEmailPage() {
     }
   }
 
+  if (linkDead) {
+    return (
+      <AuthCard
+        title="This link is invalid or has expired"
+        subtitle="Request a fresh one from the “Pending verification” banner on your dashboard, or sign in if you already set a password."
+      >
+        <Link
+          to="/login"
+          className="font-medium text-[var(--brand-primary)] hover:underline"
+        >
+          Go to sign in →
+        </Link>
+      </AuthCard>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-erp-bg px-4 text-erp-text">
-      <Card className="w-full max-w-[400px]">
-        <CardContent className="p-5">
-          {linkDead ? (
-            <>
-              <h1 className="mb-1 text-lg font-bold">
-                This link is invalid or has expired
-              </h1>
-              <p className="mb-4 text-[12px] text-erp-muted">
-                Request a fresh one from the “Pending verification” banner on your
-                dashboard, or sign in if you already set a password.
-              </p>
-              <Link to="/login" className="font-bold text-erp-blue hover:underline">
-                Go to sign in →
-              </Link>
-            </>
-          ) : (
-            <>
-              <h1 className="mb-1 text-lg font-bold">Verify your email</h1>
-              <p className="mb-4 text-[12px] text-erp-muted">
-                Choose a password to finish securing your workspace.
-              </p>
-              <form onSubmit={handleSubmit} className="space-y-3" noValidate>
-                <FormField label="New password" htmlFor="verify-password" required>
-                  <FormInput
-                    id="verify-password"
-                    type="password"
-                    autoComplete="new-password"
-                    autoFocus
-                    required
-                    minLength={8}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                  />
-                </FormField>
-                <FormField label="Confirm password" htmlFor="verify-confirm" required>
-                  <FormInput
-                    id="verify-confirm"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    value={confirm}
-                    onChange={(event) => setConfirm(event.target.value)}
-                  />
-                </FormField>
+    <AuthCard
+      title="Verify your email"
+      // The link carries a token, not an address, and inventing one would
+      // mean a call this page does not make.
+      subtitle="Choose a secure password to complete your account setup."
+      footer={<>Need help? Contact your workspace admin.</>}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <AuthField
+          id="verify-password"
+          label="New password"
+          type="password"
+          revealable
+          required
+          autoComplete="new-password"
+          autoFocus
+          minLength={8}
+          placeholder="Enter new password"
+          helper="Must be at least 8 characters with a mix of letters and numbers."
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
+        <AuthField
+          id="verify-confirm"
+          label="Confirm password"
+          type="password"
+          revealable
+          required
+          autoComplete="new-password"
+          placeholder="Re-enter password"
+          value={confirm}
+          onChange={(event) => setConfirm(event.target.value)}
+        />
 
-                {error ? (
-                  <p
-                    role="alert"
-                    className="m-0 text-[12px] font-semibold text-erp-danger"
-                  >
-                    {error}
-                  </p>
-                ) : null}
+        {error ? (
+          <p role="alert" className="m-0 text-[12px] font-semibold text-erp-danger">
+            {error}
+          </p>
+        ) : null}
 
-                <Button type="submit" variant="primary" loading={busy} className="w-full">
-                  Verify & set password
-                </Button>
-              </form>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        <div className="pt-2">
+          <Button
+            type="submit"
+            variant="primary"
+            loading={busy}
+            className={AUTH_SUBMIT_CLASS}
+          >
+            Verify &amp; set password
+          </Button>
+        </div>
+      </form>
+    </AuthCard>
   );
 }
