@@ -12,6 +12,7 @@ import {
   FormSection,
   FormShell,
   FormStatusBar,
+  FormStickyHeader,
   FormTextarea,
   Input,
   LineItemsTable,
@@ -210,30 +211,17 @@ export default function QuotationEditPage() {
 
   return (
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
-      <ControlPanel
-        pageActions={
-          <PageActions breadcrumb={quotationQuery.data?.number ?? "Edit Quotation"} />
-        }
-      />
+      <FormStickyHeader>
+        <ControlPanel
+          sticky={false}
+          pageActions={
+            <PageActions breadcrumb={quotationQuery.data?.number ?? "Edit Quotation"} />
+          }
+        />
 
-      {notFound ? (
-        <div className="rounded-[10px] border border-erp-border bg-erp-surface p-4 text-[12px] text-erp-muted">
-          <p className="m-0 font-bold text-erp-text">Quotation not found</p>
-          <p className="mt-1 mb-0">
-            The quotation may have been deleted.{" "}
-            <button
-              type="button"
-              className="font-bold text-erp-blue hover:underline"
-              onClick={() => navigate("/sales/quotations")}
-            >
-              Back to quotations
-            </button>
-          </p>
-        </div>
-      ) : (
-        <>
+        {!notFound && (
           <FormStatusBar
-            belowControlPanel
+            sticky={false}
             steps={statusSteps}
             currentStepKey={status}
             onStepChange={(key) =>
@@ -259,119 +247,135 @@ export default function QuotationEditPage() {
               },
             ]}
           />
+        )}
+      </FormStickyHeader>
 
-          <FormShell onSubmit={handleSubmit(onSubmit)}>
-            <FormSection title="Quotation details">
-              <FormGrid columns={12}>
-                <FormField
-                  label="Customer"
-                  required
-                  htmlFor="quotation-customer"
-                  error={errors.customer?.message}
-                  span={6}
-                >
-                  <FormDropdown
-                    id="quotation-customer"
-                    searchable
-                    placeholder="Search customer..."
-                    error={Boolean(errors.customer)}
-                    disabled={loading}
-                    value={watch("customer") || null}
-                    items={customerOptions.map((option) => ({
-                      key: option.value,
-                      label: option.label,
-                    }))}
-                    onChange={(key) =>
-                      setValue("customer", key ?? "", {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      })
-                    }
-                  />
-                </FormField>
-                <FormField
-                  label="Date"
-                  required
-                  htmlFor="quotation-date"
-                  error={errors.date?.message}
-                  span={3}
-                >
-                  <FormDatePicker
-                    id="quotation-date"
-                    error={Boolean(errors.date)}
-                    disabled={loading}
-                    {...register("date")}
-                  />
-                </FormField>
-                <FormField
-                  label="Valid until"
-                  required
-                  htmlFor="quotation-valid-until"
-                  error={errors.validUntil?.message}
-                  span={3}
-                >
-                  <FormDatePicker
-                    id="quotation-valid-until"
-                    error={Boolean(errors.validUntil)}
-                    disabled={loading}
-                    {...register("validUntil")}
-                  />
-                </FormField>
-              </FormGrid>
-            </FormSection>
+      {notFound ? (
+        <div className="rounded-[10px] border border-erp-border bg-erp-surface p-4 text-[12px] text-erp-muted">
+          <p className="m-0 font-bold text-erp-text">Quotation not found</p>
+          <p className="mt-1 mb-0">
+            The quotation may have been deleted.{" "}
+            <button
+              type="button"
+              className="font-bold text-erp-blue hover:underline"
+              onClick={() => navigate("/sales/quotations")}
+            >
+              Back to quotations
+            </button>
+          </p>
+        </div>
+      ) : (
+        <FormShell onSubmit={handleSubmit(onSubmit)}>
+          <FormSection title="Quotation details">
+            <FormGrid columns={12}>
+              <FormField
+                label="Customer"
+                required
+                htmlFor="quotation-customer"
+                error={errors.customer?.message}
+                span={6}
+              >
+                <FormDropdown
+                  id="quotation-customer"
+                  searchable
+                  placeholder="Search customer..."
+                  error={Boolean(errors.customer)}
+                  disabled={loading}
+                  value={watch("customer") || null}
+                  items={customerOptions.map((option) => ({
+                    key: option.value,
+                    label: option.label,
+                  }))}
+                  onChange={(key) =>
+                    setValue("customer", key ?? "", {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                />
+              </FormField>
+              <FormField
+                label="Date"
+                required
+                htmlFor="quotation-date"
+                error={errors.date?.message}
+                span={3}
+              >
+                <FormDatePicker
+                  id="quotation-date"
+                  error={Boolean(errors.date)}
+                  disabled={loading}
+                  {...register("date")}
+                />
+              </FormField>
+              <FormField
+                label="Valid until"
+                required
+                htmlFor="quotation-valid-until"
+                error={errors.validUntil?.message}
+                span={3}
+              >
+                <FormDatePicker
+                  id="quotation-valid-until"
+                  error={Boolean(errors.validUntil)}
+                  disabled={loading}
+                  {...register("validUntil")}
+                />
+              </FormField>
+            </FormGrid>
+          </FormSection>
 
-            <div>
-              <Tabs
-                items={detailTabs}
-                activeKey={activeTab}
-                onChange={setActiveTab}
-                aria-label="Quotation details"
-              />
-              {activeTab === "lines" ? (
-                <FormSection
-                  title="Order lines"
-                  description={linesError ?? undefined}
-                  className="border-b-0"
-                >
-                  <LineItemsTable<QuotationLineFormValue>
-                    tableId="sales-quotation-edit-lines"
-                    columns={lineColumns}
-                    rows={lines}
-                    onRowsChange={setLines}
-                    createEmptyRow={createEmptyQuotationLine}
-                    aria-label="Quotation lines"
-                  />
-                  <div className="flex justify-end border-t border-erp-border px-2 py-2">
-                    <div className="flex items-center gap-3 text-[13px]">
-                      <span className="font-bold text-erp-text">Total</span>
-                      <span className="font-bold text-erp-text">
-                        {formatCurrency(total)}
-                      </span>
-                    </div>
+          <div>
+            <Tabs
+              items={detailTabs}
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              aria-label="Quotation details"
+            />
+            {activeTab === "lines" ? (
+              <FormSection
+                title="Order lines"
+                description={linesError ?? undefined}
+                className="border-b-0"
+              >
+                <LineItemsTable<QuotationLineFormValue>
+                  tableId="sales-quotation-edit-lines"
+                  columns={lineColumns}
+                  rows={lines}
+                  onRowsChange={setLines}
+                  createEmptyRow={createEmptyQuotationLine}
+                  aria-label="Quotation lines"
+                />
+                <div className="flex justify-end border-t border-erp-border px-2 py-2">
+                  <div className="flex items-center gap-3 text-[13px]">
+                    <span className="font-bold text-erp-text">Total</span>
+                    <span className="font-bold text-erp-text">
+                      {formatCurrency(total)}
+                    </span>
                   </div>
-                </FormSection>
-              ) : (
-                <FormSection title="Other info" className="border-b-0">
-                  <FormGrid columns={12}>
-                    <FormField
-                      label="Notes"
-                      htmlFor="quotation-notes"
-                      error={errors.notes?.message}
-                      span={12}
-                    >
-                      <FormTextarea
-                        id="quotation-notes"
-                        error={Boolean(errors.notes)}
-                        disabled={loading}
-                        {...register("notes")}
-                      />
-                    </FormField>
-                  </FormGrid>
-                </FormSection>
-              )}
-            </div>
-          </FormShell>
-        </>
+                </div>
+              </FormSection>
+            ) : (
+              <FormSection title="Other info" className="border-b-0">
+                <FormGrid columns={12}>
+                  <FormField
+                    label="Notes"
+                    htmlFor="quotation-notes"
+                    error={errors.notes?.message}
+                    span={12}
+                  >
+                    <FormTextarea
+                      id="quotation-notes"
+                      error={Boolean(errors.notes)}
+                      disabled={loading}
+                      {...register("notes")}
+                    />
+                  </FormField>
+                </FormGrid>
+              </FormSection>
+            )}
+          </div>
+        </FormShell>
       )}
     </AppShell>
   );

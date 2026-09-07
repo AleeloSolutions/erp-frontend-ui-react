@@ -14,6 +14,7 @@ import {
   FormSelect,
   FormShell,
   FormStatusBar,
+  FormStickyHeader,
   FormTextarea,
   Input,
   LineItemsTable,
@@ -224,48 +225,35 @@ export default function InvoiceEditPage() {
 
   return (
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
-      <ControlPanel
-        pageActions={
-          <PageActions
-            breadcrumb={invoiceQuery.data?.number ?? "Edit Invoice"}
-            buttons={
-              invoiceQuery.data
-                ? [
-                    {
-                      key: "print",
-                      variant: "secondary",
-                      onClick: () => navigate(`/sales/invoices/${id}/print`),
-                      children: (
-                        <>
-                          <Printer className="h-3.5 w-3.5" aria-hidden /> Print
-                        </>
-                      ),
-                    },
-                  ]
-                : []
-            }
-          />
-        }
-      />
+      <FormStickyHeader>
+        <ControlPanel
+          sticky={false}
+          pageActions={
+            <PageActions
+              breadcrumb={invoiceQuery.data?.number ?? "Edit Invoice"}
+              buttons={
+                invoiceQuery.data
+                  ? [
+                      {
+                        key: "print",
+                        variant: "secondary",
+                        onClick: () => navigate(`/sales/invoices/${id}/print`),
+                        children: (
+                          <>
+                            <Printer className="h-3.5 w-3.5" aria-hidden /> Print
+                          </>
+                        ),
+                      },
+                    ]
+                  : []
+              }
+            />
+          }
+        />
 
-      {notFound ? (
-        <div className="rounded-[10px] border border-erp-border bg-erp-surface p-4 text-[12px] text-erp-muted">
-          <p className="m-0 font-bold text-erp-text">Invoice not found</p>
-          <p className="mt-1 mb-0">
-            The invoice may have been deleted.{" "}
-            <button
-              type="button"
-              className="font-bold text-erp-blue hover:underline"
-              onClick={() => navigate("/sales/invoices")}
-            >
-              Back to invoices
-            </button>
-          </p>
-        </div>
-      ) : (
-        <>
+        {!notFound && (
           <FormStatusBar
-            belowControlPanel
+            sticky={false}
             steps={statusSteps}
             currentStepKey={status}
             onStepChange={(key) =>
@@ -291,139 +279,155 @@ export default function InvoiceEditPage() {
               },
             ]}
           />
+        )}
+      </FormStickyHeader>
 
-          <FormShell onSubmit={handleSubmit(onSubmit)}>
-            <FormSection title="Invoice details">
-              <FormGrid columns={12}>
-                <FormField
-                  label="Customer"
-                  required
-                  htmlFor="invoice-customer"
-                  error={errors.customer?.message}
-                  span={6}
-                >
-                  <FormDropdown
-                    id="invoice-customer"
-                    searchable
-                    placeholder="Search customer..."
-                    error={Boolean(errors.customer)}
-                    disabled={loading}
-                    value={watch("customer") || null}
-                    items={customerOptions.map((option) => ({
-                      key: option.value,
-                      label: option.label,
-                    }))}
-                    onChange={(key) =>
-                      setValue("customer", key ?? "", {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      })
-                    }
-                  />
-                </FormField>
-                <FormField
-                  label="Invoice date"
-                  required
-                  htmlFor="invoice-date"
-                  error={errors.date?.message}
-                  span={3}
-                >
-                  <FormDatePicker
-                    id="invoice-date"
-                    error={Boolean(errors.date)}
-                    disabled={loading}
-                    {...register("date")}
-                  />
-                </FormField>
-                <FormField
-                  label="Due date"
-                  required
-                  htmlFor="invoice-due-date"
-                  error={errors.dueDate?.message}
-                  span={3}
-                >
-                  <FormDatePicker
-                    id="invoice-due-date"
-                    error={Boolean(errors.dueDate)}
-                    disabled={loading}
-                    {...register("dueDate")}
-                  />
-                </FormField>
-              </FormGrid>
-            </FormSection>
+      {notFound ? (
+        <div className="rounded-[10px] border border-erp-border bg-erp-surface p-4 text-[12px] text-erp-muted">
+          <p className="m-0 font-bold text-erp-text">Invoice not found</p>
+          <p className="mt-1 mb-0">
+            The invoice may have been deleted.{" "}
+            <button
+              type="button"
+              className="font-bold text-erp-blue hover:underline"
+              onClick={() => navigate("/sales/invoices")}
+            >
+              Back to invoices
+            </button>
+          </p>
+        </div>
+      ) : (
+        <FormShell onSubmit={handleSubmit(onSubmit)}>
+          <FormSection title="Invoice details">
+            <FormGrid columns={12}>
+              <FormField
+                label="Customer"
+                required
+                htmlFor="invoice-customer"
+                error={errors.customer?.message}
+                span={6}
+              >
+                <FormDropdown
+                  id="invoice-customer"
+                  searchable
+                  placeholder="Search customer..."
+                  error={Boolean(errors.customer)}
+                  disabled={loading}
+                  value={watch("customer") || null}
+                  items={customerOptions.map((option) => ({
+                    key: option.value,
+                    label: option.label,
+                  }))}
+                  onChange={(key) =>
+                    setValue("customer", key ?? "", {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                />
+              </FormField>
+              <FormField
+                label="Invoice date"
+                required
+                htmlFor="invoice-date"
+                error={errors.date?.message}
+                span={3}
+              >
+                <FormDatePicker
+                  id="invoice-date"
+                  error={Boolean(errors.date)}
+                  disabled={loading}
+                  {...register("date")}
+                />
+              </FormField>
+              <FormField
+                label="Due date"
+                required
+                htmlFor="invoice-due-date"
+                error={errors.dueDate?.message}
+                span={3}
+              >
+                <FormDatePicker
+                  id="invoice-due-date"
+                  error={Boolean(errors.dueDate)}
+                  disabled={loading}
+                  {...register("dueDate")}
+                />
+              </FormField>
+            </FormGrid>
+          </FormSection>
 
-            <div>
-              <Tabs
-                items={detailTabs}
-                activeKey={activeTab}
-                onChange={setActiveTab}
-                aria-label="Invoice details"
-              />
-              {activeTab === "lines" ? (
-                <FormSection
-                  title="Invoice lines"
-                  description={linesError ?? undefined}
-                  className="border-b-0"
-                >
-                  <LineItemsTable<InvoiceLineFormValue>
-                    tableId="sales-invoice-edit-lines"
-                    columns={lineColumns}
-                    rows={lines}
-                    onRowsChange={setLines}
-                    createEmptyRow={createEmptyInvoiceLine}
-                    aria-label="Invoice lines"
-                  />
-                  <div className="flex justify-end border-t border-erp-border px-2 py-2">
-                    <div className="flex items-center gap-3 text-[13px]">
-                      <span className="font-bold text-erp-text">Total</span>
-                      <span className="font-bold text-erp-text">
-                        {formatCurrency(total)}
-                      </span>
-                    </div>
+          <div>
+            <Tabs
+              items={detailTabs}
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              aria-label="Invoice details"
+            />
+            {activeTab === "lines" ? (
+              <FormSection
+                title="Invoice lines"
+                description={linesError ?? undefined}
+                className="border-b-0"
+              >
+                <LineItemsTable<InvoiceLineFormValue>
+                  tableId="sales-invoice-edit-lines"
+                  columns={lineColumns}
+                  rows={lines}
+                  onRowsChange={setLines}
+                  createEmptyRow={createEmptyInvoiceLine}
+                  aria-label="Invoice lines"
+                />
+                <div className="flex justify-end border-t border-erp-border px-2 py-2">
+                  <div className="flex items-center gap-3 text-[13px]">
+                    <span className="font-bold text-erp-text">Total</span>
+                    <span className="font-bold text-erp-text">
+                      {formatCurrency(total)}
+                    </span>
                   </div>
-                </FormSection>
-              ) : (
-                <FormSection title="Other info" className="border-b-0">
-                  <FormGrid columns={12}>
-                    <FormField
-                      label="Payment status"
-                      required
-                      htmlFor="invoice-payment-status"
-                      error={errors.paymentStatus?.message}
-                      span={4}
-                    >
-                      <FormSelect
-                        id="invoice-payment-status"
-                        error={Boolean(errors.paymentStatus)}
-                        disabled={loading}
-                        options={[
-                          { label: "Not Paid", value: "Not Paid" },
-                          { label: "Partially Paid", value: "Partially Paid" },
-                          { label: "Paid", value: "Paid" },
-                          { label: "Overdue", value: "Overdue" },
-                        ]}
-                        {...register("paymentStatus")}
-                      />
-                    </FormField>
-                    <FormField
-                      label="Notes"
-                      htmlFor="invoice-notes"
-                      error={errors.notes?.message}
-                      span={12}
-                    >
-                      <FormTextarea
-                        id="invoice-notes"
-                        error={Boolean(errors.notes)}
-                        disabled={loading}
-                        {...register("notes")}
-                      />
-                    </FormField>
-                  </FormGrid>
-                </FormSection>
-              )}
-            </div>
-          </FormShell>
-        </>
+                </div>
+              </FormSection>
+            ) : (
+              <FormSection title="Other info" className="border-b-0">
+                <FormGrid columns={12}>
+                  <FormField
+                    label="Payment status"
+                    required
+                    htmlFor="invoice-payment-status"
+                    error={errors.paymentStatus?.message}
+                    span={4}
+                  >
+                    <FormSelect
+                      id="invoice-payment-status"
+                      error={Boolean(errors.paymentStatus)}
+                      disabled={loading}
+                      options={[
+                        { label: "Not Paid", value: "Not Paid" },
+                        { label: "Partially Paid", value: "Partially Paid" },
+                        { label: "Paid", value: "Paid" },
+                        { label: "Overdue", value: "Overdue" },
+                      ]}
+                      {...register("paymentStatus")}
+                    />
+                  </FormField>
+                  <FormField
+                    label="Notes"
+                    htmlFor="invoice-notes"
+                    error={errors.notes?.message}
+                    span={12}
+                  >
+                    <FormTextarea
+                      id="invoice-notes"
+                      error={Boolean(errors.notes)}
+                      disabled={loading}
+                      {...register("notes")}
+                    />
+                  </FormField>
+                </FormGrid>
+              </FormSection>
+            )}
+          </div>
+        </FormShell>
       )}
     </AppShell>
   );

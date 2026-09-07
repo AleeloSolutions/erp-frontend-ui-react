@@ -13,6 +13,7 @@ import {
   FormSection,
   FormShell,
   FormStatusBar,
+  FormStickyHeader,
   PageActions,
   type StatusStep,
 } from "@erp/ui";
@@ -100,32 +101,37 @@ export default function ContractCreatePage() {
 
   return (
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
-      <ControlPanel pageActions={<PageActions breadcrumb="New Contract" />} />
+      <FormStickyHeader>
+        <ControlPanel
+          sticky={false}
+          pageActions={<PageActions breadcrumb="New Contract" />}
+        />
 
-      <FormStatusBar
-        belowControlPanel
-        steps={statusSteps}
-        currentStepKey={watch("status")}
-        onStepChange={(key) =>
-          setValue("status", key as ContractFormValues["status"], { shouldDirty: true })
-        }
-        actions={[
-          {
-            key: "create",
-            label: "Confirm",
-            variant: "primary",
-            loading: createMutation.isPending,
-            onClick: handleSubmit(onSubmit),
-          },
-          {
-            key: "cancel",
-            label: "Cancel",
-            variant: "secondary",
-            disabled: createMutation.isPending,
-            onClick: () => navigate("/sales/contracts"),
-          },
-        ]}
-      />
+        <FormStatusBar
+          sticky={false}
+          steps={statusSteps}
+          currentStepKey={watch("status")}
+          onStepChange={(key) =>
+            setValue("status", key as ContractFormValues["status"], { shouldDirty: true })
+          }
+          actions={[
+            {
+              key: "create",
+              label: "Confirm",
+              variant: "primary",
+              loading: createMutation.isPending,
+              onClick: handleSubmit(onSubmit),
+            },
+            {
+              key: "cancel",
+              label: "Cancel",
+              variant: "secondary",
+              disabled: createMutation.isPending,
+              onClick: () => navigate("/sales/contracts"),
+            },
+          ]}
+        />
+      </FormStickyHeader>
 
       <FormShell onSubmit={handleSubmit(onSubmit)}>
         <FormSection title="Contract details">

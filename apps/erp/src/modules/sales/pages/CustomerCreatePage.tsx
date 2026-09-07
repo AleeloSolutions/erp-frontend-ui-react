@@ -10,6 +10,7 @@ import {
   FormSection,
   FormShell,
   FormStatusBar,
+  FormStickyHeader,
   FormTextarea,
   PageActions,
   type StatusStep,
@@ -79,32 +80,37 @@ export default function CustomerCreatePage() {
 
   return (
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
-      <ControlPanel pageActions={<PageActions breadcrumb="New Customer" />} />
+      <FormStickyHeader>
+        <ControlPanel
+          sticky={false}
+          pageActions={<PageActions breadcrumb="New Customer" />}
+        />
 
-      <FormStatusBar
-        belowControlPanel
-        steps={statusSteps}
-        currentStepKey={status}
-        onStepChange={(key) =>
-          setValue("status", key as CustomerFormValues["status"], { shouldDirty: true })
-        }
-        actions={[
-          {
-            key: "create",
-            label: "Confirm",
-            variant: "primary",
-            loading: createMutation.isPending,
-            onClick: handleSubmit(onSubmit),
-          },
-          {
-            key: "cancel",
-            label: "Cancel",
-            variant: "secondary",
-            disabled: createMutation.isPending,
-            onClick: () => navigate("/sales/customers"),
-          },
-        ]}
-      />
+        <FormStatusBar
+          sticky={false}
+          steps={statusSteps}
+          currentStepKey={status}
+          onStepChange={(key) =>
+            setValue("status", key as CustomerFormValues["status"], { shouldDirty: true })
+          }
+          actions={[
+            {
+              key: "create",
+              label: "Confirm",
+              variant: "primary",
+              loading: createMutation.isPending,
+              onClick: handleSubmit(onSubmit),
+            },
+            {
+              key: "cancel",
+              label: "Cancel",
+              variant: "secondary",
+              disabled: createMutation.isPending,
+              onClick: () => navigate("/sales/customers"),
+            },
+          ]}
+        />
+      </FormStickyHeader>
 
       <FormShell onSubmit={handleSubmit(onSubmit)}>
         <FormSection title="Basic information">

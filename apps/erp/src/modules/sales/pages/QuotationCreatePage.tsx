@@ -12,6 +12,7 @@ import {
   FormSection,
   FormShell,
   FormStatusBar,
+  FormStickyHeader,
   FormTextarea,
   Input,
   LineItemsTable,
@@ -185,32 +186,39 @@ export default function QuotationCreatePage() {
 
   return (
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
-      <ControlPanel pageActions={<PageActions breadcrumb="New Quotation" />} />
+      <FormStickyHeader>
+        <ControlPanel
+          sticky={false}
+          pageActions={<PageActions breadcrumb="New Quotation" />}
+        />
 
-      <FormStatusBar
-        belowControlPanel
-        steps={statusSteps}
-        currentStepKey={watch("status")}
-        onStepChange={(key) =>
-          setValue("status", key as QuotationFormValues["status"], { shouldDirty: true })
-        }
-        actions={[
-          {
-            key: "create",
-            label: "Confirm",
-            variant: "primary",
-            loading: createMutation.isPending,
-            onClick: handleSubmit(onSubmit),
-          },
-          {
-            key: "cancel",
-            label: "Cancel",
-            variant: "secondary",
-            disabled: createMutation.isPending,
-            onClick: () => navigate("/sales/quotations"),
-          },
-        ]}
-      />
+        <FormStatusBar
+          sticky={false}
+          steps={statusSteps}
+          currentStepKey={watch("status")}
+          onStepChange={(key) =>
+            setValue("status", key as QuotationFormValues["status"], {
+              shouldDirty: true,
+            })
+          }
+          actions={[
+            {
+              key: "create",
+              label: "Confirm",
+              variant: "primary",
+              loading: createMutation.isPending,
+              onClick: handleSubmit(onSubmit),
+            },
+            {
+              key: "cancel",
+              label: "Cancel",
+              variant: "secondary",
+              disabled: createMutation.isPending,
+              onClick: () => navigate("/sales/quotations"),
+            },
+          ]}
+        />
+      </FormStickyHeader>
 
       <FormShell onSubmit={handleSubmit(onSubmit)}>
         <FormSection title="Quotation details">

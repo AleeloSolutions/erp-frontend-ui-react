@@ -11,6 +11,7 @@ import {
   FormSection,
   FormShell,
   FormStatusBar,
+  FormStickyHeader,
   FormTextarea,
   PageActions,
   Tabs,
@@ -108,30 +109,17 @@ export default function CustomerEditPage() {
 
   return (
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
-      <ControlPanel
-        pageActions={
-          <PageActions breadcrumb={customerQuery.data?.name ?? "Edit Customer"} />
-        }
-      />
+      <FormStickyHeader>
+        <ControlPanel
+          sticky={false}
+          pageActions={
+            <PageActions breadcrumb={customerQuery.data?.name ?? "Edit Customer"} />
+          }
+        />
 
-      {notFound ? (
-        <div className="rounded-[10px] border border-erp-border bg-erp-surface p-4 text-[12px] text-erp-muted">
-          <p className="m-0 font-bold text-erp-text">Customer not found</p>
-          <p className="mt-1 mb-0">
-            The customer may have been deleted.{" "}
-            <button
-              type="button"
-              className="font-bold text-erp-blue hover:underline"
-              onClick={() => navigate("/sales/customers")}
-            >
-              Back to customers
-            </button>
-          </p>
-        </div>
-      ) : (
-        <>
+        {!notFound && (
           <FormStatusBar
-            belowControlPanel
+            sticky={false}
             steps={statusSteps}
             currentStepKey={status}
             onStepChange={(key) =>
@@ -157,102 +145,118 @@ export default function CustomerEditPage() {
               },
             ]}
           />
+        )}
+      </FormStickyHeader>
 
-          <FormShell onSubmit={handleSubmit(onSubmit)}>
-            <FormSection title="Basic information">
+      {notFound ? (
+        <div className="rounded-[10px] border border-erp-border bg-erp-surface p-4 text-[12px] text-erp-muted">
+          <p className="m-0 font-bold text-erp-text">Customer not found</p>
+          <p className="mt-1 mb-0">
+            The customer may have been deleted.{" "}
+            <button
+              type="button"
+              className="font-bold text-erp-blue hover:underline"
+              onClick={() => navigate("/sales/customers")}
+            >
+              Back to customers
+            </button>
+          </p>
+        </div>
+      ) : (
+        <FormShell onSubmit={handleSubmit(onSubmit)}>
+          <FormSection title="Basic information">
+            <FormGrid columns={12}>
+              <FormField
+                label="Customer name"
+                required
+                htmlFor="customer-name"
+                error={errors.name?.message}
+                span={6}
+              >
+                <FormInput
+                  id="customer-name"
+                  error={Boolean(errors.name)}
+                  disabled={loading}
+                  {...register("name")}
+                />
+              </FormField>
+              <FormField
+                label="Email"
+                required
+                htmlFor="customer-email"
+                error={errors.email?.message}
+                span={6}
+              >
+                <FormInput
+                  id="customer-email"
+                  type="email"
+                  error={Boolean(errors.email)}
+                  disabled={loading}
+                  {...register("email")}
+                />
+              </FormField>
+              <FormField
+                label="Phone"
+                required
+                htmlFor="customer-phone"
+                error={errors.phone?.message}
+                span={6}
+              >
+                <FormInput
+                  id="customer-phone"
+                  error={Boolean(errors.phone)}
+                  disabled={loading}
+                  {...register("phone")}
+                />
+              </FormField>
+            </FormGrid>
+          </FormSection>
+
+          <div>
+            <Tabs
+              items={detailTabs}
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              aria-label="Customer details"
+            />
+            <FormSection
+              title={activeTab === "address" ? "Address" : "Notes"}
+              className="border-b-0"
+            >
               <FormGrid columns={12}>
-                <FormField
-                  label="Customer name"
-                  required
-                  htmlFor="customer-name"
-                  error={errors.name?.message}
-                  span={6}
-                >
-                  <FormInput
-                    id="customer-name"
-                    error={Boolean(errors.name)}
-                    disabled={loading}
-                    {...register("name")}
-                  />
-                </FormField>
-                <FormField
-                  label="Email"
-                  required
-                  htmlFor="customer-email"
-                  error={errors.email?.message}
-                  span={6}
-                >
-                  <FormInput
-                    id="customer-email"
-                    type="email"
-                    error={Boolean(errors.email)}
-                    disabled={loading}
-                    {...register("email")}
-                  />
-                </FormField>
-                <FormField
-                  label="Phone"
-                  required
-                  htmlFor="customer-phone"
-                  error={errors.phone?.message}
-                  span={6}
-                >
-                  <FormInput
-                    id="customer-phone"
-                    error={Boolean(errors.phone)}
-                    disabled={loading}
-                    {...register("phone")}
-                  />
-                </FormField>
+                {activeTab === "address" ? (
+                  <FormField
+                    label="Address"
+                    htmlFor="customer-address"
+                    error={errors.address?.message}
+                    span={12}
+                  >
+                    <FormInput
+                      id="customer-address"
+                      error={Boolean(errors.address)}
+                      disabled={loading}
+                      {...register("address")}
+                    />
+                  </FormField>
+                ) : (
+                  <FormField
+                    label="Notes"
+                    htmlFor="customer-notes"
+                    error={errors.notes?.message}
+                    span={12}
+                  >
+                    <FormTextarea
+                      id="customer-notes"
+                      error={Boolean(errors.notes)}
+                      disabled={loading}
+                      {...register("notes")}
+                    />
+                  </FormField>
+                )}
               </FormGrid>
             </FormSection>
-
-            <div>
-              <Tabs
-                items={detailTabs}
-                activeKey={activeTab}
-                onChange={setActiveTab}
-                aria-label="Customer details"
-              />
-              <FormSection
-                title={activeTab === "address" ? "Address" : "Notes"}
-                className="border-b-0"
-              >
-                <FormGrid columns={12}>
-                  {activeTab === "address" ? (
-                    <FormField
-                      label="Address"
-                      htmlFor="customer-address"
-                      error={errors.address?.message}
-                      span={12}
-                    >
-                      <FormInput
-                        id="customer-address"
-                        error={Boolean(errors.address)}
-                        disabled={loading}
-                        {...register("address")}
-                      />
-                    </FormField>
-                  ) : (
-                    <FormField
-                      label="Notes"
-                      htmlFor="customer-notes"
-                      error={errors.notes?.message}
-                      span={12}
-                    >
-                      <FormTextarea
-                        id="customer-notes"
-                        error={Boolean(errors.notes)}
-                        disabled={loading}
-                        {...register("notes")}
-                      />
-                    </FormField>
-                  )}
-                </FormGrid>
-              </FormSection>
-            </div>
-          </FormShell>
-        </>
+          </div>
+        </FormShell>
       )}
     </AppShell>
   );

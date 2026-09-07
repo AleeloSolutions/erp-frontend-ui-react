@@ -16,6 +16,7 @@ import {
   FormSelect,
   FormShell,
   FormStatusBar,
+  FormStickyHeader,
   FormTextarea,
   Input,
   LineItemsTable,
@@ -360,32 +361,37 @@ export default function InvoiceCreatePage() {
 
   return (
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
-      <ControlPanel pageActions={<PageActions breadcrumb="New Invoice" />} />
+      <FormStickyHeader>
+        <ControlPanel
+          sticky={false}
+          pageActions={<PageActions breadcrumb="New Invoice" />}
+        />
 
-      <FormStatusBar
-        belowControlPanel
-        steps={statusSteps}
-        currentStepKey={watch("status")}
-        onStepChange={(key) =>
-          setValue("status", key as InvoiceFormValues["status"], { shouldDirty: true })
-        }
-        actions={[
-          {
-            key: "create",
-            label: "Confirm",
-            variant: "primary",
-            loading: createMutation.isPending,
-            onClick: handleSubmit(onSubmit),
-          },
-          {
-            key: "cancel",
-            label: "Cancel",
-            variant: "secondary",
-            disabled: createMutation.isPending,
-            onClick: () => navigate("/sales/invoices"),
-          },
-        ]}
-      />
+        <FormStatusBar
+          sticky={false}
+          steps={statusSteps}
+          currentStepKey={watch("status")}
+          onStepChange={(key) =>
+            setValue("status", key as InvoiceFormValues["status"], { shouldDirty: true })
+          }
+          actions={[
+            {
+              key: "create",
+              label: "Confirm",
+              variant: "primary",
+              loading: createMutation.isPending,
+              onClick: handleSubmit(onSubmit),
+            },
+            {
+              key: "cancel",
+              label: "Cancel",
+              variant: "secondary",
+              disabled: createMutation.isPending,
+              onClick: () => navigate("/sales/invoices"),
+            },
+          ]}
+        />
+      </FormStickyHeader>
 
       <FormShell onSubmit={handleSubmit(onSubmit)}>
         <div className="">
@@ -496,11 +502,15 @@ export default function InvoiceCreatePage() {
                 <dl className="m-0 w-54 mx-auto ">
                   <div className="flex items-center justify-between py-0.5">
                     <dt className="">Untaxed Amount:</dt>
-                    <dd className="m-0 font-[600] text-[1rem]">{formatCurrency(total)}</dd>
+                    <dd className="m-0 font-[600] text-[1rem]">
+                      {formatCurrency(total)}
+                    </dd>
                   </div>
                   <div className="flex items-center justify-between  border-erp-border py-1">
                     <dt>Total:</dt>
-                    <dd className="m-0 text-[1.2rem] font-bold border-t border-t-erp-muted pt-2">{formatCurrency(total)}</dd>
+                    <dd className="m-0 text-[1.2rem] font-bold border-t border-t-erp-muted pt-2">
+                      {formatCurrency(total)}
+                    </dd>
                   </div>
                   <div className="flex items-center justify-between pt-2">
                     <dt className="text-base text-erp-muted">Amount Due:</dt>
