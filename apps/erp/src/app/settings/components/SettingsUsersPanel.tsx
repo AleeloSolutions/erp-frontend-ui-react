@@ -24,9 +24,13 @@ import {
 } from "@erp/ui";
 import { ApiError } from "@/lib/api-client";
 import { SettingsDetailBack } from "./SettingsDetailBack";
-import { updateUser, useCurrentUser, useTenantUsers, type TenantUser } from "../usersApi";
-
-const MANAGE_USERS = "settings.user.manage";
+import {
+  USER_CODES,
+  updateUser,
+  useCurrentUser,
+  useTenantUsers,
+  type TenantUser,
+} from "../usersApi";
 
 /** DataTable sorting -> DRF `?ordering=`; `-` means descending. */
 function orderingOf(sorting: SortingState): string {
@@ -69,8 +73,12 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
   );
 
   const { users, total, loading, error, reload } = useTenantUsers(params);
-  // The owner holds every code implicitly; a member needs the grant.
-  const canManage = Boolean(me?.permissions.includes(MANAGE_USERS));
+  // The owner holds every code implicitly; a member needs the grant. The
+  // Users row of the matrix has three ticks: invite, edit, deactivate.
+  const held = me?.permissions ?? [];
+  const canInvite = held.includes(USER_CODES.create);
+  const canManage = held.includes(USER_CODES.edit);
+  const canDeactivate = held.includes(USER_CODES.delete);
 
   const filters = useMemo<DataTableFilter[]>(
     () => [
@@ -126,16 +134,14 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
         cell: ({ getValue }) => String(getValue() || "—"),
       },
       {
-        id: "roles",
-        header: "Roles",
+        id: "role",
+        header: "Role",
         enableSorting: false,
         size: 160,
         cell: ({ row }) => {
           const user = row.original;
           if (user.user_type === "owner") return "Owner (all permissions)";
-          return user.roles.length
-            ? user.roles.map((role) => role.name).join(", ")
-            : "No role";
+          return user.role?.name ?? "No role";
         },
       },
       {
@@ -158,18 +164,18 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
 
   /** Only the actions this viewer may actually perform are offered. */
   function rowActions(user: TenantUser): DataTableRowAction[] {
-    if (!canManage) return [];
-    const actions: DataTableRowAction[] = [
-      {
+    const actions: DataTableRowAction[] = [];
+    if (canManage) {
+      actions.push({
         key: "edit",
         label: "Edit",
         onClick: () => navigate(`/settings/users/${user.uuid}`),
-      },
-    ];
+      });
+    }
     // The owner cannot be deactivated, and nobody can deactivate themselves —
     // the backend enforces both; not offering them says so up front.
     const self = user.uuid === me?.uuid;
-    if (user.user_type !== "owner" && !self) {
+    if (canDeactivate && user.user_type !== "owner" && !self) {
       actions.push(
         user.is_active
           ? {
@@ -220,7 +226,7 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
         renderToolbar={({ searchFilter, pagination }) => (
           <ControlPanel
             pageActions={
-              canManage ? (
+              canInvite ? (
                 <PageActions
                   buttons={[
                     {

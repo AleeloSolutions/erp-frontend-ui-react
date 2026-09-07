@@ -5,6 +5,7 @@ import TrialPage from "@/app/trial/TrialPage";
 import TrialThanksPage from "@/app/trial/TrialThanksPage";
 import SettingsPage from "@/app/settings/SettingsPage";
 import UserFormPage from "@/app/settings/users/UserFormPage";
+import RoleFormPage from "@/app/settings/roles/RoleFormPage";
 import LoginPage from "@/app/auth/LoginPage";
 import WelcomePage from "@/app/auth/WelcomePage";
 import VerifyEmailPage from "@/app/auth/VerifyEmailPage";
@@ -60,7 +61,7 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         path="/settings/users/new"
         element={
           <RequireAuth>
-            <RequirePermission anyOf={["settings.user.manage"]}>
+            <RequirePermission anyOf={["settings.user.create"]}>
               <UserFormPage />
             </RequirePermission>
           </RequireAuth>
@@ -70,8 +71,28 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         path="/settings/users/:uuid"
         element={
           <RequireAuth>
-            <RequirePermission anyOf={["settings.user.manage"]}>
+            <RequirePermission anyOf={["settings.user.edit"]}>
               <UserFormPage />
+            </RequirePermission>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings/roles/new"
+        element={
+          <RequireAuth>
+            <RequirePermission anyOf={["settings.role.create"]}>
+              <RoleFormPage />
+            </RequirePermission>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings/roles/:uuid"
+        element={
+          <RequireAuth>
+            <RequirePermission anyOf={["settings.role.edit"]}>
+              <RoleFormPage />
             </RequirePermission>
           </RequireAuth>
         }

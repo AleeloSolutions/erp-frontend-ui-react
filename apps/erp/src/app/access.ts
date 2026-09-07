@@ -1,31 +1,44 @@
 /**
  * Which parts of the app a user is offered.
  *
- * Every entry maps to permission codes from `/api/v1/access-modules/`:
- * holding any one of them means the module has something to show. This
- * only decides what is *offered* — the API is what refuses, and it does
- * so whether or not the navigation hid the link.
+ * Every entry maps to permission codes from `/api/v1/permissions/matrix/`
+ * (`<module>.<resource>.<action>`): holding any one of them means the
+ * module has something to show. This only decides what is *offered* — the
+ * API is what refuses, and it does so whether or not the navigation hid
+ * the link.
  */
 
 import type { NavigationItem } from "@erp/ui";
 
+/** Seeing a module at all: everything, or only your own records. */
+function viewing(...resources: string[]): string[] {
+  return resources.flatMap((resource) => [`${resource}.view`, `${resource}.view_own`]);
+}
+
+export const SETTINGS_CODES = {
+  company: ["settings.client.edit"],
+  documentLayout: ["settings.document_layout.edit"],
+  users: ["settings.user.create", "settings.user.edit", "settings.user.delete"],
+  roles: ["settings.role.create", "settings.role.edit", "settings.role.delete"],
+} as const;
+
 /** Nav key -> the codes that make it worth showing. Empty = always shown. */
 export const NAV_REQUIREMENTS: Record<string, string[]> = {
   dashboard: [],
-  sales: [
-    "sales.customer.view",
-    "sales.quotation.view",
-    "sales.invoice.view",
-    "sales.contract.view",
-    "sales.order.view",
-  ],
-  inventory: ["inv.product.view", "inv.movement.view"],
+  sales: viewing(
+    "sales.customer",
+    "sales.quotation",
+    "sales.invoice",
+    "sales.contract",
+    "sales.order"
+  ),
+  inventory: viewing("inv.product", "inv.movement"),
   reports: ["reports.statement.view"],
   settings: [
-    "settings.client.update",
-    "settings.document_layout.update",
-    "settings.user.manage",
-    "settings.role.manage",
+    ...SETTINGS_CODES.company,
+    ...SETTINGS_CODES.documentLayout,
+    ...SETTINGS_CODES.users,
+    ...SETTINGS_CODES.roles,
   ],
 };
 

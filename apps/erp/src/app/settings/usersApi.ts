@@ -13,30 +13,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
+import { useRoles } from "./rolesApi";
 
+/** A role as it appears on a user row. */
 export interface TenantRole {
   uuid: string;
   name: string;
 }
 
-/** The level key meaning "this user cannot reach the module at all". */
-export const NO_ACCESS = "none";
-
-export interface AccessLevel {
-  key: string;
-  label: string;
-  /** The permission codes this level grants; shown as the row's tooltip. */
-  codes: string[];
-}
-
-/** One row of the Access Rights grid, from /api/v1/access-modules/. */
-export interface AccessModule {
-  key: string;
-  group: string;
-  label: string;
-  help: string;
-  levels: AccessLevel[];
-}
+/** The three ticks of the Users row of the matrix. */
+export const USER_CODES = {
+  create: "settings.user.create",
+  edit: "settings.user.edit",
+  delete: "settings.user.delete",
+} as const;
 
 export interface TenantUser {
   uuid: string;
@@ -53,9 +43,8 @@ export interface TenantUser {
   email_verified_at: string | null;
   /** null → they have never signed in. */
   last_login_at: string | null;
-  roles: TenantRole[];
-  /** {module key: level key} — what the Access Rights grid renders. */
-  access: Record<string, string>;
+  /** The one role they hold; null for none (the owner needs none). */
+  role: TenantRole | null;
   created_at: string;
 }
 
@@ -78,9 +67,8 @@ export interface InviteUserInput {
   first_name: string;
   last_name: string;
   phone_number: string;
-  roles: string[];
-  /** Omitted for an administrator: the admin role already grants everything. */
-  access?: Record<string, string>;
+  /** The role's uuid; null for none. */
+  role: string | null;
 }
 
 export type UpdateUserInput = Partial<Omit<InviteUserInput, "email">> & {
@@ -211,28 +199,6 @@ export function isConfirmed(user: TenantUser | null): boolean {
   return Boolean(user && (user.email_verified_at || user.last_login_at));
 }
 
-/** The Access Rights catalogue: every module and the levels it offers. */
-export function useAccessModules() {
-  const [modules, setModules] = useState<AccessModule[]>([]);
-
-  useEffect(() => {
-    if (!isAuthenticated()) return;
-    let cancelled = false;
-    void apiGet<AccessModule[]>("/v1/access-modules/")
-      .then((data) => {
-        if (!cancelled) setModules(data);
-      })
-      .catch(() => {
-        // No tenant context: the grid renders empty rather than guessing.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return modules;
-}
-
 /** Who is looking, and what they may do.
  *
  * Deliberately not `useMe` (React Query): this module renders in Storybook
@@ -269,22 +235,5 @@ export function useCurrentUser() {
 
 /** Every role of this tenant — what the invite/edit form offers. */
 export function useTenantRoles() {
-  const [roles, setRoles] = useState<TenantRole[]>([]);
-
-  useEffect(() => {
-    if (!isAuthenticated()) return;
-    let cancelled = false;
-    void apiGetPage<TenantRole>("/v1/roles/?page_size=100")
-      .then((payload) => {
-        if (!cancelled) setRoles(payload.data);
-      })
-      .catch(() => {
-        // No tenant context (or offline): the form shows no roles to pick.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return roles;
+  return useRoles().roles;
 }

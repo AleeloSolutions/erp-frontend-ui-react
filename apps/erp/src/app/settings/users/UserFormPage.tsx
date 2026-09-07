@@ -1,11 +1,12 @@
 /**
- * Create / edit a user — the Access Rights form.
+ * Create / edit a user — identity, the one role they hold, and security.
  *
  * Laid out like the ERP user forms people already know: identity at the
- * top, a lifecycle pill on the right, tabs underneath, then one row per
- * module with a level dropdown. Every row is backed by a real permission
- * level from `/api/v1/access-modules/`; choosing one grants the role that
- * level is stored as, so nothing here is decorative.
+ * top, a lifecycle pill on the right, tabs underneath. Access is a single
+ * role picked from the tenant's roles (the Rise shape); the grid below the
+ * picker is a read-only view of what that role allows, so whoever is
+ * granting it sees what they are giving. Roles themselves are edited under
+ * Settings → Users → Roles.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -20,30 +21,27 @@ import {
   FormStickyHeader,
   PageActions,
   PageContainer,
-  Radio,
   Tabs,
   useToast,
   type StatusStep,
 } from "@erp/ui";
 import { AppShell, useNavbarDefaults } from "@/app";
 import { ApiError } from "@/lib/api-client";
+import { ROLE_CODES, completeCodes, usePermissionMatrix, type Role } from "../rolesApi";
 import {
-  NO_ACCESS,
+  USER_CODES,
   inviteUser,
   isConfirmed,
   updateUser,
   uploadAvatar,
-  useAccessModules,
   useCurrentUser,
   useTenantRoles,
   useTenantUser,
-  type AccessModule,
   type TenantUser,
 } from "../usersApi";
+import { PermissionMatrixGrid } from "../roles/PermissionMatrix";
 import { AvatarField } from "./AvatarField";
 import { SecurityTab } from "./SecurityTab";
-
-const MANAGE_USERS = "settings.user.manage";
 
 /** The account's own lifecycle, shown in the form's statusbar. */
 const INVITE_STEPS: StatusStep[] = [
@@ -51,22 +49,22 @@ const INVITE_STEPS: StatusStep[] = [
   { key: "confirmed", label: "Confirmed" },
 ];
 
-type BaseRole = "member" | "admin";
+/** The dropdown key for "holds no role". */
+const NO_ROLE = "__none";
 
 interface FormState {
   name: string;
   email: string;
   phone_number: string;
-  baseRole: BaseRole;
-  access: Record<string, string>;
+  /** The role's uuid, or null for none. */
+  role: string | null;
 }
 
 const EMPTY: FormState = {
   name: "",
   email: "",
   phone_number: "",
-  baseRole: "member",
-  access: {},
+  role: null,
 };
 
 /** "Hodan Ali" -> first/last, the same split signup uses. */
@@ -88,18 +86,8 @@ function stateOf(user: TenantUser | null): FormState {
     name: user.full_name || "",
     email: user.email,
     phone_number: user.phone_number,
-    baseRole: user.roles.some((role) => role.name === "admin") ? "admin" : "member",
-    access: { ...user.access },
+    role: user.role?.uuid ?? null,
   };
-}
-
-/** Modules in catalogue order, bucketed by their group heading. */
-function byGroup(modules: AccessModule[]): [string, AccessModule[]][] {
-  const groups = new Map<string, AccessModule[]>();
-  for (const module of modules) {
-    groups.set(module.group, [...(groups.get(module.group) ?? []), module]);
-  }
-  return [...groups.entries()];
 }
 
 export default function UserFormPage() {
@@ -109,8 +97,8 @@ export default function UserFormPage() {
   const navbar = useNavbarDefaults({ brandLabel: "Settings" });
 
   const { user, loading, reload } = useTenantUser(uuid);
-  const modules = useAccessModules();
   const roles = useTenantRoles();
+  const matrix = usePermissionMatrix();
   const me = useCurrentUser();
 
   const [values, setValues] = useState<FormState>(EMPTY);
@@ -143,58 +131,45 @@ export default function UserFormPage() {
     };
   }, [creating, confirmed, reload]);
 
-  // An administrator holds the whole catalogue, so the grid below is a
-  // consequence rather than a choice — shown, but not editable.
-  const isAdministrator = values.baseRole === "admin";
   const isOwner = user?.user_type === "owner";
-  const canManage = Boolean(me?.permissions.includes(MANAGE_USERS));
   const held = me?.permissions ?? null;
+  const canManage = Boolean(held && (held.includes(USER_CODES.edit) || creating));
+  const canEditRoles = Boolean(held?.includes(ROLE_CODES.edit));
 
   /** You cannot hand out access you do not hold: the API refuses it, so
-   * the level is not offered either. Unknown codes (still loading) leave
+   * the role is not offered either. Unknown codes (still loading) leave
    * everything enabled -- the API is the boundary, not this. */
-  function canConfer(codes: string[]): boolean {
+  function canConfer(role: Role): boolean {
     if (held === null) return true;
-    return codes.every((code) => held.includes(code));
+    return completeCodes(matrix, role.permissions).every((code) => held.includes(code));
   }
-  const groups = useMemo(() => byGroup(modules), [modules]);
-  /** Every code the catalogue can confer -- what "Administrator" means. */
-  const everyCode = useMemo(
-    () => modules.flatMap((module) => module.levels.at(-1)?.codes ?? []),
-    [modules]
+
+  const chosenRole = useMemo(
+    () => roles.find((role) => role.uuid === values.role) ?? null,
+    [roles, values.role]
   );
+  /** What the picked role allows -- or everything, for the owner. */
+  const shownCodes = useMemo<Set<string>>(() => {
+    if (isOwner && matrix) {
+      return new Set(matrix.resources.flatMap((r) => r.actions.map((cell) => cell.code)));
+    }
+    return new Set(chosenRole?.permissions ?? []);
+  }, [isOwner, matrix, chosenRole]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setValues((current) => ({ ...current, [key]: value }));
   }
 
-  function setLevel(moduleKey: string, level: string) {
-    setValues((current) => ({
-      ...current,
-      access: { ...current.access, [moduleKey]: level },
-    }));
-  }
-
-  function levelOf(module: AccessModule): string {
-    if (isAdministrator) return module.levels[module.levels.length - 1].key;
-    return values.access[module.key] ?? NO_ACCESS;
-  }
-
   async function handleSave() {
     setSaving(true);
     setFieldErrors({});
-    // The radio is the base role; the grid is everything else. An
-    // administrator needs no module rows — the admin role covers them.
-    const baseRole = roles.find((role) => role.name === values.baseRole);
-    const access = isAdministrator ? undefined : values.access;
     try {
       if (creating) {
         const created = await inviteUser({
           email: values.email,
           ...splitName(values.name),
           phone_number: values.phone_number,
-          roles: baseRole ? [baseRole.uuid] : [],
-          access,
+          role: values.role,
         });
         if (pendingAvatar) await uploadAvatar(created.uuid, pendingAvatar);
         toast({
@@ -206,8 +181,8 @@ export default function UserFormPage() {
         await updateUser(uuid!, {
           ...splitName(values.name),
           phone_number: values.phone_number,
-          roles: baseRole ? [baseRole.uuid] : [],
-          access,
+          // The owner holds everything implicitly; there is nothing to set.
+          ...(isOwner ? {} : { role: values.role }),
         });
         toast({ title: "User saved", variant: "success" });
       }
@@ -355,85 +330,68 @@ export default function UserFormPage() {
 
           {activeTab === "access" ? (
             <div role="tabpanel" aria-label="Access Rights" className="pt-5">
-              <SectionHeading>Roles</SectionHeading>
-              <div className="flex flex-wrap items-center gap-x-8 gap-y-2 pb-2 border-b border-erp-border-soft pb-6">
-                <span className="w-[92px] text-erp-form-label">Role</span>
-                <Radio
-                  id="role-member"
-                  className="[&>input]:border-erp-checkbox-border"
-                  name="base-role"
-                  label="User"
-                  checked={values.baseRole === "member"}
+              <SectionHeading>Role</SectionHeading>
+              <div className="flex flex-wrap items-center gap-x-8 gap-y-2 border-b border-erp-border-soft pb-6">
+                <label className="w-[92px] text-erp-form-label" htmlFor="user-role">
+                  Role
+                </label>
+                <FormDropdown
+                  id="user-role"
+                  chrome="underline"
+                  searchable
+                  className="w-[260px]"
                   disabled={isOwner}
-                  onChange={() => update("baseRole", "member")}
+                  value={isOwner ? NO_ROLE : (values.role ?? NO_ROLE)}
+                  items={[
+                    {
+                      key: NO_ROLE,
+                      label: isOwner ? "Owner (all permissions)" : "No role",
+                    },
+                    ...roles.map((role) => ({
+                      key: role.uuid,
+                      label: role.name,
+                      // Except the role they already hold, which must stay
+                      // selectable for the form to save.
+                      disabled: !canConfer(role) && role.uuid !== values.role,
+                    })),
+                  ]}
+                  onChange={(key) => update("role", key && key !== NO_ROLE ? key : null)}
                 />
-                <Radio
-                  id="role-admin"
-                  className="[&>input]:border-erp-checkbox-border"
-                  name="base-role"
-                  label="Administrator"
-                  checked={isAdministrator}
-                  // Administrator is the whole catalogue: conferring it
-                  // means holding it.
-                  disabled={isOwner || !canConfer(everyCode)}
-                  onChange={() => update("baseRole", "admin")}
-                />
-              </div>
-              {/* <p className="m-0 mb-6  text-[12px] text-erp-muted">
-                {isOwner
-                  ? "This is the workspace owner: they always hold every permission."
-                  : isAdministrator
-                    ? "Administrators hold every permission, so the modules below follow automatically."
-                    : held && !canConfer(everyCode)
-                      ? "Pick what this user may do. Levels beyond your own access are not yours to give."
-                      : "Pick what this user may do, module by module."}
-              </p> */}
-
-              <div className="grid gap-x-16 gap-y-2 lg:grid-cols-2">
-                {groups.map(([group, groupModules]) => (
-                  <section key={group} className="break-inside-avoid">
-                    <SectionHeading>{group}</SectionHeading>
-                    <div className="mb-6">
-                      {groupModules.map((module) => (
-                        <div
-                          key={module.key}
-                          className="flex items-center justify-between gap-3 py-2.5"
-                        >
-                          <label
-                            className="text-erp-text"
-                            htmlFor={`access-${module.key}`}
-                            title={module.help}
-                          >
-                            {module.label}
-                          </label>
-                          <FormDropdown
-                            id={`access-${module.key}`}
-                            chrome="underline"
-                            searchable
-                            className="w-[200px]"
-                            disabled={isAdministrator || isOwner}
-                            value={levelOf(module)}
-                            items={module.levels.map((level) => ({
-                              key: level.key,
-                              label: level.label,
-                              // Except the level they are already on, which
-                              // must stay selectable for the form to save.
-                              disabled:
-                                !canConfer(level.codes) && level.key !== levelOf(module),
-                            }))}
-                            onChange={(key) => {
-                              if (key) setLevel(module.key, key);
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                ))}
+                {fieldErrors.role?.[0] ? (
+                  <span className="text-[12px] text-erp-danger">
+                    {fieldErrors.role[0]}
+                  </span>
+                ) : null}
               </div>
 
-              {modules.length === 0 && !loading ? (
-                <p className="m-0 text-[12px] text-erp-muted">
+              <div className="mb-3 mt-6 flex items-baseline justify-between gap-4">
+                <SectionHeading className="mb-0 mt-0">
+                  {isOwner
+                    ? "What the owner can do"
+                    : chosenRole
+                      ? `What "${chosenRole.name}" allows`
+                      : "What this user can do"}
+                </SectionHeading>
+                {chosenRole && canEditRoles ? (
+                  <button
+                    type="button"
+                    className="border-0 bg-transparent p-0 text-[12px] text-erp-brand-third hover:underline"
+                    onClick={() => navigate(`/settings/roles/${chosenRole.uuid}`)}
+                  >
+                    Edit role
+                  </button>
+                ) : null}
+              </div>
+              {!isOwner && !chosenRole ? (
+                <p className="m-0 mb-4 text-[12px] text-erp-muted">
+                  Without a role this user can sign in and see their colleagues, and
+                  nothing else. Pick a role above to give them access.
+                </p>
+              ) : null}
+              <PermissionMatrixGrid matrix={matrix} selected={shownCodes} readOnly />
+
+              {roles.length === 0 && !loading ? (
+                <p className="m-0 mt-4 text-[12px] text-erp-muted">
                   Sign in to a workspace to configure access rights.
                 </p>
               ) : null}
@@ -447,9 +405,17 @@ export default function UserFormPage() {
   );
 }
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function SectionHeading({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="mb-3 mt-6 text-[11px] font-bold uppercase tracking-[.08em] text-erp-brand-third">
+    <div
+      className={`mb-3 mt-6 text-[11px] font-bold uppercase tracking-[.08em] text-erp-brand-third ${className}`}
+    >
       {children}
     </div>
   );

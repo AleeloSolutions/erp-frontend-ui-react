@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
-import { CircleHelp, Users } from "lucide-react";
+import { CircleHelp, ShieldCheck, Users } from "lucide-react";
 import { useCompanyInfo } from "../api";
+import { useRoles } from "../rolesApi";
 import { useTenantUsers } from "../usersApi";
 import { CompanyInfoForm } from "../CompanyInfoForm";
 import { formatAddress, type CompanyInfo } from "../settingsCompany";
@@ -10,6 +11,7 @@ import { settingsOverviewStats } from "../settingsViews";
 import { SettingsDetailBack } from "./SettingsDetailBack";
 import { SettingsOverviewLink } from "./SettingsOverviewLink";
 import { SettingsOverviewTile } from "./SettingsOverviewTile";
+import { SettingsRolesPanel } from "./SettingsRolesPanel";
 import { SettingsSection } from "./SettingsSection";
 import { SettingsUsersPanel } from "./SettingsUsersPanel";
 
@@ -44,6 +46,7 @@ function SettingsUsersOverview({
     pageSize: 1,
   });
   const activeUsers = loading ? settingsOverviewStats.activeUsers : total;
+  const { roles } = useRoles();
 
   return (
     <SettingsOverviewShell>
@@ -62,6 +65,16 @@ function SettingsUsersOverview({
           action={
             <SettingsOverviewLink onClick={() => onOpenDetail("users-manage")}>
               Manage Users
+            </SettingsOverviewLink>
+          }
+        />
+        <SettingsOverviewTile
+          icon={<ShieldCheck className="h-[18px] w-[18px]" aria-hidden />}
+          title={`${roles.length} ${roles.length === 1 ? "Role" : "Roles"}`}
+          description="What each role may view, create, edit and delete"
+          action={
+            <SettingsOverviewLink onClick={() => onOpenDetail("roles-manage")}>
+              Manage Roles
             </SettingsOverviewLink>
           }
         />
@@ -177,6 +190,10 @@ export function SettingsTabPanel({
 
   if (detailView === "users-manage" && activeTab === "users") {
     return <SettingsUsersPanel onBack={onBack} />;
+  }
+
+  if (detailView === "roles-manage" && activeTab === "users") {
+    return <SettingsRolesPanel onBack={onBack} />;
   }
 
   if (detailView === "company-edit" && activeTab === "company") {

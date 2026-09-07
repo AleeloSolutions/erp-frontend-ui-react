@@ -1,11 +1,12 @@
 import type { SettingsTabKey } from "./settingsTabs";
 
 /** Drill-down views opened from overview action links. */
-export type SettingsDetailView = "users-manage" | "company-edit";
+export type SettingsDetailView = "users-manage" | "roles-manage" | "company-edit";
 
 export function detailViewTab(view: SettingsDetailView): SettingsTabKey {
   switch (view) {
     case "users-manage":
+    case "roles-manage":
       return "users";
     case "company-edit":
       return "company";
