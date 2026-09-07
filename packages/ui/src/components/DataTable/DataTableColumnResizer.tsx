@@ -37,13 +37,19 @@ export interface DataTableColumnResizerProps<TData> {
   columnResizeDirection: "ltr" | "rtl";
   /** Header row height (px) — handles span the header only. */
   headerHeight: number;
+  /**
+   * When set, the handle layer sticks with the sticky `<th>` row at this
+   * viewport offset. When omitted, handles stay absolutely pinned to the
+   * table wrapper top (non-sticky tables).
+   */
+  stickyTop?: number;
 }
 
 /**
- * Resize handles overlaid on the header row. Not sticky / not `position` on
- * the `<th>` cells — this layer sits in the table wrapper and scrolls away
- * with the header. Trailing-edge resize conserves total width so the table
- * stays full-container-wide.
+ * Resize handles overlaid on the header row. Lives in the table wrapper (not
+ * on each `<th>`) so hit targets stay independent of cell overflow. When the
+ * header is sticky, this layer uses the same `stickyTop` so handles track the
+ * pinned header while the body scrolls underneath.
  */
 export function DataTableColumnResizer<TData>({
   table,
@@ -52,6 +58,7 @@ export function DataTableColumnResizer<TData>({
   onColumnSizingChange,
   columnResizeDirection,
   headerHeight,
+  stickyTop,
 }: DataTableColumnResizerProps<TData>) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -157,8 +164,16 @@ export function DataTableColumnResizer<TData>({
     }
   }
 
+  const sticky = stickyTop != null;
+
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-0">
+    <div
+      className={cn(
+        "pointer-events-none z-[11] h-0 w-full",
+        sticky ? "sticky" : "absolute inset-x-0 top-0"
+      )}
+      style={sticky ? { top: stickyTop } : undefined}
+    >
       <div className="relative">
         {handles.map((handle) => (
           <div

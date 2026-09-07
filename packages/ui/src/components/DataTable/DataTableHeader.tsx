@@ -9,6 +9,11 @@ export interface DataTableHeaderProps<TData> {
   table: Table<TData>;
   /** Rendered inside the `__actions` header cell (not absolutely positioned). */
   columnsMenu?: ReactNode;
+  /**
+   * When set, `<th>` cells stick at this viewport offset so the header stays
+   * visible while the page scrolls (under Navbar / ControlPanel).
+   */
+  stickyTop?: number;
 }
 
 /** Font Awesome `fa-sort` / `fa-sort-up` / `fa-sort-down` glyph. */
@@ -45,9 +50,11 @@ function headerLabelText<TData>(header: Header<TData, unknown>): string {
 function HeaderCell<TData>({
   header,
   columnsMenu,
+  stickyTop,
 }: {
   header: Header<TData, unknown>;
   columnsMenu?: ReactNode;
+  stickyTop?: number;
 }) {
   const canSort = header.column.getCanSort();
   const sorted = header.column.getIsSorted();
@@ -55,13 +62,21 @@ function HeaderCell<TData>({
   const isSelect = header.column.id === "__select";
   const isActions = header.column.id === "__actions";
   const label = headerLabelText(header);
+  const sticky = stickyTop != null;
+  const cellStyle = {
+    ...getColumnCellStyle(header.column),
+    ...(sticky ? { top: stickyTop } : null),
+  };
 
   if (isSelect) {
     return (
       <th
         colSpan={header.colSpan}
-        style={getColumnCellStyle(header.column)}
-        className="h-10 overflow-visible border-b border-erp-table-border bg-erp-table-header p-0 align-middle"
+        style={cellStyle}
+        className={cn(
+          "h-10 overflow-visible border-b border-erp-table-border bg-erp-table-header p-0 align-middle",
+          sticky && "sticky z-10"
+        )}
       >
         {!header.isPlaceholder
           ? flexRender(header.column.columnDef.header, header.getContext())
@@ -74,8 +89,11 @@ function HeaderCell<TData>({
     return (
       <th
         colSpan={header.colSpan}
-        style={getColumnCellStyle(header.column)}
-        className="h-10 overflow-hidden border-b border-erp-table-border bg-erp-table-header p-0 align-middle"
+        style={cellStyle}
+        className={cn(
+          "h-10 overflow-hidden border-b border-erp-table-border bg-erp-table-header p-0 align-middle",
+          sticky && "sticky z-10"
+        )}
       >
         {columnsMenu ? (
           <div className="grid h-10 w-full place-items-center">{columnsMenu}</div>
@@ -87,40 +105,35 @@ function HeaderCell<TData>({
   return (
     <th
       colSpan={header.colSpan}
-      style={getColumnCellStyle(header.column)}
+      style={cellStyle}
       className={cn(
-        "h-11 overflow-hidden border-b border-erp-table-border bg-erp-table-header py-2 text-[14px] font-weight-500 whitespace-nowrap text-erp-text align-middle !text-start",
+        "h-10 overflow-hidden border-b border-erp-table-border bg-erp-table-header text-[14px] font-medium whitespace-nowrap text-erp-text align-middle",
+        sticky && "sticky z-10",
         canSort && "cursor-pointer",
-        alignRight && "!text-end"
+        alignRight ? "text-end" : "text-start"
       )}
     >
       {header.isPlaceholder ? null : (
-        <div className="flex w-full min-w-0 items-center">
+        <div
+          className={cn(
+            "flex h-10 w-full min-w-0 items-center",
+            alignRight && "justify-end"
+          )}
+        >
           {canSort ? (
             <button
               type="button"
               title={label}
-              className="flex w-full min-w-0 items-center gap-1 hover:text-erp-primary"
+              className="inline-flex max-w-full min-w-0 items-center gap-1 hover:text-erp-primary"
               onClick={header.column.getToggleSortingHandler()}
             >
-              <span
-                className={cn(
-                  "min-w-0 flex-1 truncate",
-                  alignRight ? "text-end" : "text-start"
-                )}
-              >
+              <span className="min-w-0 truncate">
                 {flexRender(header.column.columnDef.header, header.getContext())}
               </span>
               <SortIcon sorted={sorted} />
             </button>
           ) : (
-            <span
-              title={label}
-              className={cn(
-                "min-w-0 flex-1 truncate",
-                alignRight ? "text-end" : "text-start"
-              )}
-            >
+            <span title={label} className="min-w-0 truncate">
               {flexRender(header.column.columnDef.header, header.getContext())}
             </span>
           )}
@@ -133,6 +146,7 @@ function HeaderCell<TData>({
 export function DataTableHeader<TData>({
   table,
   columnsMenu,
+  stickyTop,
 }: DataTableHeaderProps<TData>) {
   return (
     <thead>
@@ -142,6 +156,7 @@ export function DataTableHeader<TData>({
             <HeaderCell
               key={header.id}
               header={header}
+              stickyTop={stickyTop}
               columnsMenu={header.column.id === "__actions" ? columnsMenu : undefined}
             />
           ))}

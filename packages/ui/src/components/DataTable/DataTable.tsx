@@ -34,6 +34,7 @@ import {
   type SizingColumnSpec,
 } from "./column-width";
 import { useDebounce } from "../../hooks/useDebounce";
+import { CONTROL_PANEL_HEIGHT, NAVBAR_HEIGHT } from "../../layout/stickyOffsets";
 import type {
   DataTableBulkAction,
   DataTableFilter,
@@ -118,6 +119,17 @@ export interface DataTableProps<TData, TValue = unknown> {
   /** Optional per-row `<tr>` classes (e.g. status text color on all cells). */
   getRowClassName?: (row: TData) => string | undefined;
   /**
+   * Keep column headers pinned while the page scrolls. Defaults to true.
+   * Sticks under the Navbar, and under ControlPanel when `belowControlPanel`
+   * is true (or when `renderToolbar` is used).
+   */
+  stickyHeader?: boolean;
+  /**
+   * When a sticky `ControlPanel` sits above the table, offset the sticky
+   * header below it. Defaults to true whenever `renderToolbar` is provided.
+   */
+  belowControlPanel?: boolean;
+  /**
    * Render-prop that receives pre-built toolbar nodes. The page places these
    * inside a ControlPanel or any layout it wants. When omitted, no toolbar is
    * rendered and the table starts directly with headers.
@@ -179,10 +191,16 @@ export function DataTable<TData, TValue = unknown>({
   filtering: controlledFiltering,
   className,
   getRowClassName,
+  stickyHeader = true,
+  belowControlPanel,
   renderToolbar,
 }: DataTableProps<TData, TValue>) {
   const isServerPagination = typeof pagination === "object";
   const enablePagination = pagination !== false;
+  const resolvedBelowControlPanel = belowControlPanel ?? renderToolbar != null;
+  const stickyHeaderTop = stickyHeader
+    ? NAVBAR_HEIGHT + (resolvedBelowControlPanel ? CONTROL_PANEL_HEIGHT : 0)
+    : undefined;
 
   const [internalSearch, setInternalSearch] = useState("");
   const search = controlledSearch?.value ?? internalSearch;
@@ -779,6 +797,7 @@ export function DataTable<TData, TValue = unknown>({
                 }}
                 columnResizeDirection={columnResizeDirection}
                 headerHeight={headerHeight}
+                stickyTop={stickyHeaderTop}
               />
               <table
                 className="w-full table-fixed border-separate border-spacing-0 text-start tabular-nums"
@@ -791,7 +810,11 @@ export function DataTable<TData, TValue = unknown>({
                     <col key={column.id} style={getColumnWidthStyle(column)} />
                   ))}
                 </colgroup>
-                <DataTableHeader table={table} columnsMenu={columnsMenu} />
+                <DataTableHeader
+                  table={table}
+                  columnsMenu={columnsMenu}
+                  stickyTop={stickyHeaderTop}
+                />
                 <DataTableBody
                   table={table}
                   emptyMessage={emptyMessage}
