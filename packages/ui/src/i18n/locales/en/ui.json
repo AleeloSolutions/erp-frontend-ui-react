@@ -36,7 +36,9 @@
     "noResults": "No results",
     "searchMore": "Search more...",
     "search": "Search...",
-    "clear": "Clear"
+    "clear": "Clear",
+    "open": "Open",
+    "close": "Close"
   },
   "datepicker": {
     "chooseDate": "Choose date",

@@ -134,12 +134,13 @@ function useFieldMenuCoords(anchorRef: RefObject<HTMLElement | null>) {
       const spaceBelow = window.innerHeight - rect.bottom - 8;
       const spaceAbove = rect.top - 8;
       const openUp = spaceBelow < 160 && spaceAbove > spaceBelow;
+      // Sit tight under the underline — Odoo many2one style.
       setCoords({
-        top: openUp ? undefined : rect.bottom + 4,
-        bottom: openUp ? window.innerHeight - rect.top + 4 : undefined,
+        top: openUp ? undefined : rect.bottom + 1,
+        bottom: openUp ? window.innerHeight - rect.top + 1 : undefined,
         left: rect.left,
-        width: rect.width,
-        maxHeight: Math.min(240, Math.max(80, openUp ? spaceAbove : spaceBelow)),
+        width: Math.max(rect.width, 160),
+        maxHeight: Math.min(280, Math.max(80, openUp ? spaceAbove : spaceBelow)),
       });
     }
 
@@ -162,7 +163,7 @@ function DropdownCaret({ open }: { open: boolean }) {
       className={cn(
         "pointer-events-none absolute end-2 top-1/2 size-0 -translate-y-1/2",
         "border-x-[4px] border-x-transparent border-t-[5px] border-solid",
-        open ? "border-t-erp-teal" : "border-t-erp-subtle"
+        open ? "border-t-erp-input-border-focus" : "border-t-erp-subtle"
       )}
     />
   );
@@ -274,6 +275,7 @@ function FieldMenu({
   searchMoreLabel,
   anchorRef,
   menuRef,
+  selectedKey,
   search,
 }: {
   items: DropdownItem[];
@@ -284,6 +286,8 @@ function FieldMenu({
   searchMoreLabel?: string;
   anchorRef: RefObject<HTMLElement | null>;
   menuRef: RefObject<HTMLDivElement | null>;
+  /** Currently committed value — rendered bold in the list (Odoo many2one). */
+  selectedKey?: string | null;
   /** Renders a live-filter search input above the list — used by the plain
    * (non-combobox) field trigger so search is available immediately on open,
    * without changing that trigger's own closed-state look. */
@@ -300,8 +304,8 @@ function FieldMenu({
       ref={menuRef}
       className={cn(
         "z-[70] flex flex-col overflow-hidden",
-        "rounded border border-erp-table-border bg-erp-table-bg text-[0.875rem] text-erp-text",
-        "shadow-[0_0.5rem_1rem_rgba(0,0,0,0.15)]"
+        "rounded-sm border border-black/[0.06] bg-white text-[0.875rem] text-erp-text",
+        "shadow-[0_1px_4px_rgba(0,0,0,0.1),0_4px_16px_rgba(0,0,0,0.08)]"
       )}
       style={{
         position: "fixed",
@@ -313,45 +317,52 @@ function FieldMenu({
       }}
     >
       {search ? (
-        <div className="shrink-0 border-b border-erp-table-border p-1.5">
+        <div className="shrink-0 border-b border-black/[0.06] px-2 py-1.5">
           <input
             type="text"
             autoFocus
             value={search.value}
             onChange={(event) => search.onChange(event.target.value)}
             placeholder={search.placeholder}
-            className="w-full border-0 bg-transparent px-2 py-1 text-[0.875rem] text-erp-text outline-none placeholder:text-erp-placeholder"
+            className="w-full border-0 bg-transparent px-3 py-1 text-[0.875rem] text-erp-text outline-none placeholder:text-erp-placeholder"
           />
         </div>
       ) : null}
       <ul
         id={listId}
         role="listbox"
-        className="m-0 min-h-0 flex-1 list-none overflow-y-auto py-2 [scrollbar-width:thin]"
+        className="m-0 min-h-0 flex-1 list-none overflow-y-auto py-1 [scrollbar-width:thin]"
       >
         {items.length === 0 ? (
-          <li className="px-5 py-[3px] text-erp-muted">{emptyLabel}</li>
+          <li className="px-5 py-1.5 text-erp-muted">{emptyLabel}</li>
         ) : (
-          items.map((item) => (
-            <li key={item.key}>
-              <button
-                type="button"
-                role="option"
-                disabled={item.disabled}
-                className="block w-full truncate border-0 bg-transparent px-5 py-[3px] text-start text-erp-text hover:bg-erp-menu-hover disabled:text-erp-muted"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => onSelect(item)}
-              >
-                {item.label}
-              </button>
-            </li>
-          ))
+          items.map((item) => {
+            const isSelected = selectedKey != null && item.key === selectedKey;
+            return (
+              <li key={item.key}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  disabled={item.disabled}
+                  className={cn(
+                    "block w-full truncate border-0 bg-transparent px-5 py-1.5 text-start text-[0.875rem] text-erp-text",
+                    "hover:bg-erp-menu-hover disabled:text-erp-muted"
+                  )}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => onSelect(item)}
+                >
+                  {item.label}
+                </button>
+              </li>
+            );
+          })
         )}
         {onSearchMore ? (
           <li>
             <button
               type="button"
-              className="block w-full truncate border-0 bg-transparent px-5 py-[3px] text-start text-erp-text hover:bg-erp-menu-hover"
+              className="block w-full truncate border-0 bg-transparent px-5 py-1.5 text-start text-[0.875rem] text-erp-text hover:bg-erp-menu-hover"
               onMouseDown={(event) => event.preventDefault()}
               onClick={onSearchMore}
             >
@@ -519,6 +530,13 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
 
     const showClear = clearable && !isDisabled && !!selectedValue;
 
+    function openSearchMenu() {
+      if (isDisabled) return;
+      setQuery(displayLabel);
+      setSearchTouched(false);
+      setIsOpen(true);
+    }
+
     return (
       <div ref={rootRef} className={cn("relative min-w-0 max-w-full", className)}>
         <Input
@@ -539,13 +557,16 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
             "w-full truncate",
             showClear && !hideChevron && "pe-12",
             showClear && hideChevron && "pe-7",
-            !showClear && "pe-7"
+            !showClear && "pe-7",
+            isOpen &&
+              !error &&
+              "border-b-erp-input-border-focus hover:border-b-erp-input-border-focus focus:border-b-erp-input-border-focus focus-visible:border-b-erp-input-border-focus"
           )}
-          onFocus={() => {
-            if (isDisabled) return;
-            setQuery(displayLabel);
-            setSearchTouched(false);
-            setIsOpen(true);
+          onFocus={openSearchMenu}
+          onClick={() => {
+            // After a pick the input often keeps focus, so onFocus won't fire
+            // again — reopen from click while already focused.
+            if (!isOpen) openSearchMenu();
           }}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -568,12 +589,38 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
             <X className="h-3 w-3" aria-hidden />
           </button>
         ) : null}
-        {hideChevron ? null : <DropdownCaret open={isOpen} />}
+        {hideChevron ? null : (
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label={isOpen ? t("dropdown.close") : t("dropdown.open")}
+            disabled={isDisabled}
+            className="absolute end-1.5 top-1/2 grid size-5 -translate-y-1/2 place-items-center border-0 bg-transparent p-0"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              if (isDisabled) return;
+              if (isOpen) {
+                close();
+                return;
+              }
+              openSearchMenu();
+            }}
+          >
+            <span
+              aria-hidden
+              className={cn(
+                "size-0 border-x-[4px] border-x-transparent border-t-[5px] border-solid",
+                isOpen ? "border-t-erp-input-border-focus" : "border-t-erp-subtle"
+              )}
+            />
+          </button>
+        )}
         {isOpen ? (
           <FieldMenu
             items={visibleItems}
             listId={listId}
             emptyLabel={emptyLabel}
+            selectedKey={selectedValue}
             onSelect={pickItem}
             onSearchMore={
               onSearchMore
@@ -612,6 +659,7 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
       items={visibleItems}
       listId={listId}
       emptyLabel={t("dropdown.noResults")}
+      selectedKey={selectedValue}
       onSelect={pickItem}
       anchorRef={rootRef}
       menuRef={menuRef}
@@ -639,6 +687,9 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
             chromeEdge,
           }),
           fieldSizeClasses[size],
+          isOpen &&
+            !error &&
+            "border-b-erp-input-border-focus hover:border-b-erp-input-border-focus focus-within:border-b-erp-input-border-focus",
           buttonClassName
         )}
       >
@@ -676,7 +727,7 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
             aria-hidden
             className={cn(
               "size-0 shrink-0 border-x-[4px] border-x-transparent border-t-[5px] border-solid",
-              isOpen ? "border-t-erp-teal" : "border-t-erp-subtle"
+              isOpen ? "border-t-erp-input-border-focus" : "border-t-erp-subtle"
             )}
           />
         )}

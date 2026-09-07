@@ -182,6 +182,34 @@ export const FieldSearch: Story = {
   },
 };
 
+const accessLevels = [
+  { key: "basic", label: "Basic" },
+  { key: "user", label: "User" },
+  { key: "admin", label: "Administrator" },
+  { key: "system", label: "System Administrator" },
+];
+
+/** Odoo-style underline field: teal open chrome, bold selected row, soft menu. */
+export const AccessLevel: Story = {
+  name: "Access level (underline)",
+  render: function AccessLevelStory() {
+    const [value, setValue] = useState<string | null>("admin");
+    return (
+      <div className="flex min-h-64 items-start justify-end bg-[#f8f9fa] p-8">
+        <Dropdown
+          trigger="field"
+          searchable
+          chrome="underline"
+          className="w-[200px]"
+          value={value}
+          onChange={(next) => setValue(next)}
+          items={accessLevels}
+        />
+      </div>
+    );
+  },
+};
+
 export const FieldSearchClearable: Story = {
   name: "Field search (clearable)",
   render: function FieldSearchClearableStory() {

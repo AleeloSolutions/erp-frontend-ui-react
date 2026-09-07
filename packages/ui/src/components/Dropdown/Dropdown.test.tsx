@@ -78,8 +78,35 @@ describe("Dropdown searchable", () => {
     );
     const input = screen.getByRole("combobox") as HTMLInputElement;
     fireEvent.focus(input);
-    expect(screen.getByRole("option", { name: "400000 Product Sales" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "400010 Service Revenue" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "400000 Product Sales" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "400010 Service Revenue" })
+    ).toBeInTheDocument();
+  });
+
+  it("reopens on click while still focused after a selection (no blur required)", () => {
+    render(
+      <Dropdown
+        trigger="field"
+        searchable
+        value={null}
+        items={items}
+        onChange={() => {}}
+      />
+    );
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.click(screen.getByRole("option", { name: "400000 Product Sales" }));
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    // Still focused — click must reopen without an intervening blur.
+    fireEvent.click(input);
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "400010 Service Revenue" })
+    ).toBeInTheDocument();
   });
 });
 
@@ -119,7 +146,13 @@ describe("Dropdown clearable", () => {
 
   it("does not show a clear control when nothing is selected", () => {
     render(
-      <Dropdown trigger="field" clearable value={null} items={items} onChange={() => {}} />
+      <Dropdown
+        trigger="field"
+        clearable
+        value={null}
+        items={items}
+        onChange={() => {}}
+      />
     );
     expect(screen.queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
   });
