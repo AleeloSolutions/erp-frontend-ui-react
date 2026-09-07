@@ -28,9 +28,8 @@ export interface NavbarProps {
   /** Callback when user menu is clicked */
   onUserClick?: () => void;
   /**
-   * Account menu behind the avatar (sign out, and whatever else an app
-   * puts there). With items, the avatar becomes the menu's trigger; with
-   * none, it stays a plain button calling `onUserClick`.
+   * Account menu (sign out, etc.). When set, name + avatar open this menu
+   * with the same plain navbar chrome as the no-menu avatar button.
    */
   userMenuItems?: DropdownItem[];
   className?: string;
@@ -94,45 +93,55 @@ export function Navbar({
         ) : null}
       </div>
 
-      {/* Right: User name + avatar */}
+      {/* Right: User name + avatar (account menu when items are provided) */}
       <div className="flex items-center gap-0.5">
-        {/* With a menu, the avatar is the only account control -- the name
-            beside it is a label, not a second button that does nothing. */}
-        {userName && userMenuItems?.length ? (
-          <span
-            className="hidden h-[26px] items-center truncate px-2 text-[0.875rem] text-[#111827] md:flex"
-            title={userName}
-          >
-            <span className="truncate">{userName}</span>
-          </span>
-        ) : userName ? (
-          <button
-            type="button"
-            onClick={onUserClick}
-            className="hidden h-[26px] items-center rounded px-2 text-[0.875rem] text-[#111827] truncate hover:bg-[#e7e9ed] md:flex"
-            title={userName}
-          >
-            <span className="truncate">{userName}</span>
-          </button>
-        ) : null}
-
         {userMenuItems?.length ? (
           <Dropdown
             trigger="button"
             align="right"
+            hideChevron
             items={userMenuItems}
-            label={avatar}
-            buttonProps={{ variant: "ghost", size: "icon", "aria-label": "User menu" }}
+            label={
+              <span className="flex min-w-0 items-center gap-0.5">
+                {userName ? (
+                  <span
+                    className="hidden h-[26px] max-w-[12rem] items-center truncate px-2 text-[0.875rem] font-normal text-[#111827] md:flex"
+                    title={userName}
+                  >
+                    {userName}
+                  </span>
+                ) : null}
+                {avatar}
+              </span>
+            }
+            buttonProps={{
+              variant: "ghost",
+              "aria-label": "User menu",
+              className:
+                "h-[26px] w-auto min-w-0 gap-0 rounded border-0 bg-transparent p-0 pe-1 font-normal text-inherit shadow-none hover:bg-[#e7e9ed] hover:border-transparent",
+            }}
           />
         ) : (
-          <button
-            type="button"
-            onClick={onUserClick}
-            className="flex h-[26px] items-center gap-2 rounded px-1 hover:bg-[#e7e9ed]"
-            aria-label="User menu"
-          >
-            {avatar}
-          </button>
+          <>
+            {userName ? (
+              <button
+                type="button"
+                onClick={onUserClick}
+                className="hidden h-[26px] items-center rounded px-2 text-[0.875rem] text-[#111827] truncate hover:bg-[#e7e9ed] md:flex"
+                title={userName}
+              >
+                <span className="truncate">{userName}</span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onUserClick}
+              className="flex h-[26px] items-center gap-2 rounded px-1 hover:bg-[#e7e9ed]"
+              aria-label="User menu"
+            >
+              {avatar}
+            </button>
+          </>
         )}
       </div>
     </header>

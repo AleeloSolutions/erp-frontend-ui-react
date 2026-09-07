@@ -39,9 +39,8 @@ export const WithSubmenu: Story = {
 };
 
 /**
- * With `userMenuItems` the avatar becomes the trigger for an account
- * menu. Without them it stays a plain button calling `onUserClick`, so
- * existing consumers are unaffected.
+ * With `userMenuItems`, name + avatar open the account menu. The trigger
+ * keeps the plain navbar look (no icon-button chrome / chevron).
  */
 export const WithUserMenu: Story = {
   args: {
