@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "../../primitives/Button";
 import type { ButtonVariant } from "../../types/common";
 import { cn } from "../../utils";
-import { CONTROL_PANEL_HEIGHT, NAVBAR_HEIGHT } from "../../layout/stickyOffsets";
+import { CONTROL_PANEL_COMPACT_HEIGHT, NAVBAR_HEIGHT } from "../../layout/stickyOffsets";
 import { StatusStepper, type StatusStep } from "./StatusStepper";
 
 export interface FormStatusBarAction {
@@ -20,8 +20,17 @@ export interface FormStatusBarProps {
   steps: StatusStep[];
   currentStepKey: string;
   onStepChange?: (key: string) => void;
-  /** Set when a sticky `ControlPanel` is rendered directly above this bar, so it sticks below that instead of straight under the Navbar. */
+  /**
+   * When a sticky `ControlPanel` sits directly above this bar (and this bar
+   * is sticky on its own), offset below that panel. Prefer wrapping both in
+   * `FormStickyHeader` with `sticky={false}` instead — that removes the gap.
+   */
   belowControlPanel?: boolean;
+  /**
+   * When false, the bar is not sticky on its own — use inside
+   * `FormStickyHeader` with ControlPanel `sticky={false}`.
+   */
+  sticky?: boolean;
   className?: string;
 }
 
@@ -41,34 +50,78 @@ export function FormStatusBar({
   currentStepKey,
   onStepChange,
   belowControlPanel = false,
+  sticky = true,
   className,
 }: FormStatusBarProps) {
   const visibleActions = actions.filter((action) => !action.hidden);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [isStuck, setIsStuck] = useState(false);
-  const stickyTop = NAVBAR_HEIGHT + (belowControlPanel ? CONTROL_PANEL_HEIGHT : 0);
+  const [controlPanelHeight, setControlPanelHeight] = useState(
+    CONTROL_PANEL_COMPACT_HEIGHT
+  );
+  const stickyTop = NAVBAR_HEIGHT + (belowControlPanel ? controlPanelHeight : 0);
 
   useEffect(() => {
+    if (!sticky || !belowControlPanel || typeof window === "undefined") return;
+    const panel = document.querySelector<HTMLElement>("[data-control-panel]");
+    if (!panel) return;
+
+    const measure = () => {
+      const height = Math.round(panel.getBoundingClientRect().height);
+      if (height > 0) setControlPanelHeight(height);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, [belowControlPanel, sticky]);
+
+  useEffect(() => {
+    if (!sticky) return;
     const sentinel = sentinelRef.current;
     if (!sentinel || typeof IntersectionObserver === "undefined") return;
-    // A 0-height sentinel just above the bar: once it scrolls past the
-    // sticky offset, the bar itself has become pinned.
     const observer = new IntersectionObserver(
       ([entry]) => setIsStuck(!entry.isIntersecting),
       { rootMargin: `-${stickyTop + 1}px 0px 0px 0px`, threshold: 0 }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [stickyTop]);
+  }, [sticky, stickyTop]);
+
+  // Shared FormStickyHeader: observe the wrapper so the bar still gets a
+  // bottom border once the stack is pinned.
+  useEffect(() => {
+    if (sticky) return;
+    const header = document.querySelector<HTMLElement>("[data-form-sticky-header]");
+    if (!header || typeof IntersectionObserver === "undefined") return;
+    const sentinel = document.createElement("div");
+    sentinel.setAttribute("aria-hidden", "true");
+    sentinel.style.cssText = "height:0;width:0;overflow:hidden;";
+    header.parentElement?.insertBefore(sentinel, header);
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsStuck(!entry.isIntersecting),
+      { rootMargin: `-${NAVBAR_HEIGHT + 1}px 0px 0px 0px`, threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => {
+      observer.disconnect();
+      sentinel.remove();
+    };
+  }, [sticky]);
 
   return (
     <>
-      <div ref={sentinelRef} aria-hidden className="h-0" />
+      {sticky ? <div ref={sentinelRef} aria-hidden className="h-0" /> : null}
       <div
-        style={{ top: stickyTop }}
+        style={sticky ? { top: stickyTop } : undefined}
         className={cn(
-          "sticky z-20 flex flex-wrap items-center justify-between gap-2 px-4 py-2 transition-colors",
-          isStuck && "border-b border-erp-border bg-erp-bg",
+          "flex flex-wrap items-center justify-between gap-2 px-4 transition-colors",
+          sticky && "sticky z-20",
+          "py-2",
+          !sticky && "-mt-px",
+          sticky && belowControlPanel && "-mt-px",
+          isStuck && "border-b border-erp-border bg-erp-bg shadow-sm",
           className
         )}
       >
