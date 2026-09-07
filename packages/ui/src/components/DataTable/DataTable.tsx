@@ -243,19 +243,6 @@ export function DataTable<TData, TValue = unknown>({
   }, [tableId, enableColumnVisibility, columnVisibility]);
 
   useEffect(() => {
-    if (sizingLockedRef.current) return;
-    if (loading) return;
-    if (data.length === 0) return;
-    setColumnSizing(
-      estimateDataColumnSizing(columns as ColumnDef<TData, unknown>[], data, {
-        minSize: DEFAULT_COLUMN_MIN_SIZE,
-        maxSize: DEFAULT_COLUMN_MAX_SIZE,
-      })
-    );
-    sizingLockedRef.current = true;
-  }, [loading, data, columns]);
-
-  useEffect(() => {
     const node = scrollRef.current;
     if (!node) return;
 
@@ -553,6 +540,53 @@ export function DataTable<TData, TValue = unknown>({
     // table is read for leaf column defs; re-run when width or visible set changes
     // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid re-normalize every render
   }, [containerWidth, visibleLeafKey]);
+
+  // Content-based first sizing once rows exist. Must re-normalize to the
+  // measured container in the same update — otherwise estimate overwrites the
+  // fitted widths and table-fixed redistributes the sum drift (text appears to
+  // spill into the next column until a manual resize forces normalize again).
+  useEffect(() => {
+    if (sizingLockedRef.current) return;
+    if (loading) return;
+    if (data.length === 0) return;
+
+    const estimated = estimateDataColumnSizing(
+      columns as ColumnDef<TData, unknown>[],
+      data,
+      {
+        minSize: DEFAULT_COLUMN_MIN_SIZE,
+        maxSize: DEFAULT_COLUMN_MAX_SIZE,
+      }
+    );
+    sizingLockedRef.current = true;
+
+    if (containerWidth <= 0) {
+      setColumnSizing(estimated);
+      return;
+    }
+
+    const leafs = table.getVisibleLeafColumns();
+    if (leafs.length === 0) {
+      setColumnSizing(estimated);
+      return;
+    }
+
+    const specs: SizingColumnSpec[] = leafs.map((column) => ({
+      id: column.id,
+      minSize: column.columnDef.minSize ?? DEFAULT_COLUMN_MIN_SIZE,
+      maxSize: column.columnDef.maxSize ?? DEFAULT_COLUMN_MAX_SIZE,
+      size: estimated[column.id] ?? column.getSize(),
+      fill: Boolean(column.columnDef.meta?.fill),
+      fixed:
+        column.id === "__select" ||
+        column.id === "__actions" ||
+        column.columnDef.enableResizing === false,
+    }));
+
+    setColumnSizing(normalizeSizingToWidth(estimated, specs, containerWidth));
+    // table / columns read for leaf defs + content estimate; lock after first fit
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot after first non-empty load
+  }, [loading, data, columns, containerWidth, visibleLeafKey]);
 
   const resolvedGroupingOptions = useMemo(() => {
     if (!enableGrouping) return [];
