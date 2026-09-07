@@ -138,7 +138,7 @@ export function SecurityTab({ user, me, canManage }: SecurityTabProps) {
     <div role="tabpanel" aria-label="Security" className="pt-5">
       <div className="flex flex-col gap-3 border-b border-erp-border-soft pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="m-0 text-[13px] font-bold text-erp-text">Change Password</h3>
+          <h3 className="m-0 text-[13px] font-semibold text-erp-text">Change Password</h3>
           <p className="m-0 text-[12px] text-erp-muted">Update if compromised.</p>
         </div>
         <div className="flex flex-wrap gap-2">

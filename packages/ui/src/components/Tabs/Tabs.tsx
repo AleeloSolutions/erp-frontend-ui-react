@@ -37,7 +37,7 @@ const tabListBaseClass =
   "m-0 flex list-none flex-row flex-wrap border-b border-erp-secondary-border bg-erp-table-bg p-0 [scrollbar-width:thin]";
 
 const tabListAlignClass: Record<TabsAlign, string> = {
-  bleed: "-mx-12 px-12",
+  bleed: "-mx-6 px-6 sm:-mx-8 sm:px-8",
   container: "",
 };
 

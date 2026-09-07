@@ -13,13 +13,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Mail, Phone } from "lucide-react";
 import {
   ControlPanel,
+  FormDropdown,
   FormField,
   FormInput,
   FormStatusBar,
+  FormStickyHeader,
   PageActions,
   PageContainer,
   Radio,
-  Select,
   Tabs,
   useToast,
   type StatusStep,
@@ -225,44 +226,49 @@ export default function UserFormPage() {
 
   return (
     <AppShell activeNavKey="settings" activeMobileKey="more" navbar={navbar}>
-      <ControlPanel
-        pageActions={
-          <PageActions
-            breadcrumb={creating ? "New User" : user?.full_name || user?.email || "User"}
-          />
-        }
-      />
+      <FormStickyHeader>
+        <ControlPanel
+          sticky={false}
+          pageActions={
+            <PageActions
+              breadcrumb={
+                creating ? "New User" : user?.full_name || user?.email || "User"
+              }
+            />
+          }
+        />
 
-      <FormStatusBar
-        belowControlPanel
-        steps={INVITE_STEPS}
-        // Display-only on purpose: an invite is confirmed by the person
-        // signing in, so passing onStepChange would let an admin claim it
-        // happened. The bar follows the record instead.
-        currentStepKey={confirmed ? "confirmed" : "invited"}
-        actions={[
-          {
-            key: "users",
-            label: "Users",
-            variant: "ghost",
-            onClick: () => navigate("/settings"),
-          },
-          {
-            key: "save",
-            label: creating ? "Create User" : "Save",
-            variant: "primary",
-            loading: saving,
-            onClick: () => void handleSave(),
-          },
-          {
-            key: "discard",
-            label: "Discard",
-            variant: "secondary",
-            disabled: saving,
-            onClick: () => navigate("/settings"),
-          },
-        ]}
-      />
+        <FormStatusBar
+          sticky={false}
+          steps={INVITE_STEPS}
+          // Display-only on purpose: an invite is confirmed by the person
+          // signing in, so passing onStepChange would let an admin claim it
+          // happened. The bar follows the record instead.
+          currentStepKey={confirmed ? "confirmed" : "invited"}
+          actions={[
+            {
+              key: "users",
+              label: "Users",
+              variant: "ghost",
+              onClick: () => navigate("/settings"),
+            },
+            {
+              key: "save",
+              label: creating ? "Create User" : "Save",
+              variant: "primary",
+              loading: saving,
+              onClick: () => void handleSave(),
+            },
+            {
+              key: "discard",
+              label: "Discard",
+              variant: "secondary",
+              disabled: saving,
+              onClick: () => navigate("/settings"),
+            },
+          ]}
+        />
+      </FormStickyHeader>
 
       <PageContainer>
         {/* The contained form card: inset from the page edges, or its
@@ -298,7 +304,6 @@ export default function UserFormPage() {
                 label="Login"
                 htmlFor="user-login"
                 required
-                description="The email address they sign in with."
                 error={fieldErrors.email?.[0]}
               >
                 <div className="flex items-center gap-2">
@@ -337,8 +342,7 @@ export default function UserFormPage() {
 
           <div className="mt-6">
             <Tabs
-              align="container"
-              variant="underline"
+              align="bleed"
               items={[
                 { key: "access", label: "Access Rights" },
                 { key: "security", label: "Security" },
@@ -352,7 +356,7 @@ export default function UserFormPage() {
           {activeTab === "access" ? (
             <div role="tabpanel" aria-label="Access Rights" className="pt-5">
               <SectionHeading>Roles</SectionHeading>
-              <div className="flex flex-wrap items-center gap-x-8 gap-y-2 pb-2">
+              <div className="flex flex-wrap items-center gap-x-8 gap-y-2 pb-2 border-b border-erp-border-soft pb-6">
                 <span className="w-[92px] text-erp-form-label">Role</span>
                 <Radio
                   id="role-member"
@@ -375,7 +379,7 @@ export default function UserFormPage() {
                   onChange={() => update("baseRole", "admin")}
                 />
               </div>
-              <p className="m-0 mb-6 border-b border-erp-border-soft pb-6 text-[12px] text-erp-muted">
+              {/* <p className="m-0 mb-6  text-[12px] text-erp-muted">
                 {isOwner
                   ? "This is the workspace owner: they always hold every permission."
                   : isAdministrator
@@ -383,7 +387,7 @@ export default function UserFormPage() {
                     : held && !canConfer(everyCode)
                       ? "Pick what this user may do. Levels beyond your own access are not yours to give."
                       : "Pick what this user may do, module by module."}
-              </p>
+              </p> */}
 
               <div className="grid gap-x-16 gap-y-2 lg:grid-cols-2">
                 {groups.map(([group, groupModules]) => (
@@ -393,7 +397,7 @@ export default function UserFormPage() {
                       {groupModules.map((module) => (
                         <div
                           key={module.key}
-                          className="flex items-center justify-between gap-3 border-b border-erp-border-soft py-2.5"
+                          className="flex items-center justify-between gap-3 py-2.5"
                         >
                           <label
                             className="text-erp-text"
@@ -402,21 +406,24 @@ export default function UserFormPage() {
                           >
                             {module.label}
                           </label>
-                          <Select
+                          <FormDropdown
                             id={`access-${module.key}`}
                             chrome="underline"
+                            searchable
                             className="w-[200px]"
                             disabled={isAdministrator || isOwner}
                             value={levelOf(module)}
-                            options={module.levels.map((level) => ({
+                            items={module.levels.map((level) => ({
+                              key: level.key,
                               label: level.label,
-                              value: level.key,
                               // Except the level they are already on, which
                               // must stay selectable for the form to save.
                               disabled:
                                 !canConfer(level.codes) && level.key !== levelOf(module),
                             }))}
-                            onChange={(event) => setLevel(module.key, event.target.value)}
+                            onChange={(key) => {
+                              if (key) setLevel(module.key, key);
+                            }}
                           />
                         </div>
                       ))}
