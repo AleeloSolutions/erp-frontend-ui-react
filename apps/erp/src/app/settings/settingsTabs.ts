@@ -7,7 +7,7 @@ export type SettingsTabKey = "users" | "company" | "document-layout";
  * seeing the workspace's people or company details is not something a
  * "Document Layout only" grant should include. */
 export const SETTINGS_TAB_REQUIREMENTS: Record<SettingsTabKey, string[]> = {
-  users: [...SETTINGS_CODES.users, ...SETTINGS_CODES.roles],
+  users: [...SETTINGS_CODES.users, ...SETTINGS_CODES.roles, ...SETTINGS_CODES.branches],
   company: [...SETTINGS_CODES.company],
   "document-layout": [...SETTINGS_CODES.documentLayout],
 };

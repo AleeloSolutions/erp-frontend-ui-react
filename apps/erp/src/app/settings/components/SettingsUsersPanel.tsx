@@ -137,12 +137,19 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
         id: "role",
         header: "Role",
         enableSorting: false,
-        size: 160,
+        size: 150,
         cell: ({ row }) => {
           const user = row.original;
           if (user.user_type === "owner") return "Owner (all permissions)";
           return user.role?.name ?? "No role";
         },
+      },
+      {
+        id: "branch",
+        header: "Branch",
+        enableSorting: false,
+        size: 130,
+        cell: ({ row }) => row.original.branch?.name ?? "—",
       },
       {
         accessorKey: "is_active",

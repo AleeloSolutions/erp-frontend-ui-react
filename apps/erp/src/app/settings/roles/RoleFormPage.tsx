@@ -24,9 +24,11 @@ import {
 import { AppShell, useNavbarDefaults } from "@/app";
 import { ApiError } from "@/lib/api-client";
 import {
+  NO_ACCESS,
   ROLE_CODES,
   createRole,
   deleteRole,
+  scopeOf,
   updateRole,
   usePermissionMatrix,
   useRole,
@@ -74,16 +76,14 @@ export default function RoleFormPage() {
     [held]
   );
 
-  const tickCount = useMemo(() => {
+  // Cells granted, not codes: one dropdown set to "this branch" is one
+  // permission to an administrator, however many rungs it stores.
+  const grantCount = useMemo(() => {
     if (!matrix) return selected.size;
     return matrix.resources.reduce(
       (count, resource) =>
         count +
-        resource.actions.filter(
-          (cell) =>
-            selected.has(cell.code) ||
-            Boolean(cell.implied_by && selected.has(cell.implied_by))
-        ).length,
+        resource.cells.filter((cell) => scopeOf(cell, selected) !== NO_ACCESS).length,
       0
     );
   }, [matrix, selected]);
@@ -216,14 +216,14 @@ export default function RoleFormPage() {
               Permissions
             </div>
             <div className="text-[12px] text-erp-muted">
-              {tickCount} {tickCount === 1 ? "permission" : "permissions"} granted
+              {grantCount} {grantCount === 1 ? "permission" : "permissions"} granted
             </div>
           </div>
           <p className="m-0 mb-4 text-[12px] text-erp-muted">
-            &ldquo;View&rdquo;, &ldquo;Edit&rdquo; and &ldquo;Delete&rdquo; reach every
-            record in the workspace; their &ldquo;own&rdquo; variants reach only records
-            the user created or is assigned to. Ticking the full verb includes its own
-            variant.
+            Each cell says how far that action reaches. &ldquo;All branches&rdquo; is the
+            whole workspace, &ldquo;This branch&rdquo; is only the user&rsquo;s own
+            branch, and &ldquo;Own records&rdquo; is only what they created or are
+            assigned to. A wider setting always includes the narrower ones.
             {fieldErrors.permissions?.[0] ? (
               <span className="ml-2 text-erp-danger">{fieldErrors.permissions[0]}</span>
             ) : null}

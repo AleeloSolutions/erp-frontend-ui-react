@@ -1,25 +1,34 @@
 /**
- * The permission grid: one row per resource, one column per action, a
- * tick per cell — the Rise-style role editor.
+ * The permission grid: one row per resource, one column per verb.
  *
- * Rows come from `/api/v1/permissions/matrix/`, grouped under their module
- * heading. A cell the resource does not offer (Reports has nothing to
- * create) renders as a dash. An own-scope cell whose full verb is ticked
- * shows ticked and locked: "edit" already includes "edit own".
+ * Each cell is a rung of the scope ladder rather than a tick — all
+ * branches, this branch, or own records — so a role reads the way an
+ * administrator thinks: "invoices, edit, this branch". A verb the
+ * resource does not offer renders as a dash, and a verb with a single
+ * rung is a plain checkbox, since a dropdown of one is a worse control.
  *
- * `readOnly` renders the same grid as a summary — the user form uses it to
- * show what the chosen role allows. `canConfer` greys out cells the viewer
- * cannot hand out (the API refuses them anyway; not offering them says so
- * up front).
+ * Picking a rung stores that code and every narrower one, which is what
+ * the backend stores too, so the grid and the saved role never disagree.
+ *
+ * `readOnly` renders the same grid as a summary; the user form uses it to
+ * show what the chosen role allows. `canConfer` hides rungs the viewer
+ * does not hold themselves, because the API refuses to confer those.
  */
 
 import { useMemo } from "react";
-import { Checkbox, cn } from "@erp/ui";
-import type { PermissionCell, PermissionMatrix, PermissionResource } from "../rolesApi";
+import { Checkbox, FormDropdown, cn } from "@erp/ui";
+import {
+  NO_ACCESS,
+  cellCodes,
+  scopeOf,
+  type PermissionCell,
+  type PermissionMatrix,
+  type PermissionResource,
+} from "../rolesApi";
 
 export interface PermissionMatrixProps {
   matrix: PermissionMatrix | null;
-  /** The codes ticked. */
+  /** The codes granted. */
   selected: ReadonlySet<string>;
   onChange?: (next: Set<string>) => void;
   readOnly?: boolean;
@@ -56,50 +65,26 @@ export function PermissionMatrixGrid({
     );
   }
 
-  /** Ticked outright, or carried along by its full verb. */
-  function isOn(cell: PermissionCell): boolean {
-    return (
-      selected.has(cell.code) || Boolean(cell.implied_by && selected.has(cell.implied_by))
+  /** Grant `cell` at `scope`, or clear it. A rung carries every narrower
+   * one, matching what the backend stores. */
+  function setScope(cell: PermissionCell, scope: string) {
+    if (!onChange) return;
+    const next = new Set(selected);
+    for (const code of cellCodes(cell)) next.delete(code);
+    const rung = cell.options.findIndex((option) => option.scope === scope);
+    if (rung >= 0) {
+      for (const option of cell.options.slice(rung)) next.add(option.code);
+    }
+    onChange(next);
+  }
+
+  /** The rungs this viewer may actually hand out, widest first. */
+  function offered(cell: PermissionCell) {
+    const current = scopeOf(cell, selected);
+    return cell.options.filter(
+      // The rung already granted stays selectable, or the form cannot save.
+      (option) => canConfer(option.code) || option.scope === current
     );
-  }
-
-  /** Locked because its full verb is ticked. */
-  function isImplied(cell: PermissionCell): boolean {
-    return Boolean(cell.implied_by && selected.has(cell.implied_by));
-  }
-
-  function toggle(cell: PermissionCell, on: boolean) {
-    if (!onChange) return;
-    const next = new Set(selected);
-    if (on) {
-      next.add(cell.code);
-      // A full verb brings its own-scope twin so the stored role reads
-      // the way the grid does.
-      for (const resource of matrix!.resources) {
-        for (const other of resource.actions) {
-          if (other.implied_by === cell.code) next.add(other.code);
-        }
-      }
-    } else {
-      next.delete(cell.code);
-    }
-    onChange(next);
-  }
-
-  function setRow(resource: PermissionResource, on: boolean) {
-    if (!onChange) return;
-    const next = new Set(selected);
-    for (const cell of resource.actions) {
-      if (on && canConfer(cell.code)) next.add(cell.code);
-      if (!on) next.delete(cell.code);
-    }
-    onChange(next);
-  }
-
-  function rowState(resource: PermissionResource): "all" | "some" | "none" {
-    const on = resource.actions.filter((cell) => isOn(cell)).length;
-    if (on === 0) return "none";
-    return on === resource.actions.length ? "all" : "some";
   }
 
   return (
@@ -108,12 +93,11 @@ export function PermissionMatrixGrid({
         <thead>
           <tr className="border-b border-erp-border bg-erp-header text-[11px] uppercase tracking-[.06em] text-erp-muted">
             <th className="px-3 py-2 text-left font-bold">Module</th>
-            {matrix.actions.map((action) => (
-              <th key={action.key} className="px-2 py-2 text-center font-bold">
-                {action.label}
+            {matrix.verbs.map((verb) => (
+              <th key={verb.key} className="px-2 py-2 text-left font-bold">
+                {verb.label}
               </th>
             ))}
-            {editable ? <th className="px-2 py-2 text-center font-bold">All</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -122,14 +106,11 @@ export function PermissionMatrixGrid({
               key={group}
               group={group}
               resources={resources}
-              columns={matrix.actions.map((action) => action.key)}
+              verbs={matrix.verbs.map((verb) => verb.key)}
               editable={editable}
-              canConfer={canConfer}
-              isOn={isOn}
-              isImplied={isImplied}
-              rowState={rowState}
-              onToggle={toggle}
-              onSetRow={setRow}
+              selected={selected}
+              offered={offered}
+              onSetScope={setScope}
             />
           ))}
         </tbody>
@@ -141,95 +122,135 @@ export function PermissionMatrixGrid({
 function GroupRows({
   group,
   resources,
-  columns,
+  verbs,
   editable,
-  canConfer,
-  isOn,
-  isImplied,
-  rowState,
-  onToggle,
-  onSetRow,
+  selected,
+  offered,
+  onSetScope,
 }: {
   group: string;
   resources: PermissionResource[];
-  columns: string[];
+  verbs: string[];
   editable: boolean;
-  canConfer: (code: string) => boolean;
-  isOn: (cell: PermissionCell) => boolean;
-  isImplied: (cell: PermissionCell) => boolean;
-  rowState: (resource: PermissionResource) => "all" | "some" | "none";
-  onToggle: (cell: PermissionCell, on: boolean) => void;
-  onSetRow: (resource: PermissionResource, on: boolean) => void;
+  selected: ReadonlySet<string>;
+  offered: (cell: PermissionCell) => PermissionCell["options"];
+  onSetScope: (cell: PermissionCell, scope: string) => void;
 }) {
-  const span = columns.length + 1 + (editable ? 1 : 0);
   return (
     <>
       <tr className="border-b border-erp-border-soft">
         <td
-          colSpan={span}
+          colSpan={verbs.length + 1}
           className="bg-white px-3 pb-1 pt-4 text-[11px] font-bold uppercase tracking-[.08em] text-erp-brand-third"
         >
           {group}
         </td>
       </tr>
       {resources.map((resource) => {
-        const cells = new Map(resource.actions.map((cell) => [cell.key, cell]));
-        const state = rowState(resource);
+        const cells = new Map(resource.cells.map((cell) => [cell.verb, cell]));
         return (
           <tr
             key={resource.key}
             className="border-b border-erp-border-soft hover:bg-erp-table-hover/40"
           >
-            <td className="px-3 py-2 text-erp-text" title={resource.help}>
+            <td
+              className="whitespace-nowrap px-3 py-2 text-erp-text"
+              title={resource.help}
+            >
               {resource.label}
             </td>
-            {columns.map((column) => {
-              const cell = cells.get(column);
+            {verbs.map((verb) => {
+              const cell = cells.get(verb);
               if (!cell) {
                 return (
-                  <td key={column} className="px-2 py-2 text-center text-erp-muted/50">
+                  <td key={verb} className="px-2 py-2 text-erp-muted/50">
                     —
                   </td>
                 );
               }
-              const on = isOn(cell);
-              const implied = isImplied(cell);
-              const locked = !editable || implied || (!on && !canConfer(cell.code));
               return (
-                <td key={column} className="px-2 py-2 text-center">
-                  <Checkbox
-                    id={`perm-${cell.code}`}
-                    aria-label={`${resource.label}: ${cell.label}`}
-                    hasHalo={false}
-                    checked={on}
-                    disabled={locked}
-                    title={
-                      implied
-                        ? `Included in "${cell.label.replace(" own", "")}"`
-                        : !on && editable && !canConfer(cell.code)
-                          ? "You cannot give access you do not hold yourself"
-                          : cell.code
-                    }
-                    onChange={(event) => onToggle(cell, event.target.checked)}
+                <td key={verb} className="px-2 py-2">
+                  <ScopeCell
+                    resource={resource}
+                    cell={cell}
+                    scope={scopeOf(cell, selected)}
+                    editable={editable}
+                    options={offered(cell)}
+                    onChange={(next) => onSetScope(cell, next)}
                   />
                 </td>
               );
             })}
-            {editable ? (
-              <td className="px-2 py-2 text-center">
-                <Checkbox
-                  id={`perm-all-${resource.key}`}
-                  aria-label={`${resource.label}: everything`}
-                  hasHalo={false}
-                  checked={state === "all"}
-                  indeterminate={state === "some"}
-                  onChange={(event) => onSetRow(resource, event.target.checked)}
-                />
-              </td>
-            ) : null}
           </tr>
         );
       })}
+    </>
+  );
+}
+
+function ScopeCell({
+  resource,
+  cell,
+  scope,
+  editable,
+  options,
+  onChange,
+}: {
+  resource: PermissionResource;
+  cell: PermissionCell;
+  scope: string;
+  editable: boolean;
+  options: PermissionCell["options"];
+  onChange: (scope: string) => void;
+}) {
+  const granted = scope !== NO_ACCESS;
+  const label = `${resource.label}: ${cell.label}`;
+  const id = `perm-${resource.key}-${cell.verb}`;
+
+  // A workspace-wide verb has one rung, so it is a tick, not a dropdown.
+  if (cell.options.length === 1) {
+    const [only] = cell.options;
+    if (!editable) {
+      return <span className="text-erp-text">{granted ? "Yes" : "—"}</span>;
+    }
+    return (
+      <Checkbox
+        id={id}
+        aria-label={label}
+        hasHalo={false}
+        checked={granted}
+        disabled={!options.length}
+        title={
+          options.length ? only.code : "You cannot give access you do not hold yourself"
+        }
+        onChange={(event) => onChange(event.target.checked ? only.scope : NO_ACCESS)}
+      />
+    );
+  }
+
+  if (!editable) {
+    const current = cell.options.find((option) => option.scope === scope);
+    return <span className="text-erp-text">{current ? current.label : "—"}</span>;
+  }
+
+  return (
+    <>
+      {/* The column header alone does not name the row, and Dropdown takes
+          no aria-label of its own. */}
+      <label className="sr-only" htmlFor={id}>
+        {label}
+      </label>
+      <FormDropdown
+        id={id}
+        chrome="underline"
+        className="w-[150px]"
+        value={scope}
+        items={[
+          { key: NO_ACCESS, label: "No access" },
+          ...options.map((option) => ({ key: option.scope, label: option.label })),
+        ]}
+        onChange={(key) => onChange(key ?? NO_ACCESS)}
+      />
     </>
   );
 }

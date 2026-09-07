@@ -3,10 +3,10 @@
  * `/api/v1/permissions/matrix/`.
  *
  * A role is a name plus the permission codes it grants. The codes are
- * `<module>.<resource>.<action>` — one row per resource, one column per
- * action (view / view own / create / edit / edit own / delete / delete
- * own), exactly the grid the role editor renders. The matrix endpoint says
- * which cells exist; nothing here is invented client-side.
+ * `<module>.<resource>.<verb>[_<scope>]` — one row per resource, one column
+ * per verb, and each cell a rung of the scope ladder: all branches, this
+ * branch, or own records. The matrix endpoint says which cells and rungs
+ * exist; nothing here is invented client-side.
  *
  * Plain state + effect rather than React Query, matching the rest of
  * Settings (it renders in Storybook stories without a QueryProvider).
@@ -16,32 +16,44 @@ import { useCallback, useEffect, useState } from "react";
 import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
 
-/** A column of the matrix. */
-export interface PermissionAction {
+/** A verb column, or a rung of the scope ladder. */
+export interface PermissionLabel {
   key: string;
   label: string;
 }
 
-/** One cell a resource offers. */
-export interface PermissionCell extends PermissionAction {
+/** One rung a cell offers, and the code behind it. */
+export interface PermissionOption {
+  scope: string;
+  label: string;
   code: string;
-  /** For an own-scope cell: the full-verb code that ticks it along. */
-  implied_by: string | null;
 }
 
-/** One row of the matrix. */
+/** One verb of one resource. `options` runs widest rung first; a cell with
+ * a single option is a plain tick rather than a dropdown. */
+export interface PermissionCell {
+  verb: string;
+  label: string;
+  options: PermissionOption[];
+}
+
+/** One row of the matrix. A verb the resource does not offer has no cell. */
 export interface PermissionResource {
   key: string;
   group: string;
   label: string;
   help: string;
-  actions: PermissionCell[];
+  cells: PermissionCell[];
 }
 
 export interface PermissionMatrix {
-  actions: PermissionAction[];
+  verbs: PermissionLabel[];
+  scopes: PermissionLabel[];
   resources: PermissionResource[];
 }
+
+/** The cell scope meaning "nothing granted". Not a code. */
+export const NO_ACCESS = "none";
 
 export interface Role {
   uuid: string;
@@ -163,10 +175,15 @@ export function useRole(uuid: string | undefined) {
   return { role, loading };
 }
 
+/** The widest rung of `cell` present in `codes`, or "none". */
+export function scopeOf(cell: PermissionCell, codes: ReadonlySet<string>): string {
+  return cell.options.find((option) => codes.has(option.code))?.scope ?? NO_ACCESS;
+}
+
 /**
- * The codes a set of ticks stands for once the implications are applied:
- * a full verb carries its own-scope twin (the backend does the same on
- * save, so what the editor shows is what gets stored).
+ * The codes a set of ticks stands for once the ladder is applied: a wider
+ * rung carries every narrower one. The backend does the same on save, so
+ * what the editor shows is what gets stored.
  */
 export function completeCodes(
   matrix: PermissionMatrix | null,
@@ -175,10 +192,33 @@ export function completeCodes(
   const held = new Set(codes);
   if (matrix) {
     for (const resource of matrix.resources) {
-      for (const cell of resource.actions) {
-        if (cell.implied_by && held.has(cell.implied_by)) held.add(cell.code);
+      for (const cell of resource.cells) {
+        const rung = cell.options.findIndex((option) => held.has(option.code));
+        if (rung >= 0) {
+          for (const narrower of cell.options.slice(rung + 1)) held.add(narrower.code);
+        }
       }
     }
   }
   return [...held].sort();
+}
+
+/** Every code of one cell, for clearing it before setting a new rung. */
+export function cellCodes(cell: PermissionCell): string[] {
+  return cell.options.map((option) => option.code);
+}
+
+/**
+ * Whether a role only resolves through the holder's branch.
+ *
+ * A grant whose widest rung is the branch one comes back empty for
+ * somebody with no branch, so the API refuses that pairing. A role that
+ * also holds the "all branches" rung of the same verb is fine: the branch
+ * rung stored underneath is simply never the one that answers.
+ */
+export function needsBranch(permissions: readonly string[]): boolean {
+  const held = new Set(permissions);
+  return permissions.some(
+    (code) => code.endsWith("_branch") && !held.has(code.slice(0, -"_branch".length))
+  );
 }

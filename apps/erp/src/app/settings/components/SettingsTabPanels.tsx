@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
-import { CircleHelp, ShieldCheck, Users } from "lucide-react";
+import { Building2, CircleHelp, ShieldCheck, Users } from "lucide-react";
 import { useCompanyInfo } from "../api";
+import { useBranches } from "../branchesApi";
 import { useRoles } from "../rolesApi";
 import { useTenantUsers } from "../usersApi";
 import { CompanyInfoForm } from "../CompanyInfoForm";
@@ -11,6 +12,7 @@ import { settingsOverviewStats } from "../settingsViews";
 import { SettingsDetailBack } from "./SettingsDetailBack";
 import { SettingsOverviewLink } from "./SettingsOverviewLink";
 import { SettingsOverviewTile } from "./SettingsOverviewTile";
+import { SettingsBranchesPanel } from "./SettingsBranchesPanel";
 import { SettingsRolesPanel } from "./SettingsRolesPanel";
 import { SettingsSection } from "./SettingsSection";
 import { SettingsUsersPanel } from "./SettingsUsersPanel";
@@ -47,6 +49,7 @@ function SettingsUsersOverview({
   });
   const activeUsers = loading ? settingsOverviewStats.activeUsers : total;
   const { roles } = useRoles();
+  const { branches } = useBranches();
 
   return (
     <SettingsOverviewShell>
@@ -75,6 +78,16 @@ function SettingsUsersOverview({
           action={
             <SettingsOverviewLink onClick={() => onOpenDetail("roles-manage")}>
               Manage Roles
+            </SettingsOverviewLink>
+          }
+        />
+        <SettingsOverviewTile
+          icon={<Building2 className="h-[18px] w-[18px]" aria-hidden />}
+          title={`${branches.length} ${branches.length === 1 ? "Branch" : "Branches"}`}
+          description="Shops and offices, and who works at each"
+          action={
+            <SettingsOverviewLink onClick={() => onOpenDetail("branches-manage")}>
+              Manage Branches
             </SettingsOverviewLink>
           }
         />
@@ -194,6 +207,10 @@ export function SettingsTabPanel({
 
   if (detailView === "roles-manage" && activeTab === "users") {
     return <SettingsRolesPanel onBack={onBack} />;
+  }
+
+  if (detailView === "branches-manage" && activeTab === "users") {
+    return <SettingsBranchesPanel onBack={onBack} />;
   }
 
   if (detailView === "company-edit" && activeTab === "company") {

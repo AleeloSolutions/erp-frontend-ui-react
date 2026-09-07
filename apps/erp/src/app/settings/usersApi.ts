@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
 import { useRoles } from "./rolesApi";
+import type { BranchSummary } from "./branchesApi";
 
 /** A role as it appears on a user row. */
 export interface TenantRole {
@@ -45,6 +46,8 @@ export interface TenantUser {
   last_login_at: string | null;
   /** The one role they hold; null for none (the owner needs none). */
   role: TenantRole | null;
+  /** Where they work; null for platform staff and workspace-wide accounts. */
+  branch: BranchSummary | null;
   created_at: string;
 }
 
@@ -69,6 +72,8 @@ export interface InviteUserInput {
   phone_number: string;
   /** The role's uuid; null for none. */
   role: string | null;
+  /** The branch's uuid; null for workspace-wide. */
+  branch: string | null;
 }
 
 export type UpdateUserInput = Partial<Omit<InviteUserInput, "email">> & {

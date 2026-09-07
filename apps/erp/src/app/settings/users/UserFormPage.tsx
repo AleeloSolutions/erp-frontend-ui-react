@@ -2,11 +2,11 @@
  * Create / edit a user — identity, the one role they hold, and security.
  *
  * Laid out like the ERP user forms people already know: identity at the
- * top, a lifecycle pill on the right, tabs underneath. Access is a single
- * role picked from the tenant's roles (the Rise shape); the grid below the
- * picker is a read-only view of what that role allows, so whoever is
- * granting it sees what they are giving. Roles themselves are edited under
- * Settings → Users → Roles.
+ * top, a lifecycle pill on the right, tabs underneath. Access is a branch
+ * plus a single role picked from the tenant's roles (the Rise shape); the
+ * grid below the pickers is a read-only view of what that role allows, so
+ * whoever is granting it sees what they are giving. Roles themselves are
+ * edited under Settings → Users → Roles.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -27,7 +27,14 @@ import {
 } from "@erp/ui";
 import { AppShell, useNavbarDefaults } from "@/app";
 import { ApiError } from "@/lib/api-client";
-import { ROLE_CODES, completeCodes, usePermissionMatrix, type Role } from "../rolesApi";
+import {
+  ROLE_CODES,
+  completeCodes,
+  needsBranch,
+  usePermissionMatrix,
+  type Role,
+} from "../rolesApi";
+import { useBranches } from "../branchesApi";
 import {
   USER_CODES,
   inviteUser,
@@ -49,8 +56,8 @@ const INVITE_STEPS: StatusStep[] = [
   { key: "confirmed", label: "Confirmed" },
 ];
 
-/** The dropdown key for "holds no role". */
-const NO_ROLE = "__none";
+/** The dropdown key for "no role" and "no branch". */
+const NONE = "__none";
 
 interface FormState {
   name: string;
@@ -58,6 +65,8 @@ interface FormState {
   phone_number: string;
   /** The role's uuid, or null for none. */
   role: string | null;
+  /** The branch's uuid, or null for workspace-wide. */
+  branch: string | null;
 }
 
 const EMPTY: FormState = {
@@ -65,6 +74,7 @@ const EMPTY: FormState = {
   email: "",
   phone_number: "",
   role: null,
+  branch: null,
 };
 
 /** "Hodan Ali" -> first/last, the same split signup uses. */
@@ -87,6 +97,7 @@ function stateOf(user: TenantUser | null): FormState {
     email: user.email,
     phone_number: user.phone_number,
     role: user.role?.uuid ?? null,
+    branch: user.branch?.uuid ?? null,
   };
 }
 
@@ -98,6 +109,7 @@ export default function UserFormPage() {
 
   const { user, loading, reload } = useTenantUser(uuid);
   const roles = useTenantRoles();
+  const { branches } = useBranches();
   const matrix = usePermissionMatrix();
   const me = useCurrentUser();
 
@@ -151,10 +163,20 @@ export default function UserFormPage() {
   /** What the picked role allows -- or everything, for the owner. */
   const shownCodes = useMemo<Set<string>>(() => {
     if (isOwner && matrix) {
-      return new Set(matrix.resources.flatMap((r) => r.actions.map((cell) => cell.code)));
+      return new Set(
+        matrix.resources.flatMap((resource) =>
+          resource.cells.flatMap((cell) => cell.options.map((option) => option.code))
+        )
+      );
     }
     return new Set(chosenRole?.permissions ?? []);
   }, [isOwner, matrix, chosenRole]);
+
+  /** A role whose widest rung is the branch one resolves through the
+   * branch column, so the API refuses the pair without one. Say so before
+   * they save. */
+  const branchRequired =
+    !isOwner && values.branch === null && needsBranch(chosenRole?.permissions ?? []);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -170,6 +192,7 @@ export default function UserFormPage() {
           ...splitName(values.name),
           phone_number: values.phone_number,
           role: values.role,
+          branch: values.branch,
         });
         if (pendingAvatar) await uploadAvatar(created.uuid, pendingAvatar);
         toast({
@@ -181,6 +204,7 @@ export default function UserFormPage() {
         await updateUser(uuid!, {
           ...splitName(values.name),
           phone_number: values.phone_number,
+          branch: values.branch,
           // The owner holds everything implicitly; there is nothing to set.
           ...(isOwner ? {} : { role: values.role }),
         });
@@ -330,37 +354,77 @@ export default function UserFormPage() {
 
           {activeTab === "access" ? (
             <div role="tabpanel" aria-label="Access Rights" className="pt-5">
-              <SectionHeading>Role</SectionHeading>
-              <div className="flex flex-wrap items-center gap-x-8 gap-y-2 border-b border-erp-border-soft pb-6">
-                <label className="w-[92px] text-erp-form-label" htmlFor="user-role">
-                  Role
-                </label>
-                <FormDropdown
-                  id="user-role"
-                  chrome="underline"
-                  searchable
-                  className="w-[260px]"
-                  disabled={isOwner}
-                  value={isOwner ? NO_ROLE : (values.role ?? NO_ROLE)}
-                  items={[
-                    {
-                      key: NO_ROLE,
-                      label: isOwner ? "Owner (all permissions)" : "No role",
-                    },
-                    ...roles.map((role) => ({
-                      key: role.uuid,
-                      label: role.name,
-                      // Except the role they already hold, which must stay
-                      // selectable for the form to save.
-                      disabled: !canConfer(role) && role.uuid !== values.role,
-                    })),
-                  ]}
-                  onChange={(key) => update("role", key && key !== NO_ROLE ? key : null)}
-                />
-                {fieldErrors.role?.[0] ? (
-                  <span className="text-[12px] text-erp-danger">
-                    {fieldErrors.role[0]}
-                  </span>
+              <SectionHeading>Branch and role</SectionHeading>
+              <div className="grid gap-4 border-b border-erp-border-soft pb-6">
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+                  <label className="w-[92px] text-erp-form-label" htmlFor="user-branch">
+                    Branch
+                  </label>
+                  <FormDropdown
+                    id="user-branch"
+                    chrome="underline"
+                    searchable
+                    className="w-[260px]"
+                    error={branchRequired || Boolean(fieldErrors.branch?.[0])}
+                    value={values.branch ?? NONE}
+                    items={[
+                      { key: NONE, label: "No branch (workspace-wide)" },
+                      ...branches
+                        .filter(
+                          (branch) => !branch.is_archived || branch.uuid === values.branch
+                        )
+                        .map((branch) => ({
+                          key: branch.uuid,
+                          label: `${branch.name} (${branch.code})`,
+                        })),
+                    ]}
+                    onChange={(key) => update("branch", key && key !== NONE ? key : null)}
+                  />
+                  {fieldErrors.branch?.[0] ? (
+                    <span className="text-[12px] text-erp-danger">
+                      {fieldErrors.branch[0]}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+                  <label className="w-[92px] text-erp-form-label" htmlFor="user-role">
+                    Role
+                  </label>
+                  <FormDropdown
+                    id="user-role"
+                    chrome="underline"
+                    searchable
+                    className="w-[260px]"
+                    disabled={isOwner}
+                    value={isOwner ? NONE : (values.role ?? NONE)}
+                    items={[
+                      {
+                        key: NONE,
+                        label: isOwner ? "Owner (all permissions)" : "No role",
+                      },
+                      ...roles.map((role) => ({
+                        key: role.uuid,
+                        label: role.name,
+                        // Except the role they already hold, which must stay
+                        // selectable for the form to save.
+                        disabled: !canConfer(role) && role.uuid !== values.role,
+                      })),
+                    ]}
+                    onChange={(key) => update("role", key && key !== NONE ? key : null)}
+                  />
+                  {fieldErrors.role?.[0] ? (
+                    <span className="text-[12px] text-erp-danger">
+                      {fieldErrors.role[0]}
+                    </span>
+                  ) : null}
+                </div>
+
+                {branchRequired ? (
+                  <p className="m-0 text-[12px] text-erp-danger">
+                    {chosenRole?.name} grants access at branch level, so this user needs a
+                    branch.
+                  </p>
                 ) : null}
               </div>
 

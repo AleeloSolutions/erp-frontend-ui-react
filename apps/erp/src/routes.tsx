@@ -6,13 +6,14 @@ import TrialThanksPage from "@/app/trial/TrialThanksPage";
 import SettingsPage from "@/app/settings/SettingsPage";
 import UserFormPage from "@/app/settings/users/UserFormPage";
 import RoleFormPage from "@/app/settings/roles/RoleFormPage";
+import BranchFormPage from "@/app/settings/branches/BranchFormPage";
 import LoginPage from "@/app/auth/LoginPage";
 import WelcomePage from "@/app/auth/WelcomePage";
 import VerifyEmailPage from "@/app/auth/VerifyEmailPage";
 import { RequireAuth } from "@/app/auth/RequireAuth";
 import { RequirePermission } from "@/app/auth/RequirePermission";
 import { RedirectIfAuthenticated } from "@/app/auth/RedirectIfAuthenticated";
-import { NAV_REQUIREMENTS } from "@/app/access";
+import { NAV_REQUIREMENTS, SETTINGS_CODES } from "@/app/access";
 import { isAuthenticated } from "@/lib/auth";
 import { SalesRoutes } from "./modules/sales/routes";
 import { InventoryRoutes } from "./modules/inventory/routes";
@@ -58,10 +59,30 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         }
       />
       <Route
+        path="/settings/branches/new"
+        element={
+          <RequireAuth>
+            <RequirePermission anyOf={["settings.branch.create"]}>
+              <BranchFormPage />
+            </RequirePermission>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings/branches/:uuid"
+        element={
+          <RequireAuth>
+            <RequirePermission anyOf={["settings.branch.edit"]}>
+              <BranchFormPage />
+            </RequirePermission>
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/settings/users/new"
         element={
           <RequireAuth>
-            <RequirePermission anyOf={["settings.user.create"]}>
+            <RequirePermission anyOf={[...SETTINGS_CODES.users]}>
               <UserFormPage />
             </RequirePermission>
           </RequireAuth>
@@ -71,7 +92,7 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         path="/settings/users/:uuid"
         element={
           <RequireAuth>
-            <RequirePermission anyOf={["settings.user.edit"]}>
+            <RequirePermission anyOf={[...SETTINGS_CODES.users]}>
               <UserFormPage />
             </RequirePermission>
           </RequireAuth>

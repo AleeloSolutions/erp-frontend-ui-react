@@ -10,16 +10,30 @@
 
 import type { NavigationItem } from "@erp/ui";
 
-/** Seeing a module at all: everything, or only your own records. */
+/** Seeing a module at all: at any rung of the ladder. */
 function viewing(...resources: string[]): string[] {
-  return resources.flatMap((resource) => [`${resource}.view`, `${resource}.view_own`]);
+  return resources.flatMap((resource) => [
+    `${resource}.view`,
+    `${resource}.view_branch`,
+    `${resource}.view_own`,
+  ]);
+}
+
+/** Every rung of a verb: holding a narrower one still opens the screen. */
+function anyScope(resource: string, verb: string): string[] {
+  return [`${resource}.${verb}`, `${resource}.${verb}_branch`, `${resource}.${verb}_own`];
 }
 
 export const SETTINGS_CODES = {
   company: ["settings.client.edit"],
   documentLayout: ["settings.document_layout.edit"],
-  users: ["settings.user.create", "settings.user.edit", "settings.user.delete"],
+  users: [
+    ...anyScope("settings.user", "create"),
+    ...anyScope("settings.user", "edit"),
+    ...anyScope("settings.user", "delete"),
+  ],
   roles: ["settings.role.create", "settings.role.edit", "settings.role.delete"],
+  branches: ["settings.branch.create", "settings.branch.edit", "settings.branch.delete"],
 } as const;
 
 /** Nav key -> the codes that make it worth showing. Empty = always shown. */
@@ -39,6 +53,7 @@ export const NAV_REQUIREMENTS: Record<string, string[]> = {
     ...SETTINGS_CODES.documentLayout,
     ...SETTINGS_CODES.users,
     ...SETTINGS_CODES.roles,
+    ...SETTINGS_CODES.branches,
   ],
 };
 
