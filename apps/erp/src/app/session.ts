@@ -14,7 +14,12 @@
 import { useEffect, useState } from "react";
 import { logout as revokeRefreshToken } from "@/app/auth/api";
 import { apiGet } from "@/lib/api-client";
-import { clearTokens, getRefreshToken, isAuthenticated } from "@/lib/auth";
+import {
+  AUTH_CHANGED_EVENT,
+  clearTokens,
+  getRefreshToken,
+  isAuthenticated,
+} from "@/lib/auth";
 import type { ModuleBundle } from "@/modules/loader";
 
 export interface Session {
@@ -87,23 +92,41 @@ export async function signOut() {
   window.location.assign("/login");
 }
 
-/** null until it arrives, or when signed out. */
+/**
+ * null until it arrives, or when signed out.
+ *
+ * Follows the tokens: a component that mounted before sign-in (the module
+ * bundle loader sits above every route) picks the session up the moment
+ * the tokens land, and drops it when they are cleared.
+ */
 export function useSession(): Session | null {
   const [session, setSession] = useState<Session | null>(() =>
     isAuthenticated() ? current : null
   );
 
   useEffect(() => {
-    if (!isAuthenticated()) return;
     let cancelled = false;
-    const listener: Listener = (value) => {
-      if (!cancelled) setSession(value);
+    let listener: Listener | null = null;
+
+    const follow = () => {
+      if (listener) listeners.delete(listener);
+      listener = (value) => {
+        if (!cancelled) setSession(value);
+      };
+      if (!isAuthenticated()) {
+        setSession(null);
+        return;
+      }
+      listeners.add(listener);
+      void load().then(listener);
     };
-    listeners.add(listener);
-    void load().then(listener);
+
+    follow();
+    window.addEventListener(AUTH_CHANGED_EVENT, follow);
     return () => {
       cancelled = true;
-      listeners.delete(listener);
+      if (listener) listeners.delete(listener);
+      window.removeEventListener(AUTH_CHANGED_EVENT, follow);
     };
   }, []);
 

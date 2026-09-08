@@ -9,6 +9,18 @@
 const ACCESS_KEY = "erp.auth.access";
 const REFRESH_KEY = "erp.auth.refresh";
 
+/** Fired on `window` whenever the tokens are set or cleared, so anything
+ * that mounted before sign-in (the session, the module loader) can follow. */
+export const AUTH_CHANGED_EVENT = "erp:auth-changed";
+
+function announce(): void {
+  try {
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+  } catch {
+    // No window (tests without a DOM): nothing to tell.
+  }
+}
+
 export interface TokenPair {
   access: string;
   refresh: string;
@@ -37,6 +49,7 @@ export function setTokens(pair: TokenPair): void {
   } catch {
     // Private mode / blocked storage: the session just won't survive reload.
   }
+  announce();
 }
 
 export function clearTokens(): void {
@@ -46,6 +59,7 @@ export function clearTokens(): void {
   } catch {
     // ignore
   }
+  announce();
 }
 
 export function isAuthenticated(): boolean {
