@@ -13,6 +13,7 @@ import { SettingsDetailBack } from "./SettingsDetailBack";
 import { SettingsOverviewLink } from "./SettingsOverviewLink";
 import { SettingsOverviewTile } from "./SettingsOverviewTile";
 import { SettingsBranchesPanel } from "./SettingsBranchesPanel";
+import { SettingsModulesPanel } from "./SettingsModulesPanel";
 import { SettingsRolesPanel } from "./SettingsRolesPanel";
 import { SettingsSection } from "./SettingsSection";
 import { SettingsUsersPanel } from "./SettingsUsersPanel";
@@ -285,6 +286,7 @@ export function SettingsTabPanel({
         onOpenDocumentLayout={onOpenDocumentLayout}
       />
     ),
+    modules: () => <SettingsModulesPanel />,
     "document-layout": () => (
       <SettingsDocumentOverview onOpenDocumentLayout={onOpenDocumentLayout} />
     ),
