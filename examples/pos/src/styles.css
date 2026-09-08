@@ -1,0 +1,10 @@
+/*
+ * The module's own stylesheet. The host's Tailwind CSS is generated only
+ * for the host's sources, so a utility class this module uses may not
+ * exist there; this compiles the ones used under src/ against the same
+ * design tokens. No preflight: the host already has it.
+ */
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+@import "../../../packages/ui/src/tokens/index.css";
+@source "./";
