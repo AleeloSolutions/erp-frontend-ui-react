@@ -44,8 +44,14 @@ export interface TenantUser {
   email_verified_at: string | null;
   /** null → they have never signed in. */
   last_login_at: string | null;
+  /** true → nobody has used this address as a login, so it may still be
+   * corrected. Derived by the API from the two fields above. */
+  invite_pending: boolean;
   /** The one role they hold; null for none (the owner needs none). */
   role: TenantRole | null;
+  /** Rights granted to this person directly, on top of the role. Stored
+   * closed over the ladder, so a wider rung carries its narrower ones. */
+  extra_permissions: string[];
   /** Where they work; null for platform staff and workspace-wide accounts. */
   branch: BranchSummary | null;
   created_at: string;
@@ -74,9 +80,16 @@ export interface InviteUserInput {
   role: string | null;
   /** The branch's uuid; null for workspace-wide. */
   branch: string | null;
+  /** Extra rights on top of the role; the API refuses any the caller does not hold. */
+  extra_permissions: string[];
 }
 
-export type UpdateUserInput = Partial<Omit<InviteUserInput, "email">> & {
+/**
+ * `email` is accepted only while the invite is unaccepted — the API rejects
+ * it once the member has signed in (see `isConfirmed`). Send it only when
+ * it actually changed, so an ordinary save does not re-issue the invite.
+ */
+export type UpdateUserInput = Partial<InviteUserInput> & {
   is_active?: boolean;
 };
 
@@ -133,7 +146,10 @@ export function createPasswordResetLink(uuid: string) {
  */
 export function useTenantUsers(params: TenantUserListParams) {
   const [result, setResult] = useState<TenantUserListResult>({ users: [], total: 0 });
-  const [loading, setLoading] = useState(false);
+  // Authenticated means the effect below WILL fetch, so the first paint
+  // is already loading. Starting at `false` made callers render an empty
+  // list as a real count.
+  const [loading, setLoading] = useState(isAuthenticated);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -199,9 +215,13 @@ export function useTenantUser(uuid: string | undefined) {
 }
 
 /** True once the invite has been taken up: the address is verified, or
- * they have simply signed in. */
+ * they have simply signed in.
+ *
+ * Reads the API's own `invite_pending` rather than re-deriving it here, so
+ * the form can never offer an edit the service will refuse.
+ */
 export function isConfirmed(user: TenantUser | null): boolean {
-  return Boolean(user && (user.email_verified_at || user.last_login_at));
+  return Boolean(user && !user.invite_pending);
 }
 
 /** Who is looking, and what they may do.

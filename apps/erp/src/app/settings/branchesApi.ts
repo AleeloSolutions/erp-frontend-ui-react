@@ -65,7 +65,10 @@ export function deleteBranch(uuid: string) {
 /** Every branch of this tenant. A workspace has a handful, never pages. */
 export function useBranches() {
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Authenticated means the effect below WILL fetch, so the first paint
+  // is already loading. Starting at `false` made callers render an empty
+  // list as a real count.
+  const [loading, setLoading] = useState(isAuthenticated);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 

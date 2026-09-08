@@ -16,6 +16,5 @@ export function detailViewTab(view: SettingsDetailView): SettingsTabKey {
 }
 
 export const settingsOverviewStats = {
-  activeUsers: 1,
   companies: 1,
 } as const;

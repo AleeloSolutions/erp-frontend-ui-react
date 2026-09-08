@@ -80,8 +80,12 @@ export function displayName(session: Session | null): string {
   return `${session.first_name} ${session.last_name}`.trim() || session.email;
 }
 
-/** What we call this account in the UI. */
-export function roleLabel(session: Session | null): string {
+/**
+ * What we call this *kind* of account in the UI -- owner, member, platform
+ * staff. Not the role: a member's access comes from whichever role they
+ * hold, and that is shown where roles are shown.
+ */
+export function accountKindLabel(session: Session | null): string {
   switch (session?.user_type) {
     case "platform":
       return "Platform staff";

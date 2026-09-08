@@ -1,7 +1,7 @@
 import { AppShell as UiAppShell, type AppShellProps } from "@erp/ui";
 import { navigationFor } from "./access";
 import { coreNavigation, mobileNavigation } from "./navigation";
-import { displayName, roleLabel, useSession } from "./session";
+import { displayName, accountKindLabel, useSession } from "./session";
 
 export function AppShell({
   navigationItems = coreNavigation,
@@ -18,7 +18,7 @@ export function AppShell({
         session
           ? {
               userName: name,
-              userRole: roleLabel(session),
+              userRole: accountKindLabel(session),
               userInitials: name.slice(0, 2).toUpperCase(),
             }
           : undefined

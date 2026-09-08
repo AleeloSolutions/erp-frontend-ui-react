@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { NavbarProps } from "@erp/ui";
-import { displayName, roleLabel, signOut, useSession } from "./session";
+import { displayName, accountKindLabel, signOut, useSession } from "./session";
 
 /** Shared user/session defaults for the Navbar. Pages override brandLabel/submenu. */
 export function useNavbarDefaults(overrides?: Partial<NavbarProps>): NavbarProps {
@@ -12,7 +12,7 @@ export function useNavbarDefaults(overrides?: Partial<NavbarProps>): NavbarProps
     onHomeClick: () => navigate("/"),
     // Whoever is actually signed in -- this used to read "Admin User" for
     // everybody, which made a member look like an administrator.
-    userName: roleLabel(session) || "Signed in",
+    userName: accountKindLabel(session) || "Signed in",
     userFullName: displayName(session),
     userDatabase: session?.client?.slug ?? "",
     userOnline: true,

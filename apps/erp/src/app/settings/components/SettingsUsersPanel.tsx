@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import {
+  Badge,
   ConfirmDialog,
   ControlPanel,
   DataTable,
@@ -108,17 +109,24 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
           const label = user.full_name || user.email;
           return (
             <div className="flex flex-col">
-              {canManage ? (
-                <button
-                  type="button"
-                  className="border-0 bg-transparent p-0 text-left text-erp-brand-third hover:underline"
-                  onClick={() => navigate(`/settings/users/${user.uuid}`)}
-                >
-                  {label}
-                </button>
-              ) : (
-                <span>{label}</span>
-              )}
+              <span className="inline-flex items-center gap-2">
+                {canManage ? (
+                  <button
+                    type="button"
+                    className="border-0 bg-transparent p-0 text-left text-erp-brand-third hover:underline"
+                    onClick={() => navigate(`/settings/users/${user.uuid}`)}
+                  >
+                    {label}
+                  </button>
+                ) : (
+                  <span>{label}</span>
+                )}
+                {user.user_type === "owner" ? (
+                  <Badge variant="purple" title="The account that created this workspace">
+                    Owner
+                  </Badge>
+                ) : null}
+              </span>
               {user.email_verified_at === null ? (
                 <span className="text-[11px] text-erp-muted">Invite pending</span>
               ) : null}
@@ -140,8 +148,11 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
         size: 150,
         cell: ({ row }) => {
           const user = row.original;
-          if (user.user_type === "owner") return "Owner (all permissions)";
-          return user.role?.name ?? "No role";
+          // The owner holds everything regardless of role -- that is the
+          // account, not a role, and the User column says so.
+          const extra = user.extra_permissions?.length ?? 0;
+          const role = user.role?.name ?? "No role";
+          return extra ? `${role} · +${extra} extra` : role;
         },
       },
       {

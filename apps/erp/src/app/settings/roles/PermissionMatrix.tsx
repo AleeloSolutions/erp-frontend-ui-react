@@ -10,9 +10,15 @@
  * Picking a rung stores that code and every narrower one, which is what
  * the backend stores too, so the grid and the saved role never disagree.
  *
- * `readOnly` renders the same grid as a summary; the user form uses it to
- * show what the chosen role allows. `canConfer` hides rungs the viewer
- * does not hold themselves, because the API refuses to confer those.
+ * `readOnly` renders the same grid as a summary. `canConfer` hides rungs
+ * the viewer does not hold themselves, because the API refuses to confer
+ * those.
+ *
+ * `baseCodes` is what the person already holds through their role. Those
+ * rungs draw as granted and locked -- change the role to change them --
+ * and `selected` is only what is granted on top: a cell may be widened
+ * beyond its base, never narrowed below it. The user form's Access Rights
+ * tab is this grid with the role as the base and the extras as the ticks.
  */
 
 import { useMemo } from "react";
@@ -34,7 +40,17 @@ export interface PermissionMatrixProps {
   readOnly?: boolean;
   /** Whether the viewer may hand out a code; unknown (loading) → true. */
   canConfer?: (code: string) => boolean;
+  /** Codes held through the role: shown granted, not editable here. */
+  baseCodes?: ReadonlySet<string>;
   className?: string;
+}
+
+const NO_BASE: ReadonlySet<string> = new Set();
+
+/** Position of `scope` on the cell's ladder (0 = widest); "none" sits past the end. */
+function rungOf(cell: PermissionCell, scope: string): number {
+  const index = cell.options.findIndex((option) => option.scope === scope);
+  return index === -1 ? cell.options.length : index;
 }
 
 /** Resources in catalogue order, bucketed by their group heading. */
@@ -52,6 +68,7 @@ export function PermissionMatrixGrid({
   onChange,
   readOnly = false,
   canConfer = () => true,
+  baseCodes = NO_BASE,
   className,
 }: PermissionMatrixProps) {
   const groups = useMemo(() => byGroup(matrix?.resources ?? []), [matrix]);
@@ -71,8 +88,9 @@ export function PermissionMatrixGrid({
     if (!onChange) return;
     const next = new Set(selected);
     for (const code of cellCodes(cell)) next.delete(code);
-    const rung = cell.options.findIndex((option) => option.scope === scope);
-    if (rung >= 0) {
+    const rung = rungOf(cell, scope);
+    // A rung the role already covers needs nothing granted on top.
+    if (rung < cell.options.length && rung < rungOf(cell, scopeOf(cell, baseCodes))) {
       for (const option of cell.options.slice(rung)) next.add(option.code);
     }
     onChange(next);
@@ -109,6 +127,7 @@ export function PermissionMatrixGrid({
               verbs={matrix.verbs.map((verb) => verb.key)}
               editable={editable}
               selected={selected}
+              baseCodes={baseCodes}
               offered={offered}
               onSetScope={setScope}
             />
@@ -125,6 +144,7 @@ function GroupRows({
   verbs,
   editable,
   selected,
+  baseCodes,
   offered,
   onSetScope,
 }: {
@@ -133,6 +153,7 @@ function GroupRows({
   verbs: string[];
   editable: boolean;
   selected: ReadonlySet<string>;
+  baseCodes: ReadonlySet<string>;
   offered: (cell: PermissionCell) => PermissionCell["options"];
   onSetScope: (cell: PermissionCell, scope: string) => void;
 }) {
@@ -174,6 +195,7 @@ function GroupRows({
                     resource={resource}
                     cell={cell}
                     scope={scopeOf(cell, selected)}
+                    baseScope={scopeOf(cell, baseCodes)}
                     editable={editable}
                     options={offered(cell)}
                     onChange={(next) => onSetScope(cell, next)}
@@ -192,18 +214,25 @@ function ScopeCell({
   resource,
   cell,
   scope,
+  baseScope,
   editable,
   options,
   onChange,
 }: {
   resource: PermissionResource;
   cell: PermissionCell;
+  /** The rung granted here: the extras on a user, or the role's own codes. */
   scope: string;
+  /** The rung the role already gives; "none" when there is no base. */
+  baseScope: string;
   editable: boolean;
   options: PermissionCell["options"];
   onChange: (scope: string) => void;
 }) {
-  const granted = scope !== NO_ACCESS;
+  // What the person ends up with: the wider of the two rungs.
+  const effective = rungOf(cell, scope) <= rungOf(cell, baseScope) ? scope : baseScope;
+  const granted = effective !== NO_ACCESS;
+  const fromRole = baseScope !== NO_ACCESS && effective === baseScope;
   const label = `${resource.label}: ${cell.label}`;
   const id = `perm-${resource.key}-${cell.verb}`;
 
@@ -219,9 +248,13 @@ function ScopeCell({
         aria-label={label}
         hasHalo={false}
         checked={granted}
-        disabled={!options.length}
+        disabled={fromRole || !options.length}
         title={
-          options.length ? only.code : "You cannot give access you do not hold yourself"
+          fromRole
+            ? "Granted by the role: change the role to change this"
+            : options.length
+              ? only.code
+              : "You cannot give access you do not hold yourself"
         }
         onChange={(event) => onChange(event.target.checked ? only.scope : NO_ACCESS)}
       />
@@ -229,7 +262,7 @@ function ScopeCell({
   }
 
   if (!editable) {
-    const current = cell.options.find((option) => option.scope === scope);
+    const current = cell.options.find((option) => option.scope === effective);
     return <span className="text-erp-text">{current ? current.label : "—"}</span>;
   }
 
@@ -244,10 +277,15 @@ function ScopeCell({
         id={id}
         chrome="underline"
         className="w-[150px]"
-        value={scope}
+        value={effective}
         items={[
-          { key: NO_ACCESS, label: "No access" },
-          ...options.map((option) => ({ key: option.scope, label: option.label })),
+          { key: NO_ACCESS, label: "No access", disabled: baseScope !== NO_ACCESS },
+          ...options.map((option) => ({
+            key: option.scope,
+            label: option.scope === baseScope ? `${option.label} (role)` : option.label,
+            // At or below the role's rung there is nothing to grant on top.
+            disabled: rungOf(cell, option.scope) > rungOf(cell, baseScope),
+          })),
         ]}
         onChange={(key) => onChange(key ?? NO_ACCESS)}
       />
