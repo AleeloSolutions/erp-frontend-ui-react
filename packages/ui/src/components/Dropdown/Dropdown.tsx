@@ -156,19 +156,6 @@ function useFieldMenuCoords(anchorRef: RefObject<HTMLElement | null>) {
   return coords;
 }
 
-function DropdownCaret({ open }: { open: boolean }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "pointer-events-none absolute end-2 top-1/2 size-0 -translate-y-1/2",
-        "border-x-[4px] border-x-transparent border-t-[5px] border-solid",
-        open ? "border-t-erp-input-border-focus" : "border-t-erp-subtle"
-      )}
-    />
-  );
-}
-
 function useButtonMenuCoords(
   anchorRef: RefObject<HTMLElement | null>,
   align: "left" | "right",
