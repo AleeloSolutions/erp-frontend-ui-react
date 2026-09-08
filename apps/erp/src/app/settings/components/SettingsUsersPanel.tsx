@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import {
+  Badge,
   ConfirmDialog,
   ControlPanel,
   DataTable,
@@ -24,9 +25,13 @@ import {
 } from "@erp/ui";
 import { ApiError } from "@/lib/api-client";
 import { SettingsDetailBack } from "./SettingsDetailBack";
-import { updateUser, useCurrentUser, useTenantUsers, type TenantUser } from "../usersApi";
-
-const MANAGE_USERS = "settings.user.manage";
+import {
+  USER_CODES,
+  updateUser,
+  useCurrentUser,
+  useTenantUsers,
+  type TenantUser,
+} from "../usersApi";
 
 /** DataTable sorting -> DRF `?ordering=`; `-` means descending. */
 function orderingOf(sorting: SortingState): string {
@@ -69,8 +74,12 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
   );
 
   const { users, total, loading, error, reload } = useTenantUsers(params);
-  // The owner holds every code implicitly; a member needs the grant.
-  const canManage = Boolean(me?.permissions.includes(MANAGE_USERS));
+  // The owner holds every code implicitly; a member needs the grant. The
+  // Users row of the matrix has three ticks: invite, edit, deactivate.
+  const held = me?.permissions ?? [];
+  const canInvite = held.includes(USER_CODES.create);
+  const canManage = held.includes(USER_CODES.edit);
+  const canDeactivate = held.includes(USER_CODES.delete);
 
   const filters = useMemo<DataTableFilter[]>(
     () => [
@@ -100,17 +109,24 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
           const label = user.full_name || user.email;
           return (
             <div className="flex flex-col">
-              {canManage ? (
-                <button
-                  type="button"
-                  className="border-0 bg-transparent p-0 text-left text-erp-brand-third hover:underline"
-                  onClick={() => navigate(`/settings/users/${user.uuid}`)}
-                >
-                  {label}
-                </button>
-              ) : (
-                <span>{label}</span>
-              )}
+              <span className="inline-flex items-center gap-2">
+                {canManage ? (
+                  <button
+                    type="button"
+                    className="border-0 bg-transparent p-0 text-left text-erp-brand-third hover:underline"
+                    onClick={() => navigate(`/settings/users/${user.uuid}`)}
+                  >
+                    {label}
+                  </button>
+                ) : (
+                  <span>{label}</span>
+                )}
+                {user.user_type === "owner" ? (
+                  <Badge variant="purple" title="The account that created this workspace">
+                    Owner
+                  </Badge>
+                ) : null}
+              </span>
               {user.email_verified_at === null ? (
                 <span className="text-[11px] text-erp-muted">Invite pending</span>
               ) : null}
@@ -126,17 +142,25 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
         cell: ({ getValue }) => String(getValue() || "—"),
       },
       {
-        id: "roles",
-        header: "Roles",
+        id: "role",
+        header: "Role",
         enableSorting: false,
-        size: 160,
+        size: 150,
         cell: ({ row }) => {
           const user = row.original;
-          if (user.user_type === "owner") return "Owner (all permissions)";
-          return user.roles.length
-            ? user.roles.map((role) => role.name).join(", ")
-            : "No role";
+          // The owner holds everything regardless of role -- that is the
+          // account, not a role, and the User column says so.
+          const extra = user.extra_permissions?.length ?? 0;
+          const role = user.role?.name ?? "No role";
+          return extra ? `${role} · +${extra} extra` : role;
         },
+      },
+      {
+        id: "branch",
+        header: "Branch",
+        enableSorting: false,
+        size: 130,
+        cell: ({ row }) => row.original.branch?.name ?? "—",
       },
       {
         accessorKey: "is_active",
@@ -158,18 +182,18 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
 
   /** Only the actions this viewer may actually perform are offered. */
   function rowActions(user: TenantUser): DataTableRowAction[] {
-    if (!canManage) return [];
-    const actions: DataTableRowAction[] = [
-      {
+    const actions: DataTableRowAction[] = [];
+    if (canManage) {
+      actions.push({
         key: "edit",
         label: "Edit",
         onClick: () => navigate(`/settings/users/${user.uuid}`),
-      },
-    ];
+      });
+    }
     // The owner cannot be deactivated, and nobody can deactivate themselves —
     // the backend enforces both; not offering them says so up front.
     const self = user.uuid === me?.uuid;
-    if (user.user_type !== "owner" && !self) {
+    if (canDeactivate && user.user_type !== "owner" && !self) {
       actions.push(
         user.is_active
           ? {
@@ -220,7 +244,7 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
         renderToolbar={({ searchFilter, pagination }) => (
           <ControlPanel
             pageActions={
-              canManage ? (
+              canInvite ? (
                 <PageActions
                   buttons={[
                     {

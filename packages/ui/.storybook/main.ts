@@ -28,6 +28,7 @@ const config: StorybookConfig = {
       plugins: [tailwindcss()],
       resolve: {
         alias: {
+          "@erp/ui/fixtures": path.resolve(dirname, "../src/fixtures/index.ts"),
           "@erp/ui": path.resolve(dirname, "../src/index.ts"),
           "@": path.resolve(dirname, "../../../apps/erp/src"),
         },

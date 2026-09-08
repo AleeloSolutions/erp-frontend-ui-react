@@ -18,7 +18,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@erp/ui": ["../../packages/ui/src/index.ts"]
+      "@erp/ui": ["../../packages/ui/src/index.ts"],
+      "@erp/ui/fixtures": ["../../packages/ui/src/fixtures/index.ts"]
     }
   },
   "include": ["src"]

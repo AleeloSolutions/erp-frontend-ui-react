@@ -1,6 +1,8 @@
 import type { ReactElement, ReactNode } from "react";
-import { CircleHelp, Users } from "lucide-react";
+import { Building2, CircleHelp, ShieldCheck, Users } from "lucide-react";
 import { useCompanyInfo } from "../api";
+import { useBranches } from "../branchesApi";
+import { useRoles } from "../rolesApi";
 import { useTenantUsers } from "../usersApi";
 import { CompanyInfoForm } from "../CompanyInfoForm";
 import { formatAddress, type CompanyInfo } from "../settingsCompany";
@@ -10,6 +12,8 @@ import { settingsOverviewStats } from "../settingsViews";
 import { SettingsDetailBack } from "./SettingsDetailBack";
 import { SettingsOverviewLink } from "./SettingsOverviewLink";
 import { SettingsOverviewTile } from "./SettingsOverviewTile";
+import { SettingsBranchesPanel } from "./SettingsBranchesPanel";
+import { SettingsRolesPanel } from "./SettingsRolesPanel";
 import { SettingsSection } from "./SettingsSection";
 import { SettingsUsersPanel } from "./SettingsUsersPanel";
 
@@ -32,18 +36,53 @@ function SettingsOverviewShell({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * A count that admits it does not know yet.
+ *
+ * Rendering `0` while the request is still in flight states something
+ * false — a workspace always has at least one branch and its system roles
+ * — and then corrects itself, which reads as records appearing on their
+ * own. A placeholder says "counting" instead of guessing.
+ */
+function CountLabel({
+  loading,
+  count,
+  singular,
+  plural,
+}: {
+  loading: boolean;
+  count: number;
+  singular: string;
+  plural: string;
+}) {
+  if (loading) {
+    return (
+      <span className="inline-flex items-center" aria-busy="true">
+        <span className="h-4 w-24 animate-pulse rounded bg-erp-border" aria-hidden />
+        <span className="sr-only">Loading {plural.toLowerCase()}</span>
+      </span>
+    );
+  }
+  return (
+    <>
+      {count} {count === 1 ? singular : plural}
+    </>
+  );
+}
+
 function SettingsUsersOverview({
   onOpenDetail,
 }: Pick<SettingsTabPanelProps, "onOpenDetail">) {
   // One page of one row: we only need meta.total, not the users themselves.
-  const { total, loading } = useTenantUsers({
+  const { total, loading: usersLoading } = useTenantUsers({
     search: "",
     isActive: "true",
     ordering: "email",
     page: 1,
     pageSize: 1,
   });
-  const activeUsers = loading ? settingsOverviewStats.activeUsers : total;
+  const { roles, loading: rolesLoading } = useRoles();
+  const { branches, loading: branchesLoading } = useBranches();
 
   return (
     <SettingsOverviewShell>
@@ -52,7 +91,12 @@ function SettingsUsersOverview({
           icon={<Users className="h-[18px] w-[18px]" aria-hidden />}
           title={
             <span className="inline-flex items-center gap-1.5">
-              {activeUsers} Active {activeUsers === 1 ? "User" : "Users"}
+              <CountLabel
+                loading={usersLoading}
+                count={total}
+                singular="Active User"
+                plural="Active Users"
+              />
               <CircleHelp
                 className="h-3.5 w-3.5 text-erp-brand-third"
                 aria-label="Counts users with access to this workspace"
@@ -62,6 +106,40 @@ function SettingsUsersOverview({
           action={
             <SettingsOverviewLink onClick={() => onOpenDetail("users-manage")}>
               Manage Users
+            </SettingsOverviewLink>
+          }
+        />
+        <SettingsOverviewTile
+          icon={<ShieldCheck className="h-[18px] w-[18px]" aria-hidden />}
+          title={
+            <CountLabel
+              loading={rolesLoading}
+              count={roles.length}
+              singular="Role"
+              plural="Roles"
+            />
+          }
+          description="What each role may view, create, edit and delete"
+          action={
+            <SettingsOverviewLink onClick={() => onOpenDetail("roles-manage")}>
+              Manage Roles
+            </SettingsOverviewLink>
+          }
+        />
+        <SettingsOverviewTile
+          icon={<Building2 className="h-[18px] w-[18px]" aria-hidden />}
+          title={
+            <CountLabel
+              loading={branchesLoading}
+              count={branches.length}
+              singular="Branch"
+              plural="Branches"
+            />
+          }
+          description="Shops and offices, and who works at each"
+          action={
+            <SettingsOverviewLink onClick={() => onOpenDetail("branches-manage")}>
+              Manage Branches
             </SettingsOverviewLink>
           }
         />
@@ -177,6 +255,14 @@ export function SettingsTabPanel({
 
   if (detailView === "users-manage" && activeTab === "users") {
     return <SettingsUsersPanel onBack={onBack} />;
+  }
+
+  if (detailView === "roles-manage" && activeTab === "users") {
+    return <SettingsRolesPanel onBack={onBack} />;
+  }
+
+  if (detailView === "branches-manage" && activeTab === "users") {
+    return <SettingsBranchesPanel onBack={onBack} />;
   }
 
   if (detailView === "company-edit" && activeTab === "company") {

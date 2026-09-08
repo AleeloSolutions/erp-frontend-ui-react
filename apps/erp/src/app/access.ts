@@ -1,31 +1,58 @@
 /**
  * Which parts of the app a user is offered.
  *
- * Every entry maps to permission codes from `/api/v1/access-modules/`:
- * holding any one of them means the module has something to show. This
- * only decides what is *offered* — the API is what refuses, and it does
- * so whether or not the navigation hid the link.
+ * Every entry maps to permission codes from `/api/v1/permissions/matrix/`
+ * (`<module>.<resource>.<action>`): holding any one of them means the
+ * module has something to show. This only decides what is *offered* — the
+ * API is what refuses, and it does so whether or not the navigation hid
+ * the link.
  */
 
 import type { NavigationItem } from "@erp/ui";
 
+/** Seeing a module at all: at any rung of the ladder. */
+function viewing(...resources: string[]): string[] {
+  return resources.flatMap((resource) => [
+    `${resource}.view`,
+    `${resource}.view_branch`,
+    `${resource}.view_own`,
+  ]);
+}
+
+/** Every rung of a verb: holding a narrower one still opens the screen. */
+function anyScope(resource: string, verb: string): string[] {
+  return [`${resource}.${verb}`, `${resource}.${verb}_branch`, `${resource}.${verb}_own`];
+}
+
+export const SETTINGS_CODES = {
+  company: ["settings.client.edit"],
+  documentLayout: ["settings.document_layout.edit"],
+  users: [
+    ...anyScope("settings.user", "create"),
+    ...anyScope("settings.user", "edit"),
+    ...anyScope("settings.user", "delete"),
+  ],
+  roles: ["settings.role.create", "settings.role.edit", "settings.role.delete"],
+  branches: ["settings.branch.create", "settings.branch.edit", "settings.branch.delete"],
+} as const;
+
 /** Nav key -> the codes that make it worth showing. Empty = always shown. */
 export const NAV_REQUIREMENTS: Record<string, string[]> = {
   dashboard: [],
-  sales: [
-    "sales.customer.view",
-    "sales.quotation.view",
-    "sales.invoice.view",
-    "sales.contract.view",
-    "sales.order.view",
-  ],
-  inventory: ["inv.product.view", "inv.movement.view"],
-  reports: ["reports.statement.view"],
+  sales: viewing(
+    "sales.customer",
+    "sales.quotation",
+    "sales.invoice",
+    "sales.contract",
+    "sales.order"
+  ),
+  inventory: viewing("inv.product", "inv.movement"),
   settings: [
-    "settings.client.update",
-    "settings.document_layout.update",
-    "settings.user.manage",
-    "settings.role.manage",
+    ...SETTINGS_CODES.company,
+    ...SETTINGS_CODES.documentLayout,
+    ...SETTINGS_CODES.users,
+    ...SETTINGS_CODES.roles,
+    ...SETTINGS_CODES.branches,
   ],
 };
 

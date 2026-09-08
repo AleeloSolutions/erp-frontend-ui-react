@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "../../primitives/Button";
 import type { ButtonVariant } from "../../types/common";
 import { cn } from "../../utils";
@@ -16,6 +16,12 @@ export interface FormStatusBarAction {
 }
 
 export interface FormStatusBarProps {
+  /**
+   * Content placed before the actions and separated from them by a rule --
+   * typically the record's breadcrumb, so a form needs no second bar just
+   * to say which record it is. Anything that fits on one line.
+   */
+  leading?: ReactNode;
   actions?: FormStatusBarAction[];
   steps: StatusStep[];
   currentStepKey: string;
@@ -45,6 +51,7 @@ export interface FormStatusBarProps {
  * border so scrolled content doesn't show through underneath it.
  */
 export function FormStatusBar({
+  leading,
   actions = [],
   steps,
   currentStepKey,
@@ -126,6 +133,12 @@ export function FormStatusBar({
         )}
       >
         <div className="flex flex-wrap items-center gap-1.5">
+          {leading ? (
+            <div className="me-1.5 flex min-w-0 items-center gap-3">
+              <div className="flex min-w-0 items-center">{leading}</div>
+              <span aria-hidden className="h-5 w-px shrink-0 bg-erp-border" />
+            </div>
+          ) : null}
           {visibleActions.map((action) => (
             <Button
               key={action.key}

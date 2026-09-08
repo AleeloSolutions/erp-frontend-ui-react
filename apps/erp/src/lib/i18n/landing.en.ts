@@ -33,7 +33,6 @@ export const landingEn = {
     quotations: "Quotations",
     invoices: "Invoices",
     products: "Products",
-    reports: "Reports",
     dashboard: "Dashboard",
   },
 } as const;

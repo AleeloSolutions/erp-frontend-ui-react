@@ -1,20 +1,20 @@
 import type { TabItem } from "@erp/ui";
-import { holdsAny } from "@/app/access";
+import { SETTINGS_CODES, holdsAny } from "@/app/access";
 
 export type SettingsTabKey = "users" | "company" | "document-layout";
 
-/** The code each tab needs. A tab nobody can act on is not offered --
+/** The codes each tab needs. A tab nobody can act on is not offered --
  * seeing the workspace's people or company details is not something a
  * "Document Layout only" grant should include. */
 export const SETTINGS_TAB_REQUIREMENTS: Record<SettingsTabKey, string[]> = {
-  users: ["settings.user.manage", "settings.role.manage"],
-  company: ["settings.client.update"],
-  "document-layout": ["settings.document_layout.update"],
+  users: [...SETTINGS_CODES.users, ...SETTINGS_CODES.roles, ...SETTINGS_CODES.branches],
+  company: [...SETTINGS_CODES.company],
+  "document-layout": [...SETTINGS_CODES.documentLayout],
 };
 
 export const SETTINGS_TABS: TabItem[] = [
-  { key: "users", label: "Users" },
   { key: "company", label: "Company Info" },
+  { key: "users", label: "Users" },
   { key: "document-layout", label: "Document Layout" },
 ];
 

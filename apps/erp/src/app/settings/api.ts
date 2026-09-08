@@ -12,17 +12,18 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { formatAddress, type AddressParts } from "@/lib/address";
+import {
+  formatAddress,
+  type AddressParts,
+  defaultDocumentSettings,
+  documentLayouts,
+  tableStyles,
+  type DocumentSettings,
+  type LayoutKey,
+  type TableStyleKey,
+} from "@erp/ui";
 import { apiGet, apiPatch } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
-import { defaultInvoiceSettings } from "@/modules/sales/components/invoice/config/defaultSettings";
-import { invoiceLayouts } from "@/modules/sales/components/invoice/config/invoiceLayouts";
-import { tableStyles } from "@/modules/sales/components/invoice/config/tableStyles";
-import type {
-  InvoiceSettings,
-  LayoutKey,
-  TableStyleKey,
-} from "@/modules/sales/components/invoice/types/invoice";
 import { defaultCompanyInfo, type CompanyInfo } from "./settingsCompany";
 
 interface ClientDetail {
@@ -162,29 +163,29 @@ function addressColumns(parts: Partial<AddressParts>) {
 }
 
 /** A stored key the renderer doesn't know would blow up the preview
- * (`invoiceLayouts[key].component` on undefined), so fall back instead of
+ * (`documentLayouts[key].component` on undefined), so fall back instead of
  * trusting the column. Casting here was exactly what hid a bad default. */
 function knownLayout(value: string): LayoutKey {
-  return value in invoiceLayouts ? (value as LayoutKey) : defaultInvoiceSettings.layout;
+  return value in documentLayouts ? (value as LayoutKey) : defaultDocumentSettings.layout;
 }
 
 function knownTableStyle(value: string): TableStyleKey {
   return value in tableStyles
     ? (value as TableStyleKey)
-    : defaultInvoiceSettings.tableStyle;
+    : defaultDocumentSettings.tableStyle;
 }
 
 function toInvoiceSettings(
   dto: DocumentLayoutDto,
   identity: CompanyIdentityDto
-): InvoiceSettings {
+): DocumentSettings {
   const parts = addressParts(identity);
   return {
     layout: knownLayout(dto.layout),
     tableStyle: knownTableStyle(dto.table_style),
-    font: dto.font || defaultInvoiceSettings.font,
-    primaryColor: dto.primary_color || defaultInvoiceSettings.primaryColor,
-    secondaryColor: dto.secondary_color || defaultInvoiceSettings.secondaryColor,
+    font: dto.font || defaultDocumentSettings.font,
+    primaryColor: dto.primary_color || defaultDocumentSettings.primaryColor,
+    secondaryColor: dto.secondary_color || defaultDocumentSettings.secondaryColor,
     paperFormat: dto.paper_format === "Letter" ? "Letter" : "A4",
     showQrCode: Boolean(dto.has_qr_code),
     logoUrl: dto.logo ?? undefined,
@@ -207,7 +208,7 @@ async function blobFromObjectUrl(url: string): Promise<{ blob: Blob; filename: s
 }
 
 export function useDocumentLayout() {
-  const [settings, setSettings] = useState<InvoiceSettings>(defaultInvoiceSettings);
+  const [settings, setSettings] = useState<DocumentSettings>(defaultDocumentSettings);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -230,7 +231,7 @@ export function useDocumentLayout() {
     };
   }, []);
 
-  const save = useCallback(async (next: InvoiceSettings) => {
+  const save = useCallback(async (next: DocumentSettings) => {
     const layoutFields: Record<string, string> = {
       layout: next.layout,
       table_style: next.tableStyle,

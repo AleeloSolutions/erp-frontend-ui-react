@@ -39,7 +39,11 @@ export const Interactive: Story = {
   render: function Interactive(args) {
     const [currentStepKey, setCurrentStepKey] = useState(args.currentStepKey);
     return (
-      <FormStatusBar {...args} currentStepKey={currentStepKey} onStepChange={setCurrentStepKey} />
+      <FormStatusBar
+        {...args}
+        currentStepKey={currentStepKey}
+        onStepChange={setCurrentStepKey}
+      />
     );
   },
 };
@@ -47,6 +51,17 @@ export const Interactive: Story = {
 export const NoActions: Story = {
   args: {
     actions: [],
+  },
+};
+
+export const WithLeading: Story = {
+  args: {
+    leading: <span className="text-[13px] text-erp-muted">Hodan Ali</span>,
+    actions: [
+      { key: "back", label: "Users", variant: "ghost" },
+      { key: "save", label: "Save", variant: "primary" },
+      { key: "discard", label: "Discard", variant: "secondary" },
+    ],
   },
 };
 

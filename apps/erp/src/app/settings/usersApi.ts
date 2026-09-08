@@ -13,30 +13,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
+import { useRoles } from "./rolesApi";
+import type { BranchSummary } from "./branchesApi";
 
+/** A role as it appears on a user row. */
 export interface TenantRole {
   uuid: string;
   name: string;
 }
 
-/** The level key meaning "this user cannot reach the module at all". */
-export const NO_ACCESS = "none";
-
-export interface AccessLevel {
-  key: string;
-  label: string;
-  /** The permission codes this level grants; shown as the row's tooltip. */
-  codes: string[];
-}
-
-/** One row of the Access Rights grid, from /api/v1/access-modules/. */
-export interface AccessModule {
-  key: string;
-  group: string;
-  label: string;
-  help: string;
-  levels: AccessLevel[];
-}
+/** The three ticks of the Users row of the matrix. */
+export const USER_CODES = {
+  create: "settings.user.create",
+  edit: "settings.user.edit",
+  delete: "settings.user.delete",
+} as const;
 
 export interface TenantUser {
   uuid: string;
@@ -53,9 +44,16 @@ export interface TenantUser {
   email_verified_at: string | null;
   /** null → they have never signed in. */
   last_login_at: string | null;
-  roles: TenantRole[];
-  /** {module key: level key} — what the Access Rights grid renders. */
-  access: Record<string, string>;
+  /** true → nobody has used this address as a login, so it may still be
+   * corrected. Derived by the API from the two fields above. */
+  invite_pending: boolean;
+  /** The one role they hold; null for none (the owner needs none). */
+  role: TenantRole | null;
+  /** Rights granted to this person directly, on top of the role. Stored
+   * closed over the ladder, so a wider rung carries its narrower ones. */
+  extra_permissions: string[];
+  /** Where they work; null for platform staff and workspace-wide accounts. */
+  branch: BranchSummary | null;
   created_at: string;
 }
 
@@ -78,12 +76,20 @@ export interface InviteUserInput {
   first_name: string;
   last_name: string;
   phone_number: string;
-  roles: string[];
-  /** Omitted for an administrator: the admin role already grants everything. */
-  access?: Record<string, string>;
+  /** The role's uuid; null for none. */
+  role: string | null;
+  /** The branch's uuid; null for workspace-wide. */
+  branch: string | null;
+  /** Extra rights on top of the role; the API refuses any the caller does not hold. */
+  extra_permissions: string[];
 }
 
-export type UpdateUserInput = Partial<Omit<InviteUserInput, "email">> & {
+/**
+ * `email` is accepted only while the invite is unaccepted — the API rejects
+ * it once the member has signed in (see `isConfirmed`). Send it only when
+ * it actually changed, so an ordinary save does not re-issue the invite.
+ */
+export type UpdateUserInput = Partial<InviteUserInput> & {
   is_active?: boolean;
 };
 
@@ -140,7 +146,10 @@ export function createPasswordResetLink(uuid: string) {
  */
 export function useTenantUsers(params: TenantUserListParams) {
   const [result, setResult] = useState<TenantUserListResult>({ users: [], total: 0 });
-  const [loading, setLoading] = useState(false);
+  // Authenticated means the effect below WILL fetch, so the first paint
+  // is already loading. Starting at `false` made callers render an empty
+  // list as a real count.
+  const [loading, setLoading] = useState(isAuthenticated);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -206,31 +215,13 @@ export function useTenantUser(uuid: string | undefined) {
 }
 
 /** True once the invite has been taken up: the address is verified, or
- * they have simply signed in. */
+ * they have simply signed in.
+ *
+ * Reads the API's own `invite_pending` rather than re-deriving it here, so
+ * the form can never offer an edit the service will refuse.
+ */
 export function isConfirmed(user: TenantUser | null): boolean {
-  return Boolean(user && (user.email_verified_at || user.last_login_at));
-}
-
-/** The Access Rights catalogue: every module and the levels it offers. */
-export function useAccessModules() {
-  const [modules, setModules] = useState<AccessModule[]>([]);
-
-  useEffect(() => {
-    if (!isAuthenticated()) return;
-    let cancelled = false;
-    void apiGet<AccessModule[]>("/v1/access-modules/")
-      .then((data) => {
-        if (!cancelled) setModules(data);
-      })
-      .catch(() => {
-        // No tenant context: the grid renders empty rather than guessing.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return modules;
+  return Boolean(user && !user.invite_pending);
 }
 
 /** Who is looking, and what they may do.
@@ -269,22 +260,5 @@ export function useCurrentUser() {
 
 /** Every role of this tenant — what the invite/edit form offers. */
 export function useTenantRoles() {
-  const [roles, setRoles] = useState<TenantRole[]>([]);
-
-  useEffect(() => {
-    if (!isAuthenticated()) return;
-    let cancelled = false;
-    void apiGetPage<TenantRole>("/v1/roles/?page_size=100")
-      .then((payload) => {
-        if (!cancelled) setRoles(payload.data);
-      })
-      .catch(() => {
-        // No tenant context (or offline): the form shows no roles to pick.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return roles;
+  return useRoles().roles;
 }

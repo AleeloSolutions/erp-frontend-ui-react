@@ -9,8 +9,7 @@ import {
   Drawer,
   useToast,
 } from "@erp/ui";
-import { useCustomersQuery } from "@/modules/sales/api";
-
+import { useCustomersQuery } from "@/modules/sales/customers";
 function DemoSection({
   title,
   description,
@@ -82,7 +81,7 @@ export function FeedbackAndQueryDemos() {
 
       <DemoSection
         title="TanStack Query — Customers"
-        description="Mock list query with loading / error / success states (shared with /sales/customers)."
+        description="Live list query with loading / error / success states (shared with /sales/customers)."
       >
         <div className="mb-2 flex flex-wrap gap-2">
           <Button
@@ -97,17 +96,19 @@ export function FeedbackAndQueryDemos() {
               ? "Loading…"
               : customersQuery.isError
                 ? customersQuery.error.message
-                : `${customersQuery.data?.total ?? 0} customers loaded`}
+                : `${customersQuery.data?.meta.total ?? 0} customers loaded`}
           </span>
         </div>
         <ul className="m-0 list-none space-y-1 p-0 text-[12px]">
           {(customersQuery.data?.data ?? []).map((customer) => (
             <li
-              key={customer.id}
+              key={customer.uuid}
               className="flex items-center justify-between rounded-md border border-erp-border-soft px-2.5 py-1.5"
             >
               <span className="font-bold text-erp-text">{customer.name}</span>
-              <span className="text-erp-subtle">{customer.status}</span>
+              <span className="text-erp-subtle">
+                {customer.is_archived ? "Archived" : "Active"}
+              </span>
             </li>
           ))}
         </ul>
@@ -146,8 +147,8 @@ export function FeedbackAndQueryDemos() {
         }
       >
         <p className="m-0 text-[12px] text-erp-muted">
-          Drawers keep users in context while inspecting a record. Used on the
-          Customers page for detail preview.
+          Drawers keep users in context while inspecting a record. Used on the Customers
+          page for detail preview.
         </p>
       </Drawer>
     </>

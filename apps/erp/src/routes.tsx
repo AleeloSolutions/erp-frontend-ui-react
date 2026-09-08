@@ -5,17 +5,18 @@ import TrialPage from "@/app/trial/TrialPage";
 import TrialThanksPage from "@/app/trial/TrialThanksPage";
 import SettingsPage from "@/app/settings/SettingsPage";
 import UserFormPage from "@/app/settings/users/UserFormPage";
+import RoleFormPage from "@/app/settings/roles/RoleFormPage";
+import BranchFormPage from "@/app/settings/branches/BranchFormPage";
 import LoginPage from "@/app/auth/LoginPage";
 import WelcomePage from "@/app/auth/WelcomePage";
 import VerifyEmailPage from "@/app/auth/VerifyEmailPage";
 import { RequireAuth } from "@/app/auth/RequireAuth";
 import { RequirePermission } from "@/app/auth/RequirePermission";
 import { RedirectIfAuthenticated } from "@/app/auth/RedirectIfAuthenticated";
-import { NAV_REQUIREMENTS } from "@/app/access";
+import { NAV_REQUIREMENTS, SETTINGS_CODES } from "@/app/access";
 import { isAuthenticated } from "@/lib/auth";
-import { SalesRoutes } from "./modules/sales/routes";
+import { SalesRoutes } from "./modules/sales";
 import { InventoryRoutes } from "./modules/inventory/routes";
-import { ReportsRoutes } from "./modules/reports/routes";
 
 export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
   return (
@@ -57,10 +58,30 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         }
       />
       <Route
+        path="/settings/branches/new"
+        element={
+          <RequireAuth>
+            <RequirePermission anyOf={["settings.branch.create"]}>
+              <BranchFormPage />
+            </RequirePermission>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings/branches/:uuid"
+        element={
+          <RequireAuth>
+            <RequirePermission anyOf={["settings.branch.edit"]}>
+              <BranchFormPage />
+            </RequirePermission>
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/settings/users/new"
         element={
           <RequireAuth>
-            <RequirePermission anyOf={["settings.user.manage"]}>
+            <RequirePermission anyOf={[...SETTINGS_CODES.users]}>
               <UserFormPage />
             </RequirePermission>
           </RequireAuth>
@@ -70,8 +91,28 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
         path="/settings/users/:uuid"
         element={
           <RequireAuth>
-            <RequirePermission anyOf={["settings.user.manage"]}>
+            <RequirePermission anyOf={[...SETTINGS_CODES.users]}>
               <UserFormPage />
+            </RequirePermission>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings/roles/new"
+        element={
+          <RequireAuth>
+            <RequirePermission anyOf={["settings.role.create"]}>
+              <RoleFormPage />
+            </RequirePermission>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings/roles/:uuid"
+        element={
+          <RequireAuth>
+            <RequirePermission anyOf={["settings.role.edit"]}>
+              <RoleFormPage />
             </RequirePermission>
           </RequireAuth>
         }
@@ -100,16 +141,6 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
           <RequireAuth>
             <RequirePermission anyOf={NAV_REQUIREMENTS.inventory}>
               <InventoryRoutes />
-            </RequirePermission>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/reports/*"
-        element={
-          <RequireAuth>
-            <RequirePermission anyOf={NAV_REQUIREMENTS.reports}>
-              <ReportsRoutes />
             </RequirePermission>
           </RequireAuth>
         }

@@ -156,19 +156,6 @@ function useFieldMenuCoords(anchorRef: RefObject<HTMLElement | null>) {
   return coords;
 }
 
-function DropdownCaret({ open }: { open: boolean }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "pointer-events-none absolute end-2 top-1/2 size-0 -translate-y-1/2",
-        "border-x-[4px] border-x-transparent border-t-[5px] border-solid",
-        open ? "border-t-erp-input-border-focus" : "border-t-erp-subtle"
-      )}
-    />
-  );
-}
-
 function useButtonMenuCoords(
   anchorRef: RefObject<HTMLElement | null>,
   align: "left" | "right",
@@ -324,7 +311,7 @@ function FieldMenu({
             value={search.value}
             onChange={(event) => search.onChange(event.target.value)}
             placeholder={search.placeholder}
-            className="w-full border-0 bg-transparent px-3 py-1 text-[0.875rem] text-erp-text outline-none placeholder:text-erp-placeholder"
+            className="w-full border-0 bg-transparent py-1 text-[0.875rem] text-erp-text outline-none placeholder:text-erp-placeholder"
           />
         </div>
       ) : null}
