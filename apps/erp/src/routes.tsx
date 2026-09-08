@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import HomePage from "@/app/HomePage";
 import LandingPage from "@/app/landing/LandingPage";
@@ -18,10 +18,45 @@ import ModulePackagesPage from "@/app/platform/ModulePackagesPage";
 import { RequirePermission } from "@/app/auth/RequirePermission";
 import { RedirectIfAuthenticated } from "@/app/auth/RedirectIfAuthenticated";
 import { NAV_REQUIREMENTS, SETTINGS_CODES, navRequirementFor } from "@/app/access";
+import { useSession } from "@/app/session";
 import { isAuthenticated } from "@/lib/auth";
 import { type ModuleManifest } from "./modules";
+import { pendingBundles } from "./modules/loader";
 import { ModuleBundleLoader } from "./modules/ModuleBundleLoader";
 import { useModules } from "./modules/registry";
+
+/** How long an unknown URL waits for the session and its bundles. */
+export const NOT_FOUND_PATIENCE_MS = 15_000;
+
+/**
+ * The not-found treatment -- unless the URL may belong to a packaged
+ * module that has not registered yet. A hard load of /pos/tickets reaches
+ * here twice before the POS bundle has run: once before the session has
+ * even arrived, once while the bundle is on its way. Sending it home would
+ * lose the deep link, so a signed-in visitor waits, and the route table
+ * picks the URL up the moment the module registers. A bundle that fails
+ * is given up on (pendingBundles), and the wait is capped, so nothing can
+ * hold a URL hostage.
+ */
+function NotFound() {
+  const session = useSession();
+  const modules = useModules();
+  const [patient, setPatient] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setPatient(false), NOT_FOUND_PATIENCE_MS);
+    return () => clearTimeout(timer);
+  }, []);
+  const sessionPending = isAuthenticated() && session === null;
+  const bundlesPending =
+    session !== null && pendingBundles(session.module_bundles, modules).length > 0;
+  const waiting = patient && (sessionPending || bundlesPending);
+  if (!waiting) return <Navigate to="/" replace />;
+  return (
+    <div className="grid min-h-screen place-items-center bg-erp-bg px-4 text-center">
+      <p className="m-0 text-[12px] text-erp-muted">Loading modules…</p>
+    </div>
+  );
+}
 
 /** A module's route tree, loaded on first visit -- its chunk is separate. */
 function ModuleScreen({ module }: { module: ModuleManifest }) {
@@ -185,7 +220,7 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
             }
           />
         ))}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );
