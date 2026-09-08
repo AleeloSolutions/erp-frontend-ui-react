@@ -1,4 +1,4 @@
-import type { AccountReportNode } from "@erp/ui";
+import type { AccountReportNode } from "../../../types/report";
 
 const cashInOut = (prefix: string): AccountReportNode[] => [
   { id: `${prefix}-cash-in`, label: "Cash in", level: 5, amounts: { balance: 0 } },

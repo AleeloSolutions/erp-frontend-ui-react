@@ -4,3 +4,4 @@
  * subpath's entry, so a component adding fixtures adds one line here.
  */
 export * from "../components/BusinessDocument/fixtures";
+export * from "../components/AccountReport/fixtures";

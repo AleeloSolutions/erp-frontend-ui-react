@@ -1,4 +1,4 @@
-import type { AccountReportNode } from "@erp/ui";
+import type { AccountReportNode } from "../../../types/report";
 
 /**
  * Odoo-style profit and loss. Subtotal bars are `sectionHeader` rows with an

@@ -15,9 +15,8 @@ import { RequirePermission } from "@/app/auth/RequirePermission";
 import { RedirectIfAuthenticated } from "@/app/auth/RedirectIfAuthenticated";
 import { NAV_REQUIREMENTS, SETTINGS_CODES } from "@/app/access";
 import { isAuthenticated } from "@/lib/auth";
-import { SalesRoutes } from "./modules/sales/routes";
+import { SalesRoutes } from "./modules/sales";
 import { InventoryRoutes } from "./modules/inventory/routes";
-import { ReportsRoutes } from "./modules/reports/routes";
 
 export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
   return (
@@ -142,16 +141,6 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
           <RequireAuth>
             <RequirePermission anyOf={NAV_REQUIREMENTS.inventory}>
               <InventoryRoutes />
-            </RequirePermission>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/reports/*"
-        element={
-          <RequireAuth>
-            <RequirePermission anyOf={NAV_REQUIREMENTS.reports}>
-              <ReportsRoutes />
             </RequirePermission>
           </RequireAuth>
         }

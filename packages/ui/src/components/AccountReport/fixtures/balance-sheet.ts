@@ -1,4 +1,4 @@
-import type { AccountReportNode } from "@erp/ui";
+import type { AccountReportNode } from "../../../types/report";
 
 /** Odoo-style balance sheet. Demo figures until the accounting API is wired up. */
 export const balanceSheetNodes: AccountReportNode[] = [
@@ -20,6 +20,7 @@ export const balanceSheetNodes: AccountReportNode[] = [
           },
           {
             id: "receivables",
+            showActions: true,
             label: "Receivables",
             level: 5,
             unfoldable: true,

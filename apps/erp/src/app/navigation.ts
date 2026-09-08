@@ -1,15 +1,7 @@
-import {
-  LayoutDashboard,
-  BarChart3,
-  Home,
-  ListTodo,
-  MoreHorizontal,
-  Settings,
-} from "lucide-react";
+import { LayoutDashboard, Home, ListTodo, MoreHorizontal, Settings } from "lucide-react";
 import type { MobileNavItem, NavigationItem } from "@erp/ui";
 // import { inventoryManifest } from "@/modules/inventory/manifest";
-import { salesManifest } from "@/modules/sales/manifest";
-import { reportsManifest } from "@/modules/reports/manifest";
+import { salesManifest } from "@/modules/sales";
 
 export const coreNavigation: NavigationItem[] = [
   {
@@ -24,7 +16,10 @@ export const coreNavigation: NavigationItem[] = [
     ],
   },
   salesManifest.nav,
-  reportsManifest.nav,
+  // Statement Reports is deliberately absent: the three statements rendered
+  // hardcoded figures with no backend behind them. The module is gone; the
+  // renderer lives on as `AccountReport` in @erp/ui, with the statements as
+  // its fixtures.
   {
     key: "settings",
     label: "Settings",
@@ -46,6 +41,5 @@ export const financeSubmenu = [
 export const mobileNavigation: MobileNavItem[] = [
   { key: "home", label: "Home", href: "/inventory/products", icon: Home },
   { key: "tasks", label: "Tasks", href: "/dashboard", icon: ListTodo },
-  { key: "reports", label: "Reports", href: "/reports/balance-sheet", icon: BarChart3 },
   { key: "more", label: "More", href: "/dashboard", icon: MoreHorizontal },
 ];

@@ -47,7 +47,6 @@ export const NAV_REQUIREMENTS: Record<string, string[]> = {
     "sales.order"
   ),
   inventory: viewing("inv.product", "inv.movement"),
-  reports: ["reports.statement.view"],
   settings: [
     ...SETTINGS_CODES.company,
     ...SETTINGS_CODES.documentLayout,
