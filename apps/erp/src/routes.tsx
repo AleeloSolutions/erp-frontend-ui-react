@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import HomePage from "@/app/HomePage";
 import LandingPage from "@/app/landing/LandingPage";
@@ -11,12 +12,28 @@ import LoginPage from "@/app/auth/LoginPage";
 import WelcomePage from "@/app/auth/WelcomePage";
 import VerifyEmailPage from "@/app/auth/VerifyEmailPage";
 import { RequireAuth } from "@/app/auth/RequireAuth";
+import { RequireModule } from "@/app/auth/RequireModule";
 import { RequirePermission } from "@/app/auth/RequirePermission";
 import { RedirectIfAuthenticated } from "@/app/auth/RedirectIfAuthenticated";
 import { NAV_REQUIREMENTS, SETTINGS_CODES } from "@/app/access";
 import { isAuthenticated } from "@/lib/auth";
-import { SalesRoutes } from "./modules/sales";
-import { InventoryRoutes } from "./modules/inventory/routes";
+import { moduleRegistry, type ModuleManifest } from "./modules";
+
+/** A module's route tree, loaded on first visit -- its chunk is separate. */
+function ModuleScreen({ module }: { module: ModuleManifest }) {
+  const ModuleRoutes = module.Routes;
+  return (
+    <Suspense
+      fallback={
+        <div className="grid min-h-screen place-items-center bg-erp-bg px-4 text-center">
+          <p className="m-0 text-[12px] text-erp-muted">Loading {module.label}…</p>
+        </div>
+      }
+    >
+      <ModuleRoutes />
+    </Suspense>
+  );
+}
 
 export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
   return (
@@ -125,26 +142,28 @@ export function AppRoutes({ isTenantHost }: { isTenantHost: boolean }) {
           </RequireAuth>
         }
       />
-      <Route
-        path="/sales/*"
-        element={
-          <RequireAuth>
-            <RequirePermission anyOf={NAV_REQUIREMENTS.sales}>
-              <SalesRoutes />
-            </RequirePermission>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/inventory/*"
-        element={
-          <RequireAuth>
-            <RequirePermission anyOf={NAV_REQUIREMENTS.inventory}>
-              <InventoryRoutes />
-            </RequirePermission>
-          </RequireAuth>
-        }
-      />
+      {/*
+        Business modules come from the registry. Each mounts at its own
+        prefix behind three guards: a session, the module being installed
+        for this tenant (me.enabled_modules -- a module the tenant lacks
+        answers like a URL that never existed), and a code that gives the
+        account something to see there.
+      */}
+      {moduleRegistry.map((module) => (
+        <Route
+          key={module.key}
+          path={`${module.path}/*`}
+          element={
+            <RequireAuth>
+              <RequireModule module={module.key}>
+                <RequirePermission anyOf={NAV_REQUIREMENTS[module.nav.key] ?? []}>
+                  <ModuleScreen module={module} />
+                </RequirePermission>
+              </RequireModule>
+            </RequireAuth>
+          }
+        />
+      ))}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

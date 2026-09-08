@@ -34,6 +34,7 @@ export const SETTINGS_CODES = {
   ],
   roles: ["settings.role.create", "settings.role.edit", "settings.role.delete"],
   branches: ["settings.branch.create", "settings.branch.edit", "settings.branch.delete"],
+  modules: ["settings.module.view", "settings.module.edit"],
 } as const;
 
 /** Nav key -> the codes that make it worth showing. Empty = always shown. */
@@ -53,6 +54,7 @@ export const NAV_REQUIREMENTS: Record<string, string[]> = {
     ...SETTINGS_CODES.users,
     ...SETTINGS_CODES.roles,
     ...SETTINGS_CODES.branches,
+    ...SETTINGS_CODES.modules,
   ],
 };
 
@@ -70,4 +72,18 @@ export function navigationFor(
   codes: string[] | null
 ): NavigationItem[] {
   return items.filter((item) => holdsAny(codes, NAV_REQUIREMENTS[item.key] ?? []));
+}
+
+/**
+ * Whether the tenant has `module` installed, per `me.enabled_modules` --
+ * the SPA's single source for which modules exist here. Unknown yet
+ * (still loading, or Storybook): let it render, the same way `holdsAny`
+ * does; the API answers 404 for a module the tenant lacks regardless.
+ */
+export function isModuleEnabled(
+  session: { enabled_modules?: string[] } | null,
+  module: string
+): boolean {
+  if (session === null) return true;
+  return (session.enabled_modules ?? []).includes(module);
 }

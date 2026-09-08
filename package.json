@@ -14,7 +14,7 @@
     "preview": "npm run preview -w @erp/app",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test -w @erp/ui",
+    "test": "npm run test --workspaces --if-present",
     "storybook": "npm run storybook -w @erp/ui",
     "build-storybook": "npm run build-storybook -w @erp/ui",
     "format": "prettier --write .",

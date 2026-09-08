@@ -3,7 +3,9 @@
  *
  * Deliberately not React Query: `AppShell` renders inside Storybook
  * stories that have no QueryProvider, where `useQuery` throws. Fetched
- * once per session and shared, so every page mount does not re-ask.
+ * once per session and shared, so every page mount does not re-ask; and
+ * every mounted `useSession` is told when it is refreshed, so installing
+ * a module updates the sidebar without a reload.
  *
  * This drives what the navigation *offers*. It is not the security
  * boundary — the API refuses anything this misses.
@@ -21,19 +23,43 @@ export interface Session {
   last_name: string;
   user_type: "platform" | "owner" | "member";
   permissions: string[];
+  /** The module keys this tenant has installed -- the one source for
+   * which modules the app shows and mounts. */
+  enabled_modules: string[];
   client: { name: string; slug: string } | null;
 }
 
+type Listener = (session: Session | null) => void;
+
+let current: Session | null = null;
 let pending: Promise<Session | null> | null = null;
+const listeners = new Set<Listener>();
 
 function load(): Promise<Session | null> {
-  pending ??= apiGet<Session>("/v1/users/me/").catch(() => null);
+  pending ??= apiGet<Session>("/v1/users/me/")
+    .catch(() => null)
+    .then((session) => {
+      current = session;
+      for (const listener of listeners) listener(session);
+      return session;
+    });
   return pending;
 }
 
 /** Drop the cached session — call it when the tokens change (sign in/out). */
 export function forgetSession() {
   pending = null;
+  current = null;
+}
+
+/**
+ * Re-ask who is signed in and what they may reach, and tell every mounted
+ * `useSession` -- what the installer calls after a module is switched on
+ * or off, so the sidebar and the route guards follow immediately.
+ */
+export function refreshSession(): Promise<Session | null> {
+  pending = null;
+  return load();
 }
 
 /**
@@ -59,16 +85,21 @@ export async function signOut() {
 
 /** null until it arrives, or when signed out. */
 export function useSession(): Session | null {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<Session | null>(() =>
+    isAuthenticated() ? current : null
+  );
 
   useEffect(() => {
     if (!isAuthenticated()) return;
     let cancelled = false;
-    void load().then((value) => {
+    const listener: Listener = (value) => {
       if (!cancelled) setSession(value);
-    });
+    };
+    listeners.add(listener);
+    void load().then(listener);
     return () => {
       cancelled = true;
+      listeners.delete(listener);
     };
   }, []);
 

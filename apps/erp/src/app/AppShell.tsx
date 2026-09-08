@@ -1,10 +1,10 @@
 import { AppShell as UiAppShell, type AppShellProps } from "@erp/ui";
 import { navigationFor } from "./access";
-import { coreNavigation, mobileNavigation } from "./navigation";
+import { buildNavigation, mobileNavigation } from "./navigation";
 import { displayName, accountKindLabel, useSession } from "./session";
 
 export function AppShell({
-  navigationItems = coreNavigation,
+  navigationItems,
   mobileNavItems = mobileNavigation,
   ...props
 }: AppShellProps) {
@@ -23,9 +23,15 @@ export function AppShell({
             }
           : undefined
       }
-      // Offer only what this account can actually open. The API refuses
-      // the rest regardless; this keeps the sidebar honest about it.
-      navigationItems={navigationFor(navigationItems, session?.permissions ?? null)}
+      // Offer only what this account can actually open: the modules the
+      // tenant has installed, then only those with a code behind them. The
+      // API refuses the rest regardless; this keeps the sidebar honest.
+      // A caller passing its own items still gets the permission filter.
+      navigationItems={
+        navigationItems
+          ? navigationFor(navigationItems, session?.permissions ?? null)
+          : buildNavigation(session)
+      }
       mobileNavItems={mobileNavItems}
       {...props}
     />
