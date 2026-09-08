@@ -1,12 +1,13 @@
 /**
  * The module registry: every business module compiled into this build.
  *
- * Registering a module is one entry here. Whether a tenant actually gets
- * it is decided by `me.enabled_modules` -- `app/navigation.ts` builds the
- * sidebar from the registry filtered by it, and `routes.tsx` mounts each
- * module's lazy routes behind `RequireModule`. Inventory sits here with
- * no backend module yet, so it is never in `enabled_modules` and shows
- * nowhere; the day its backend ships it lights up without a code change.
+ * Registering a compiled-in module is one entry here. Modules that arrive
+ * as packages register themselves at runtime (`modules/registry.ts`);
+ * `useModules()` there is the union, and it is what the sidebar and the
+ * routes read. Whether a tenant actually gets a module is decided by
+ * `me.enabled_modules`. Inventory sits here with no backend module yet,
+ * so it is never in `enabled_modules` and shows nowhere; the day its
+ * backend ships it lights up without a code change.
  */
 
 import { inventoryManifest } from "./inventory/manifest";
@@ -17,10 +18,11 @@ export type { ErpModule, ModuleManifest } from "./types";
 
 export const moduleRegistry: ModuleManifest[] = [salesManifest, inventoryManifest];
 
-/** The registry entries a tenant has switched on, in registry order. */
+/** The entries of `modules` a tenant has switched on, in registry order. */
 export function enabledModules(
-  enabledKeys: readonly string[] | null | undefined
+  enabledKeys: readonly string[] | null | undefined,
+  modules: readonly ModuleManifest[] = moduleRegistry
 ): ModuleManifest[] {
   if (!enabledKeys) return [];
-  return moduleRegistry.filter((module) => enabledKeys.includes(module.key));
+  return modules.filter((module) => enabledKeys.includes(module.key));
 }

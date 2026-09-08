@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { logout as revokeRefreshToken } from "@/app/auth/api";
 import { apiGet } from "@/lib/api-client";
 import { clearTokens, getRefreshToken, isAuthenticated } from "@/lib/auth";
+import type { ModuleBundle } from "@/modules/loader";
 
 export interface Session {
   uuid: string;
@@ -26,6 +27,9 @@ export interface Session {
   /** The module keys this tenant has installed -- the one source for
    * which modules the app shows and mounts. */
   enabled_modules: string[];
+  /** The frontends of the enabled modules that arrived as packages: what
+   * the loader fetches at runtime. */
+  module_bundles: ModuleBundle[];
   client: { name: string; slug: string } | null;
 }
 

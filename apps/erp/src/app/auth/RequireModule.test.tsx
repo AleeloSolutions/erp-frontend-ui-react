@@ -20,6 +20,7 @@ function asSession(enabled_modules: string[]): Session {
     user_type: "owner",
     permissions: [],
     enabled_modules,
+    module_bundles: [],
     client: { name: "Kaabe Demo", slug: "kaabe-demo" },
   };
 }

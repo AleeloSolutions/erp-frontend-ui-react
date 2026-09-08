@@ -1,4 +1,5 @@
 import { AppShell as UiAppShell, type AppShellProps } from "@erp/ui";
+import { useModules } from "@/modules/registry";
 import { navigationFor } from "./access";
 import { buildNavigation, mobileNavigation } from "./navigation";
 import { displayName, accountKindLabel, useSession } from "./session";
@@ -9,6 +10,9 @@ export function AppShell({
   ...props
 }: AppShellProps) {
   const session = useSession();
+  // The live registry: a packaged module that registers while this shell
+  // is mounted appears in the sidebar at once.
+  const modules = useModules();
   const name = displayName(session);
 
   return (
@@ -30,7 +34,7 @@ export function AppShell({
       navigationItems={
         navigationItems
           ? navigationFor(navigationItems, session?.permissions ?? null)
-          : buildNavigation(session)
+          : buildNavigation(session, modules)
       }
       mobileNavItems={mobileNavItems}
       {...props}

@@ -9,9 +9,10 @@
  */
 
 import type { NavigationItem } from "@erp/ui";
+import type { ModuleManifest } from "@/modules/types";
 
 /** Seeing a module at all: at any rung of the ladder. */
-function viewing(...resources: string[]): string[] {
+export function viewing(...resources: string[]): string[] {
   return resources.flatMap((resource) => [
     `${resource}.view`,
     `${resource}.view_branch`,
@@ -57,6 +58,18 @@ export const NAV_REQUIREMENTS: Record<string, string[]> = {
     ...SETTINGS_CODES.modules,
   ],
 };
+
+/**
+ * The codes that make a module's nav entry worth showing: the ones listed
+ * here for a compiled-in module, else the view rungs of the resources its
+ * manifest names (how a packaged module says it). Neither known -> always
+ * offered; the API still refuses what it must.
+ */
+export function navRequirementFor(
+  module: Pick<ModuleManifest, "nav" | "resources">
+): string[] {
+  return NAV_REQUIREMENTS[module.nav.key] ?? viewing(...(module.resources ?? []));
+}
 
 export function holdsAny(codes: string[] | null, required: string[]): boolean {
   if (required.length === 0) return true;

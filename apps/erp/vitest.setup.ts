@@ -14,3 +14,38 @@ if (!i18n.isInitialized) {
     interpolation: { escapeValue: false },
   });
 }
+
+// jsdom has no ResizeObserver; DataTable and the sticky headers measure
+// themselves with it. A stub that never fires keeps their layout static.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  class ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+}
+
+// Nor a visualViewport (the shell's sticky offsets read it): a fixed one.
+if (typeof window !== "undefined" && !window.visualViewport) {
+  const viewport = {
+    width: 1280,
+    height: 800,
+    offsetLeft: 0,
+    offsetTop: 0,
+    pageLeft: 0,
+    pageTop: 0,
+    scale: 1,
+    onresize: null,
+    onscroll: null,
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent() {
+      return true;
+    },
+  };
+  Object.defineProperty(window, "visualViewport", {
+    value: viewport,
+    configurable: true,
+  });
+}

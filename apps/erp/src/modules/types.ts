@@ -11,8 +11,10 @@ import type { NavigationItem, SubmenuItem } from "@erp/ui";
  * entry and routes exist for this tenant at all. `navArea` names the
  * sidebar area the module's entry is placed under.
  *
- * `Routes` is loaded lazily (`React.lazy`), so a tenant never downloads
- * the chunks of a module it has not installed.
+ * A module compiled into this build loads its `Routes` lazily
+ * (`React.lazy`), so a tenant never downloads the chunks of a module it
+ * has not installed. A module that arrived as a package registers the
+ * same shape at runtime through `KaabeRuntime.registerModule`.
  */
 export interface ModuleManifest {
   /** Backend module key (`sales`, `inv`, ...): what `enabled_modules` carries. */
@@ -28,6 +30,13 @@ export interface ModuleManifest {
   path: string;
   nav: NavigationItem;
   submenu?: SubmenuItem[];
+  /**
+   * The permission resources behind the module's screens (`pos.ticket`).
+   * A module compiled into the build has its codes listed in
+   * `app/access.ts`; a packaged one names its resources here, and holding
+   * any rung of `view` on one of them is what makes its nav worth showing.
+   */
+  resources?: string[];
   /** The module's route tree, mounted at `${path}/*`. */
   Routes: ComponentType;
 }

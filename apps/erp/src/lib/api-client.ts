@@ -55,6 +55,13 @@ function joinUrl(path: string): string {
   return `${API_BASE}${normalized}`;
 }
 
+/** The absolute URL of a path under the API root -- for assets the
+ * browser fetches itself (a packaged module's bundle), which cannot go
+ * through `apiFetch`. */
+export function apiUrl(path: string): string {
+  return joinUrl(path);
+}
+
 type ErrorEnvelope = {
   error?: { code?: string; message?: string; fields?: Record<string, string[]> };
   detail?: string;
