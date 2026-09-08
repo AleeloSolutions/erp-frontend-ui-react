@@ -34,7 +34,7 @@ export type CompanyInfo = {
   primaryInterest: string;
 };
 
-export { formatAddress } from "@/lib/address";
+export { formatAddress } from "@erp/ui";
 
 /** Mirrors apps/client_config/models.py Language.choices. */
 export const LANGUAGE_OPTIONS = [

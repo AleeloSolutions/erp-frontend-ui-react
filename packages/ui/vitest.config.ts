@@ -9,6 +9,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      "@erp/ui/fixtures": path.resolve(dirname, "./src/fixtures/index.ts"),
       "@erp/ui": path.resolve(dirname, "./src/index.ts"),
     },
   },

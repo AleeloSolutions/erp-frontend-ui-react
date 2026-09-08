@@ -10,6 +10,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@erp/ui/fixtures": path.resolve(
+        __dirname,
+        "../../packages/ui/src/fixtures/index.ts"
+      ),
       "@erp/ui": path.resolve(__dirname, "../../packages/ui/src/index.ts"),
     },
   },
