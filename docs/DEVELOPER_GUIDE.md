@@ -39,14 +39,16 @@ npm run test        # Vitest (packages/ui)
 
 This repo is a **design system + ERP app** monorepo. Business rules stay in `apps/erp`. Shared UI stays in `packages/ui`.
 
-| Layer                          | Job                                              | Put business rules here? |
-| ------------------------------ | ------------------------------------------------ | ------------------------ |
-| `packages/ui/src/primitives`   | Buttons, inputs, select, checkbox…               | No                       |
-| `packages/ui/src/components`   | DataTable, Form, Modal, Drawer, Toast…           | No                       |
-| `packages/ui/src/layout`       | Generic AppShell, Sidebar, Header, PageContainer | No                       |
-| `apps/erp/src/modules/*/api`   | Mock/real API + React Query hooks                | Light mapping only       |
-| `apps/erp/src/modules/*/pages` | Compose UI + call hooks                          | Yes — page/module config |
-| `apps/erp/src/modules/*`       | Schemas, column defs, feature helpers            | Yes                      |
+| Layer                           | Job                                              | Put business rules here? |
+| ------------------------------- | ------------------------------------------------ | ------------------------ |
+| `packages/ui/src/primitives`    | Buttons, inputs, select, checkbox…               | No                       |
+| `packages/ui/src/components`    | DataTable, Form, Modal, Drawer, Toast…           | No                       |
+| `packages/ui/src/layout`        | Generic AppShell, Sidebar, Header, PageContainer | No                       |
+| `modules/*/<entity>/api.ts`     | Real/mock HTTP for one entity                    | Light mapping only       |
+| `modules/*/<entity>/queries.ts` | That entity's React Query keys + hooks           | Light mapping only       |
+| `modules/*/<entity>/pages`      | Compose UI + call hooks                          | Yes — page/module config |
+| `modules/*/<entity>`            | Schemas, column defs, entity components          | Yes                      |
+| `modules/*/shared`              | Cross-entity plumbing only                       | Yes                      |
 
 **Golden rule:** Generic components accept **props / config**. They must not know “invoice”, “payroll”, etc.
 
@@ -87,7 +89,7 @@ This repo is a **design system + ERP app** monorepo. Business rules stay in `app
 </AppShell>
 ```
 
-Best real example in the repo: `apps/erp/src/modules/sales/pages/CustomersPage.tsx`.
+Best real example in the repo: `apps/erp/src/modules/sales/customers/pages/list.tsx`.
 
 ---
 
@@ -106,16 +108,23 @@ packages/ui/src/
 apps/erp/src/
   main.tsx              # Vite entry
   routes.tsx            # App shell routes; mounts module route trees
-  modules/
-    sales/routes.tsx    # Sales routes under /sales/*
-    inventory/routes.tsx
   app/                  # providers, ERP AppShell defaults, navigation, home/demo
   lib/                  # api-client, query-client, mock delay
   modules/
-    inventory|sales/
-      pages/
-      components/       # module-specific compositions ONLY
-      api/              # DRF/mock functions + React Query hooks
+    sales/
+      index.ts          # public surface: manifest + routes, nothing else
+      manifest.ts
+      routes.tsx        # composes each entity's route subtree
+      shared/           # cross-entity ONLY (list params, tenant config)
+      customers/        # one entity = one self-contained folder
+        index.ts        # what the rest of the app may import
+        routes.tsx
+        api.ts          # HTTP for this entity
+        queries.ts      # its query keys + React Query hooks
+        schema.ts
+        components/     # entity-specific compositions ONLY
+        pages/          # list.tsx · create.tsx · edit.tsx
+      invoices/ quotations/ contracts/   # …same shape
 ```
 
 ---
@@ -342,7 +351,7 @@ Use when the API (or mock API) owns search, filters, and paging.
 />
 ```
 
-Copy the full pattern from `apps/erp/src/modules/sales/pages/CustomersPage.tsx`.
+Copy the full pattern from `apps/erp/src/modules/sales/customers/pages/list.tsx`.
 
 ### Useful props
 
@@ -475,18 +484,29 @@ Module schema example: `apps/erp/src/modules/sales/customers/schema.ts`
 ### Pattern
 
 ```text
-apps/erp/src/modules/sales/api/customers.ts     → async functions (mock or real HTTP)
-apps/erp/src/modules/sales/api/query-keys.ts    → stable query keys
-apps/erp/src/modules/sales/api/useCustomers.ts  → useQuery / useMutation
-apps/erp/src/modules/sales/pages/...            → call hooks, pass data to UI
+modules/sales/customers/api.ts       → async functions (mock or real HTTP)
+modules/sales/customers/queries.ts   → stable query keys + useQuery / useMutation
+modules/sales/customers/pages/...    → call hooks, pass data to UI
+modules/sales/shared/api.ts          → what every entity shares (ListParams, query())
 ```
 
 ### Add a new resource (checklist)
 
-1. **API** — `listX`, `createX`, `deleteX` in `apps/erp/src/modules/<module>/api/`
-2. **Keys** — add to that module’s `api/query-keys.ts`
-3. **Hooks** — `useXQuery`, `useCreateXMutation` in the same `api/` folder
-4. **Page** — compose layout + table/form + toast/confirm in `pages/`
+A resource is a folder, not a set of files scattered across the module.
+
+1. **Folder** — `modules/<module>/<entity>/`
+2. **API** — `listX`, `createX`, `deleteX` in its `api.ts`; anything a second
+   entity also needs goes to `shared/api.ts` instead
+3. **Keys + hooks** — `xKeys`, `useXQuery`, `useCreateXMutation` in `queries.ts`
+4. **Pages** — `pages/list.tsx`, `pages/create.tsx`, `pages/edit.tsx`; the file
+   is named for the route, the folder already says which entity
+5. **Routes** — export `xRoutes` from `routes.tsx`, add one line to the module's
+   `routes.tsx`
+6. **Surface** — re-export from `index.ts`; other slices import that barrel,
+   never a page or an internal file
+
+Same-slice imports are relative (`../queries`); anything else in the module
+goes through `@/modules/<module>/<entity>`.
 
 ### Example hook usage
 

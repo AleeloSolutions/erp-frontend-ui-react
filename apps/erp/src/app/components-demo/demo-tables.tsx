@@ -7,7 +7,7 @@ import {
   mockInvoices,
   type DemoCustomer,
   type DemoInvoice,
-} from "@/modules/sales/data/demo-table";
+} from "@/modules/sales/shared/demo-table";
 import type { DataTableFilter } from "@erp/ui";
 
 function DemoSection({
