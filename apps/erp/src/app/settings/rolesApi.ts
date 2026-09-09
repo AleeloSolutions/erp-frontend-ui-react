@@ -55,6 +55,10 @@ export interface PermissionMatrix {
 /** The cell scope meaning "nothing granted". Not a code. */
 export const NO_ACCESS = "none";
 
+/** Where a React Query copy of the matrix would live. The installer
+ * invalidates it after a module changes, so any such subscriber refetches. */
+export const PERMISSION_MATRIX_QUERY_KEY = ["permissions", "matrix"] as const;
+
 export interface Role {
   uuid: string;
   name: string;

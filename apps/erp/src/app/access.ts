@@ -9,9 +9,10 @@
  */
 
 import type { NavigationItem } from "@erp/ui";
+import type { ModuleManifest } from "@/modules/types";
 
 /** Seeing a module at all: at any rung of the ladder. */
-function viewing(...resources: string[]): string[] {
+export function viewing(...resources: string[]): string[] {
   return resources.flatMap((resource) => [
     `${resource}.view`,
     `${resource}.view_branch`,
@@ -34,6 +35,7 @@ export const SETTINGS_CODES = {
   ],
   roles: ["settings.role.create", "settings.role.edit", "settings.role.delete"],
   branches: ["settings.branch.create", "settings.branch.edit", "settings.branch.delete"],
+  modules: ["settings.module.view", "settings.module.edit"],
 } as const;
 
 /** Nav key -> the codes that make it worth showing. Empty = always shown. */
@@ -46,15 +48,28 @@ export const NAV_REQUIREMENTS: Record<string, string[]> = {
     "sales.contract",
     "sales.order"
   ),
-  inventory: viewing("inv.product", "inv.movement"),
+  notes: viewing("notes.note"),
   settings: [
     ...SETTINGS_CODES.company,
     ...SETTINGS_CODES.documentLayout,
     ...SETTINGS_CODES.users,
     ...SETTINGS_CODES.roles,
     ...SETTINGS_CODES.branches,
+    ...SETTINGS_CODES.modules,
   ],
 };
+
+/**
+ * The codes that make a module's nav entry worth showing: the ones listed
+ * here for a compiled-in module, else the view rungs of the resources its
+ * manifest names (how a packaged module says it). Neither known -> always
+ * offered; the API still refuses what it must.
+ */
+export function navRequirementFor(
+  module: Pick<ModuleManifest, "nav" | "resources">
+): string[] {
+  return NAV_REQUIREMENTS[module.nav.key] ?? viewing(...(module.resources ?? []));
+}
 
 export function holdsAny(codes: string[] | null, required: string[]): boolean {
   if (required.length === 0) return true;
@@ -70,4 +85,18 @@ export function navigationFor(
   codes: string[] | null
 ): NavigationItem[] {
   return items.filter((item) => holdsAny(codes, NAV_REQUIREMENTS[item.key] ?? []));
+}
+
+/**
+ * Whether the tenant has `module` installed, per `me.enabled_modules` --
+ * the SPA's single source for which modules exist here. Unknown yet
+ * (still loading, or Storybook): let it render, the same way `holdsAny`
+ * does; the API answers 404 for a module the tenant lacks regardless.
+ */
+export function isModuleEnabled(
+  session: { enabled_modules?: string[] } | null,
+  module: string
+): boolean {
+  if (session === null) return true;
+  return (session.enabled_modules ?? []).includes(module);
 }

@@ -30,7 +30,7 @@ Open [http://localhost:5173](http://localhost:5173).
 
 ```bash
 npm run storybook   # http://localhost:6006
-npm run test        # Vitest (packages/ui)
+npm run test        # Vitest (packages/ui + apps/erp)
 ```
 
 ---

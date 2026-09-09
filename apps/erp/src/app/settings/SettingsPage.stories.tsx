@@ -39,6 +39,12 @@ export const CompanyInfo: Story = {
   },
 };
 
+export const Modules: Story = {
+  args: {
+    defaultTab: "modules",
+  },
+};
+
 export const DocumentLayout: Story = {
   args: {
     defaultTab: "document-layout",

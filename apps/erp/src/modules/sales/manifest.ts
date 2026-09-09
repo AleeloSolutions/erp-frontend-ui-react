@@ -1,5 +1,7 @@
+import { lazy } from "react";
 import { ShoppingCart } from "lucide-react";
-import { SalesRoutes } from "./routes";
+import type { ModuleManifest } from "../types";
+
 export const salesSubmenu = [
   { key: "customers", label: "Customers", href: "/sales/customers" },
   { key: "quotations", label: "Quotations", href: "/sales/quotations" },
@@ -13,7 +15,10 @@ export const salesNavbar = {
   submenuItems: salesSubmenu,
 };
 
-export const salesManifest = {
+export const salesManifest: ModuleManifest = {
+  // The backend module key (apps/sales/module.py); see me.enabled_modules.
+  key: "sales",
+  navArea: "sales",
   id: "sales",
   label: "Sales",
   version: "0.1.0",
@@ -34,7 +39,10 @@ export const salesManifest = {
     ],
   },
   submenu: salesSubmenu,
-  Routes: SalesRoutes,
+  // Its own chunk: a tenant without sales never downloads these screens.
+  Routes: lazy(() =>
+    import("./routes").then((module) => ({ default: module.SalesRoutes }))
+  ),
 };
 
 export default salesManifest;

@@ -26,6 +26,16 @@ export interface Me {
   email_verified: boolean;
   /** The permission codes this user holds (`<module>.<resource>.<action>`). */
   permissions: string[];
+  /** The module keys this tenant has installed -- the SPA's single source
+   * for which modules exist here. */
+  enabled_modules: string[];
+  /** The frontends of enabled packaged modules, as paths under the API root. */
+  module_bundles: {
+    key: string;
+    version: string;
+    script: string;
+    styles: string | null;
+  }[];
   client: ClientSummary | null;
 }
 
