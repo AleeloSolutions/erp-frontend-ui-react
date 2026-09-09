@@ -75,13 +75,17 @@ export function buildNavigation(
     return index === -1 ? NAV_AREAS.length : index;
   };
   const byArea = [...offered].sort((a, b) => rank(a.navArea) - rank(b.navArea));
-  const platform = session?.user_type === "platform" ? [platformNavigation] : [];
+  const isPlatform = session?.user_type === "platform";
+  const platform = isPlatform ? [platformNavigation] : [];
+  // Platform staff has no tenant: Settings (company, users, modules) 500s
+  // without a client. Keep them on Module packages only.
+  const settings = isPlatform ? [] : [settingsNavigation];
 
   return [
     dashboardNavigation,
     ...platform,
     ...byArea.map((module) => module.nav),
-    settingsNavigation,
+    ...settings,
   ].filter((item) => holdsAny(codes, NAV_REQUIREMENTS[item.key] ?? []));
 }
 

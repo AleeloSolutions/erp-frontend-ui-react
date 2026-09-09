@@ -2,12 +2,10 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Receipt } from "lucide-react";
 import {
   ControlPanel,
   DataTable,
   PageActions,
-  PageHeader,
   StatusBadge,
   formatCurrency,
   useToast,
@@ -108,13 +106,6 @@ export default function TicketsPage() {
 
   return (
     <app.AppShell activeNavKey="pos" navbar={navbar}>
-      <PageHeader
-        module="Point of Sale"
-        section="Tickets"
-        title="Tickets"
-        description="Sales rung up at the till, and their settlement."
-        icon={<Receipt className="h-4 w-4" aria-hidden />}
-      />
       <DataTable
         tableId="pos-tickets"
         renderToolbar={({ searchFilter }) => (

@@ -2,8 +2,7 @@ import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Package } from "lucide-react";
-import { AppShell, PageHeader, PageSubmenu } from "@/app";
+import { AppShell, useNavbarDefaults } from "@/app";
 import {
   FormField,
   FormGrid,
@@ -16,7 +15,7 @@ import {
   useToast,
   type StatusStep,
 } from "@erp/ui";
-import { inventorySubmenu } from "@/modules/inventory/manifest";
+import { inventoryNavbar } from "@/modules/inventory/manifest";
 import { useProductQuery, useUpdateProductMutation } from "@/modules/inventory/api";
 import {
   productCategoryOptions,
@@ -36,6 +35,10 @@ export default function ProductEditPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const navbar = useNavbarDefaults({
+    ...inventoryNavbar,
+    submenuActiveKey: "products",
+  });
   const productQuery = useProductQuery(id);
   const updateMutation = useUpdateProductMutation();
 
@@ -116,17 +119,7 @@ export default function ProductEditPage() {
   const notFound = productQuery.isError;
 
   return (
-    <AppShell activeNavKey="inventory" activeMobileKey="tasks">
-      <PageHeader
-        module="Inventory"
-        section="Products"
-        title="Edit Product"
-        description="Update catalog details, pricing, and stock levels."
-        icon={<Package className="h-4 w-4" aria-hidden />}
-      />
-
-      <PageSubmenu module="Inventory" items={inventorySubmenu} activeKey="products" />
-
+    <AppShell activeNavKey="inventory" activeMobileKey="tasks" navbar={navbar}>
       {notFound ? (
         <div className="rounded-[10px] border border-erp-border bg-erp-surface p-4 text-[12px] text-erp-muted">
           <p className="m-0 font-bold text-erp-text">Product not found</p>

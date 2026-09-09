@@ -10,18 +10,34 @@ const api = vi.hoisted(() => ({
   uploadPackage: vi.fn(),
   installPackage: vi.fn(),
   packages: [] as ModulePackage[],
+  listeners: new Set<() => void>(),
+  setPackages(next: ModulePackage[]) {
+    api.packages = next;
+    for (const listener of api.listeners) listener();
+  },
 }));
 
 vi.mock("./packagesApi", async () => {
+  const React = await import("react");
   const actual = await vi.importActual<typeof import("./packagesApi")>("./packagesApi");
   return {
     ...actual,
-    usePackages: () => ({
-      packages: api.packages,
-      loading: false,
-      error: null,
-      reload: api.reload,
-    }),
+    usePackages: () => {
+      const [, bump] = React.useState(0);
+      React.useEffect(() => {
+        const listener = () => bump((n) => n + 1);
+        api.listeners.add(listener);
+        return () => {
+          api.listeners.delete(listener);
+        };
+      }, []);
+      return {
+        packages: api.packages,
+        loading: false,
+        error: null,
+        reload: api.reload,
+      };
+    },
     uploadPackage: api.uploadPackage,
     installPackage: api.installPackage,
   };
@@ -75,7 +91,8 @@ describe("ModulePackagesPage", () => {
     api.reload.mockClear();
     api.uploadPackage.mockReset();
     api.installPackage.mockReset();
-    api.packages = [UPLOADED];
+    api.listeners.clear();
+    api.setPackages([UPLOADED]);
   });
 
   it("uploads the chosen zip and reloads", async () => {
@@ -108,9 +125,9 @@ describe("ModulePackagesPage", () => {
   });
 
   it("shows the install log of the selected package", () => {
-    api.packages = [
+    api.setPackages([
       { ...UPLOADED, status: "failed", install_log: "[10:00:00] migrations failed" },
-    ];
+    ]);
     renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "Point of Sale" }));

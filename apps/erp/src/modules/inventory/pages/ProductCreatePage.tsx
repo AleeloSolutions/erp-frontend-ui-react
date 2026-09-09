@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Package } from "lucide-react";
-import { AppShell, PageHeader, PageSubmenu } from "@/app";
+import { AppShell, useNavbarDefaults } from "@/app";
 import {
   FormField,
   FormGrid,
@@ -15,7 +14,7 @@ import {
   useToast,
   type StatusStep,
 } from "@erp/ui";
-import { inventorySubmenu } from "@/modules/inventory/manifest";
+import { inventoryNavbar } from "@/modules/inventory/manifest";
 import { useCreateProductMutation } from "@/modules/inventory/api";
 import {
   productCategoryOptions,
@@ -34,6 +33,10 @@ const statusSteps: StatusStep[] = productStatusOptions.map((option) => ({
 export default function ProductCreatePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const navbar = useNavbarDefaults({
+    ...inventoryNavbar,
+    submenuActiveKey: "products",
+  });
   const createMutation = useCreateProductMutation();
 
   const {
@@ -88,17 +91,7 @@ export default function ProductCreatePage() {
   }
 
   return (
-    <AppShell activeNavKey="inventory" activeMobileKey="tasks">
-      <PageHeader
-        module="Inventory"
-        section="Products"
-        title="Create Product"
-        description="Add a catalog item with pricing, stock, and status."
-        icon={<Package className="h-4 w-4" aria-hidden />}
-      />
-
-      <PageSubmenu module="Inventory" items={inventorySubmenu} activeKey="products" />
-
+    <AppShell activeNavKey="inventory" activeMobileKey="tasks" navbar={navbar}>
       <FormStatusBar
         steps={statusSteps}
         currentStepKey={watch("status")}

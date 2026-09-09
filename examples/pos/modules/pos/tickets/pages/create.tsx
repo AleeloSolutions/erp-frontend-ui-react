@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Receipt } from "lucide-react";
 import {
   Button,
   Card,
@@ -9,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
   Input,
-  PageHeader,
   useToast,
 } from "@erp/ui";
 import { api, app } from "@kaabe/runtime";
@@ -43,12 +41,6 @@ export default function TicketFormPage() {
 
   return (
     <app.AppShell activeNavKey="pos" navbar={navbar}>
-      <PageHeader
-        module="Point of Sale"
-        section="Tickets"
-        title="New ticket"
-        icon={<Receipt className="h-4 w-4" aria-hidden />}
-      />
       <Card className="max-w-xl">
         <CardHeader>
           <CardTitle>Ring up a sale</CardTitle>

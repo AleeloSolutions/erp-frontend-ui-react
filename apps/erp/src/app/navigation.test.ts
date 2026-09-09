@@ -54,10 +54,10 @@ describe("buildNavigation", () => {
   it("places modules by area, in the declared order", () => {
     const items = keys({
       permissions: OWNER_CODES,
-      enabled_modules: ["inv", "sales"],
+      enabled_modules: ["sales"],
       user_type: "owner",
     });
-    expect(items).toEqual(["dashboard", "sales", "inventory", "settings"]);
+    expect(items).toEqual(["dashboard", "sales", "settings"]);
     expect(NAV_AREAS.indexOf("sales")).toBeLessThan(NAV_AREAS.indexOf("operations"));
   });
 
@@ -89,5 +89,15 @@ describe("buildNavigation", () => {
     expect(keys({ permissions: [], enabled_modules: [], user_type: "platform" })).toEqual(
       ["dashboard", "platform-modules"]
     );
+  });
+
+  it("hides Settings for platform even when they hold every code", () => {
+    expect(
+      keys({
+        permissions: OWNER_CODES,
+        enabled_modules: ["sales"],
+        user_type: "platform",
+      })
+    ).toEqual(["dashboard", "platform-modules"]);
   });
 });

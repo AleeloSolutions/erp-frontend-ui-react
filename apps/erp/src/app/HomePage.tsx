@@ -1,26 +1,35 @@
-import { Link } from "react-router-dom";
-import { LayoutDashboard } from "lucide-react";
-import { AppShell, PageHeader } from "@/app";
-import { Card, CardContent, CardHeader, CardTitle } from "@erp/ui";
+import { Link, useNavigate } from "react-router-dom";
+import { AppShell, useNavbarDefaults } from "@/app";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  ControlPanel,
+  PageActions,
+} from "@erp/ui";
 import { VerificationBanner } from "@/app/auth/VerificationBanner";
 
 export default function HomePage() {
+  const navigate = useNavigate();
+  const navbar = useNavbarDefaults({ brandLabel: "Dashboard" });
+
   return (
-    <AppShell activeNavKey="dashboard" activeMobileKey="home">
+    <AppShell activeNavKey="dashboard" activeMobileKey="home" navbar={navbar}>
       <VerificationBanner />
-      <PageHeader
-        module="Platform"
-        section="Home"
-        title="ERP Component System"
-        description="Reusable layout, tables, forms, Query, and feedback patterns for ERP modules."
-        icon={<LayoutDashboard className="h-4 w-4" aria-hidden />}
-        actions={
-          <Link
-            to="/sales/quotations"
-            className="inline-flex h-8 items-center justify-center rounded-[7px] border border-nav bg-nav px-3 text-[11px] font-bold text-white shadow-[0_4px_10px_rgba(90,28,13,0.18)] hover:border-nav-active hover:bg-nav-active active:border-nav-active active:bg-nav-active"
-          >
-            Open Quotations
-          </Link>
+      <ControlPanel
+        pageActions={
+          <PageActions
+            buttons={[
+              {
+                key: "quotations",
+                children: "Open Quotations",
+                variant: "primary",
+                size: "sm",
+                onClick: () => navigate("/sales/quotations"),
+              },
+            ]}
+          />
         }
       />
       <div className="grid gap-3 min-[721px]:grid-cols-3">

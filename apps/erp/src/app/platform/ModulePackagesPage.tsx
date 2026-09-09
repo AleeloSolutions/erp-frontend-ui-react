@@ -7,9 +7,9 @@
  * (RequirePlatform, and the API's own 404).
  */
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Boxes, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import {
   Button,
   Card,
@@ -22,7 +22,7 @@ import {
   useToast,
   type DataTableRowAction,
 } from "@erp/ui";
-import { AppShell, PageHeader, useNavbarDefaults } from "@/app";
+import { AppShell, useNavbarDefaults } from "@/app";
 import { ApiError } from "@/lib/api-client";
 import {
   installPackage,
@@ -57,6 +57,30 @@ export default function ModulePackagesPage() {
   const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
 
   const selected = packages.find((row) => row.uuid === selectedUuid) ?? null;
+  const seenStatus = useRef<Record<string, PackageStatus>>({});
+
+  // Toast when a pipeline finishes: start only said "Installing…", so success
+  // / failure need their own message once the polled status lands.
+  useEffect(() => {
+    for (const row of packages) {
+      const previous = seenStatus.current[row.uuid];
+      seenStatus.current[row.uuid] = row.status;
+      if (previous !== "installing") continue;
+      if (row.status === "installed") {
+        toast({
+          title: `${row.label} ${row.version} installed`,
+          description: "Switched on for every workspace.",
+          variant: "success",
+        });
+      } else if (row.status === "failed") {
+        toast({
+          title: `${row.label} ${row.version} failed to install`,
+          description: "Open the install log for detail.",
+          variant: "error",
+        });
+      }
+    }
+  }, [packages, toast]);
 
   function reportFailure(err: unknown, fallback: string) {
     toast({
@@ -165,14 +189,6 @@ export default function ModulePackagesPage() {
 
   return (
     <AppShell activeNavKey="platform-modules" navbar={navbar}>
-      <PageHeader
-        module="Platform"
-        section="Modules"
-        title="Module packages"
-        description="Upload a module zip and install it for every workspace: its tables, its permissions, its screens."
-        icon={<Boxes className="h-4 w-4" aria-hidden />}
-      />
-
       <Card className="mb-4">
         <CardHeader>
           <Upload className="h-4 w-4 text-erp-muted" aria-hidden />
@@ -210,7 +226,7 @@ export default function ModulePackagesPage() {
         columns={columns}
         data={packages}
         loading={loading}
-        error={error}
+        error={packages.length > 0 ? null : error}
         getRowId={(row) => row.uuid}
         getRowActions={rowActions}
         pagination={false}

@@ -11,7 +11,7 @@
  * app's own screens.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet, apiPost } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
 
@@ -57,39 +57,50 @@ export function usePackages(pollMs = POLL_MS) {
   const [loading, setLoading] = useState(isAuthenticated);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const hasLoaded = useRef(false);
+  const requestId = useRef(0);
 
   useEffect(() => {
-    if (!isAuthenticated()) return;
-    let cancelled = false;
-    setLoading(true);
+    if (!isAuthenticated()) {
+      setLoading(false);
+      return;
+    }
+    const id = ++requestId.current;
+    // Spinner only before the first successful (or empty) answer; polls stay quiet.
+    if (!hasLoaded.current) setLoading(true);
     void listPackages()
       .then((rows) => {
-        if (cancelled) return;
+        if (id !== requestId.current) return;
+        hasLoaded.current = true;
         setPackages(rows);
         setError(null);
+        setLoading(false);
       })
       .catch((err: unknown) => {
-        if (cancelled) return;
-        setPackages([]);
-        setError(err instanceof Error ? err.message : "Could not load the packages.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (id !== requestId.current) return;
+        setPackages((current) => {
+          if (current.length === 0) {
+            setError(err instanceof Error ? err.message : "Could not load the packages.");
+          }
+          return current;
+        });
+        // Always drop the spinner: a cancelled Strict-Mode remount used to
+        // leave loading true forever when the first request was abandoned.
+        setLoading(false);
+        hasLoaded.current = true;
       });
-    return () => {
-      cancelled = true;
-    };
   }, [reloadToken]);
 
   const reload = useCallback(() => setReloadToken((token) => token + 1), []);
 
-  // A running pipeline: keep asking until it lands, one way or the other.
+  // Steady interval while any row is installing — survives failed polls
+  // during Django autoreload without needing a page change.
   const installing = packages.some((row) => row.status === "installing");
   useEffect(() => {
     if (!installing) return;
-    const timer = setTimeout(reload, pollMs);
-    return () => clearTimeout(timer);
-  }, [installing, packages, pollMs, reload]);
+    const timer = setInterval(reload, pollMs);
+    return () => clearInterval(timer);
+  }, [installing, pollMs, reload]);
 
   return { packages, loading, error, reload };
 }
