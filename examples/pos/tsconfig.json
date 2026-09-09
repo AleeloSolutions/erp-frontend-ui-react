@@ -15,11 +15,11 @@
     "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
-      "@kaabe/runtime": ["./src/runtime-types.d.ts"],
+      "@kaabe/runtime": ["./runtime-types.d.ts"],
       "@/*": ["../../apps/erp/src/*"],
       "@erp/ui": ["../../packages/ui/src/index.ts"],
       "@erp/ui/fixtures": ["../../packages/ui/src/fixtures/index.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["modules", "runtime-types.d.ts", "vite.config.ts"]
 }

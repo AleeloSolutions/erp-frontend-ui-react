@@ -1,9 +1,11 @@
 /**
  * The module kit: how a packaged module's frontend is built.
  *
+ * Source lives under `modules/pos/` — the same folder conventions as
+ * `apps/erp/src/modules/sales` (manifest, entity folders, pages, api).
  * One IIFE, `dist/module.js`, plus `dist/module.css`. Everything the host
- * SPA provides -- React, React Router, React Query, `@erp/ui`, the API
- * client and the app shell -- is an external resolved from
+ * SPA provides — React, React Router, React Query, `@erp/ui`, the API
+ * client and the app shell — is an external resolved from
  * `window.KaabeRuntime`, so the module shares the host's single React and
  * renders inside the host's providers. Copy this config for a new module
  * and change the entry, the name and nothing else.
@@ -39,7 +41,7 @@ export default defineConfig({
     emptyOutDir: true,
     cssCodeSplit: false,
     lib: {
-      entry: path.resolve(dirname, "src/index.tsx"),
+      entry: path.resolve(dirname, "modules/pos/index.tsx"),
       name: "KaabeModulePos",
       formats: ["iife"],
       fileName: () => "module.js",

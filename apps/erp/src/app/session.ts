@@ -20,6 +20,7 @@ import {
   getRefreshToken,
   isAuthenticated,
 } from "@/lib/auth";
+import { platformOrigin } from "@/lib/tenant";
 import type { ModuleBundle } from "@/modules/loader";
 
 export interface Session {
@@ -73,12 +74,15 @@ export function refreshSession(): Promise<Session | null> {
 
 /**
  * Sign out: revoke the refresh token, drop what this tab holds, and land
- * on the login screen.
+ * on the platform login screen.
  *
- * The redirect is a real navigation, not a router push -- it clears every
- * cache in memory (React Query included) so the next person to sign in on
- * this machine starts from nothing. A failed revoke still signs you out
- * locally: the network being down is no reason to stay logged in.
+ * The redirect is a real navigation to the apex origin -- not a router
+ * push on the tenant host -- so Log out from ridwan.localhost does not
+ * drop you on ridwan's /login (where you cannot reach platform staff
+ * screens). It also clears every cache in memory (React Query included)
+ * so the next person to sign in on this machine starts from nothing. A
+ * failed revoke still signs you out locally: the network being down is
+ * no reason to stay logged in.
  */
 export async function signOut() {
   const refresh = getRefreshToken();
@@ -89,7 +93,7 @@ export async function signOut() {
   }
   clearTokens();
   forgetSession();
-  window.location.assign("/login");
+  window.location.assign(`${platformOrigin()}/login`);
 }
 
 /**

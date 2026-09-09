@@ -6,7 +6,7 @@
  * module is checked against exactly what it will get.
  */
 
-import type { KaabeRuntime } from "../../../apps/erp/src/lib/runtime";
+import type { KaabeRuntime } from "../../apps/erp/src/lib/runtime";
 
 export declare const version: KaabeRuntime["version"];
 /** The host's API client: envelope handling, JWT refresh, the tenant header. */

@@ -1,5 +1,5 @@
 /**
- * The POS module's data layer, over `/api/v1/pos/tickets/` -- the routes
+ * The POS module's data layer, over `/api/v1/pos/tickets/` — the routes
  * its backend half (kaabe-backend/examples/pos) mounts. Goes through the
  * host's API client, so the envelope, the JWT refresh and the tenant
  * header are handled exactly as for a compiled-in module.
