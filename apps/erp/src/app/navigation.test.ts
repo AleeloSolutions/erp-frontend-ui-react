@@ -85,6 +85,38 @@ describe("buildNavigation", () => {
     ]);
   });
 
+  it("hides Settings for members without administration codes", () => {
+    expect(
+      keys({
+        permissions: ["sales.customer.view", "sales.quotation.view"],
+        enabled_modules: ["sales"],
+        user_type: "member",
+      })
+    ).toEqual(["dashboard", "sales"]);
+    // Branch-only grants used to open Settings (and the Users tab); they must not.
+    expect(
+      keys({
+        permissions: ["settings.branch.create", "settings.branch.edit"],
+        enabled_modules: ["sales"],
+        user_type: "member",
+      })
+    ).toEqual(["dashboard"]);
+  });
+
+  it("only offers Sales children the account can view", () => {
+    const items = buildNavigation(
+      {
+        permissions: ["sales.customer.view_own"],
+        enabled_modules: ["sales"],
+        user_type: "member",
+      },
+      moduleRegistry
+    );
+    const sales = items.find((item) => item.key === "sales");
+    expect(sales?.children?.map((c) => c.key)).toEqual(["customers"]);
+    expect(sales?.href).toBe("/sales/customers");
+  });
+
   it("gives platform accounts the package screen", () => {
     expect(keys({ permissions: [], enabled_modules: [], user_type: "platform" })).toEqual(
       ["dashboard", "platform-modules"]
@@ -92,12 +124,12 @@ describe("buildNavigation", () => {
   });
 
   it("hides Settings for platform even when they hold every code", () => {
-    expect(
-      keys({
-        permissions: OWNER_CODES,
-        enabled_modules: ["sales"],
-        user_type: "platform",
-      })
-    ).toEqual(["dashboard", "platform-modules"]);
+    const items = keys({
+      permissions: OWNER_CODES,
+      enabled_modules: ["sales"],
+      user_type: "platform",
+    });
+    expect(items).toContain("platform-modules");
+    expect(items).not.toContain("settings");
   });
 });

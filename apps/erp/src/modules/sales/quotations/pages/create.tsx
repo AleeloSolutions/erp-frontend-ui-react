@@ -12,7 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AppShell, useNavbarDefaults } from "@/app";
+import { AppShell } from "@/app";
 import { useSession } from "@/app/session";
 import {
   ControlPanel,
@@ -40,7 +40,7 @@ import {
   type LineItemsSpecialRow,
   type StatusStep,
 } from "@erp/ui";
-import { salesNavbar } from "@/modules/sales/manifest";
+import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { useCustomersQuery } from "@/modules/sales/customers";
 import { useCreateQuotationMutation } from "../queries";
 import { can, useSalesSettingsQuery, useTaxesQuery } from "@/modules/sales/shared";
@@ -91,7 +91,7 @@ export default function QuotationCreatePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const session = useSession();
-  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "quotations" });
+  const navbar = useSalesNavbar("quotations");
   const createMutation = useCreateQuotationMutation();
   const canCreate = can(session?.permissions, "sales.quotation", "create");
 

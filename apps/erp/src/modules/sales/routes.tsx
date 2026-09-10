@@ -1,8 +1,15 @@
-import { Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { useSession } from "@/app/session";
 import { customerRoutes } from "./customers/routes";
 import { quotationRoutes } from "./quotations/routes";
 import { invoiceRoutes } from "./invoices/routes";
 import { contractRoutes } from "./contracts/routes";
+import { firstSalesHref } from "./useSalesNavbar";
+
+function SalesIndexRedirect() {
+  const session = useSession();
+  return <Navigate to={firstSalesHref(session?.permissions ?? null)} replace />;
+}
 
 /**
  * Sales module routes — mounted at `/sales/*`.
@@ -13,6 +20,7 @@ import { contractRoutes } from "./contracts/routes";
 export function SalesRoutes() {
   return (
     <Routes>
+      <Route index element={<SalesIndexRedirect />} />
       {customerRoutes}
       {quotationRoutes}
       {invoiceRoutes}

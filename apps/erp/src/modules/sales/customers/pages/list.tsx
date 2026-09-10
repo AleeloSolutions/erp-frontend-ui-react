@@ -23,8 +23,8 @@ import {
   type DataTableFilterValues,
   type DataTableRowAction,
 } from "@erp/ui";
-import { AppShell, useNavbarDefaults } from "@/app";
-import { salesNavbar } from "@/modules/sales/manifest";
+import { AppShell } from "@/app";
+import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { useCustomersQuery, useDeleteCustomerMutation } from "../queries";
 import type { Customer } from "../api";
 import { ApiError } from "@/lib/api-client";
@@ -41,7 +41,7 @@ function orderingOf(sorting: SortingState): string {
 export default function CustomersPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "customers" });
+  const navbar = useSalesNavbar("customers");
   const session = useSession();
 
   const [search, setSearch] = useState("");

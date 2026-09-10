@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AppShell, useNavbarDefaults } from "@/app";
+import { AppShell } from "@/app";
 import { useSession } from "@/app/session";
 import {
   ControlPanel,
@@ -28,7 +28,7 @@ import {
   useToast,
   type StatusStep,
 } from "@erp/ui";
-import { salesNavbar } from "@/modules/sales/manifest";
+import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { can } from "@/modules/sales/shared";
 import { useCustomersQuery } from "@/modules/sales/customers";
 import { useCreateContractMutation } from "../queries";
@@ -48,7 +48,7 @@ export default function ContractCreatePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const session = useSession();
-  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "contracts" });
+  const navbar = useSalesNavbar("contracts");
   const createMutation = useCreateContractMutation();
   const canCreate = can(session?.permissions, "sales.contract", "create");
 

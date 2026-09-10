@@ -16,7 +16,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Printer } from "lucide-react";
-import { AppShell, useNavbarDefaults } from "@/app";
+import { AppShell } from "@/app";
 import { useSession } from "@/app/session";
 import {
   Button,
@@ -47,7 +47,7 @@ import {
   type LineItemsColumn,
   type StatusStep,
 } from "@erp/ui";
-import { salesNavbar } from "@/modules/sales/manifest";
+import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { useCustomersQuery } from "@/modules/sales/customers";
 import {
   useCancelInvoiceMutation,
@@ -105,7 +105,7 @@ export default function InvoiceEditPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const session = useSession();
-  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "invoices" });
+  const navbar = useSalesNavbar("invoices");
   const canEdit = can(session?.permissions, "sales.invoice", "edit");
   const canDelete = can(session?.permissions, "sales.invoice", "delete");
 

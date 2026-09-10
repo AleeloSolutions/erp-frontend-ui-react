@@ -15,7 +15,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AppShell, useNavbarDefaults } from "@/app";
+import { AppShell } from "@/app";
 import { useSession } from "@/app/session";
 import {
   ConfirmDialog,
@@ -44,7 +44,7 @@ import {
   type LineItemsColumn,
   type StatusStep,
 } from "@erp/ui";
-import { salesNavbar } from "@/modules/sales/manifest";
+import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { useCustomersQuery } from "@/modules/sales/customers";
 import {
   useAcceptQuotationMutation,
@@ -93,7 +93,7 @@ export default function QuotationEditPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const session = useSession();
-  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "quotations" });
+  const navbar = useSalesNavbar("quotations");
   const canEdit = can(session?.permissions, "sales.quotation", "edit");
   const canDelete = can(session?.permissions, "sales.quotation", "delete");
 

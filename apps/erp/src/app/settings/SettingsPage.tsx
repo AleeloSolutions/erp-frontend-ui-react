@@ -80,7 +80,7 @@ export default function SettingsPage({
       setDocumentLayoutOpen(false);
       const nextTabs = settingsTabsForModule(key, permissions);
       if (nextTabs[0]) setActiveTab(nextTabs[0].key as SettingsTabKey);
-    }),
+    }, permissions),
     submenuActiveKey: openModule,
   });
 

@@ -23,9 +23,9 @@ import {
   type DataTableFilterValues,
   type DataTableRowAction,
 } from "@erp/ui";
-import { AppShell, useNavbarDefaults } from "@/app";
+import { AppShell } from "@/app";
 import { useSession } from "@/app/session";
-import { salesNavbar } from "@/modules/sales/manifest";
+import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { useDeleteQuotationMutation, useQuotationsQuery } from "../queries";
 import type { Quotation } from "../api";
 import { ApiError } from "@/lib/api-client";
@@ -41,7 +41,7 @@ function orderingOf(sorting: SortingState): string {
 export default function QuotationsPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "quotations" });
+  const navbar = useSalesNavbar("quotations");
   const session = useSession();
 
   const [search, setSearch] = useState("");
@@ -68,10 +68,7 @@ export default function QuotationsPage() {
     return [];
   }, [filterValues.issue_date]);
 
-  const issueDateRanges = useMemo(
-    () => encodeDateRangesQuery(dateTokens),
-    [dateTokens]
-  );
+  const issueDateRanges = useMemo(() => encodeDateRangesQuery(dateTokens), [dateTokens]);
 
   /** Period group-by needs enough rows from the filtered set to nest meaningfully. */
   const listPageSize = periodGroupingActive ? Math.max(pageSize, 200) : pageSize;

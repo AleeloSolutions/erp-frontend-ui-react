@@ -21,9 +21,9 @@ import {
   type DataTableFilterValues,
   type DataTableRowAction,
 } from "@erp/ui";
-import { AppShell, useNavbarDefaults } from "@/app";
+import { AppShell } from "@/app";
 import { useSession } from "@/app/session";
-import { salesNavbar } from "@/modules/sales/manifest";
+import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { useContractsQuery, useDeleteContractMutation } from "../queries";
 import type { Contract } from "../api";
 import { ApiError } from "@/lib/api-client";
@@ -39,7 +39,7 @@ function orderingOf(sorting: SortingState): string {
 export default function ContractsPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "contracts" });
+  const navbar = useSalesNavbar("contracts");
   const session = useSession();
 
   const [search, setSearch] = useState("");

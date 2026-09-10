@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AppShell, useNavbarDefaults } from "@/app";
+import { AppShell } from "@/app";
 import { useSession } from "@/app/session";
 import {
   ControlPanel,
@@ -40,7 +40,7 @@ import {
   type LineItemsSpecialRow,
   type StatusStep,
 } from "@erp/ui";
-import { salesNavbar } from "@/modules/sales/manifest";
+import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { useCustomersQuery } from "@/modules/sales/customers";
 import { useCreateInvoiceMutation } from "../queries";
 import { can, useTaxesQuery } from "@/modules/sales/shared";
@@ -91,7 +91,7 @@ export default function InvoiceCreatePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const session = useSession();
-  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "invoices" });
+  const navbar = useSalesNavbar("invoices");
   const createMutation = useCreateInvoiceMutation();
   const canCreate = can(session?.permissions, "sales.invoice", "create");
 

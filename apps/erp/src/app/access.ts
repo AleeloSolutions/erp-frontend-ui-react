@@ -38,19 +38,41 @@ export const SETTINGS_CODES = {
   modules: ["settings.module.view", "settings.module.edit"],
 } as const;
 
+/**
+ * Codes that open Settings in the sidebar and the `/settings` route.
+ *
+ * Branch / company / document-layout alone are not enough — those are
+ * day-to-day ops, not administration. Owners and the seeded `admin` role
+ * hold users/roles/modules codes; a member given only sales (or only
+ * branches) must not see Settings or other people's accounts.
+ */
+export const SETTINGS_ACCESS_CODES: string[] = [
+  ...SETTINGS_CODES.users,
+  ...SETTINGS_CODES.roles,
+  ...SETTINGS_CODES.modules,
+];
+
 /** Nav key -> the codes that make it worth showing. Empty = always shown. */
 export const NAV_REQUIREMENTS: Record<string, string[]> = {
   dashboard: [],
   sales: viewing("sales.customer", "sales.quotation", "sales.invoice", "sales.contract"),
   notes: viewing("notes.note"),
-  settings: [
-    ...SETTINGS_CODES.company,
-    ...SETTINGS_CODES.documentLayout,
-    ...SETTINGS_CODES.users,
-    ...SETTINGS_CODES.roles,
-    ...SETTINGS_CODES.branches,
-    ...SETTINGS_CODES.modules,
-  ],
+  settings: SETTINGS_ACCESS_CODES,
+};
+
+/**
+ * Per-child sidebar / Sales-tab requirements.
+ *
+ * Holding any sales view code opens the Sales module; each child still needs
+ * its own resource, or the list API returns 403 and the UI looks broken.
+ */
+export const CHILD_NAV_REQUIREMENTS: Record<string, Record<string, string[]>> = {
+  sales: {
+    customers: viewing("sales.customer"),
+    quotations: viewing("sales.quotation"),
+    invoices: viewing("sales.invoice"),
+    contracts: viewing("sales.contract"),
+  },
 };
 
 /**

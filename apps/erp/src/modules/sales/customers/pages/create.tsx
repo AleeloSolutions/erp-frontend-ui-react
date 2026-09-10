@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AppShell, useNavbarDefaults } from "@/app";
+import { AppShell } from "@/app";
 import { useSession } from "@/app/session";
 import {
   ControlPanel,
@@ -19,7 +19,7 @@ import {
   PageActions,
   useToast,
 } from "@erp/ui";
-import { salesNavbar } from "@/modules/sales/manifest";
+import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { can } from "@/modules/sales/shared";
 import { useCreateCustomerMutation } from "../queries";
 import { CustomerForm } from "../components/CustomerForm";
@@ -34,7 +34,7 @@ export default function CustomerCreatePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const session = useSession();
-  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "customers" });
+  const navbar = useSalesNavbar("customers");
   const createMutation = useCreateCustomerMutation();
   const canCreate = can(session?.permissions, "sales.customer", "create");
 

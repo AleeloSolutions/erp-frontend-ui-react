@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AppShell, useNavbarDefaults } from "@/app";
+import { AppShell } from "@/app";
 import { useSession } from "@/app/session";
 import {
   ConfirmDialog,
@@ -32,7 +32,7 @@ import {
   type FormStatusBarAction,
   type StatusStep,
 } from "@erp/ui";
-import { salesNavbar } from "@/modules/sales/manifest";
+import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { can } from "@/modules/sales/shared";
 import { useCustomersQuery } from "@/modules/sales/customers";
 import {
@@ -57,7 +57,7 @@ export default function ContractEditPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const session = useSession();
-  const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "contracts" });
+  const navbar = useSalesNavbar("contracts");
   const canEdit = can(session?.permissions, "sales.contract", "edit");
   const canDelete = can(session?.permissions, "sales.contract", "delete");
 

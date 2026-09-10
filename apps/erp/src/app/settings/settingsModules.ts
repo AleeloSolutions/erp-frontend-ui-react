@@ -54,11 +54,14 @@ export const settingsNavbar = {
   submenuItems: settingsSubmenu,
 };
 
-/** Navbar items that switch modules in local state (no route change). */
+/** Navbar items that switch modules — only modules with visible tabs. */
 export function settingsSubmenuFor(
-  onSelect: (key: SettingsModuleKey) => void
+  onSelect: (key: SettingsModuleKey) => void,
+  codes: string[] | null = null
 ): SubmenuItem[] {
-  return SETTINGS_MODULE_ORDER.map((key) => ({
+  return SETTINGS_MODULE_ORDER.filter(
+    (key) => settingsTabsForModule(key, codes).length > 0
+  ).map((key) => ({
     key,
     label: SETTINGS_MODULE_LABELS[key],
     href: "/settings",

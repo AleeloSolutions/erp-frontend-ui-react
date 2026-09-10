@@ -9,8 +9,32 @@ import {
 import type { MobileNavItem, NavigationItem } from "@erp/ui";
 import { enabledModules, type ModuleManifest } from "@/modules";
 import { getModules } from "@/modules/registry";
-import { holdsAny, NAV_REQUIREMENTS, navRequirementFor } from "./access";
+import {
+  CHILD_NAV_REQUIREMENTS,
+  holdsAny,
+  NAV_REQUIREMENTS,
+  navRequirementFor,
+} from "./access";
 import type { Session } from "./session";
+
+/** Drop children the account cannot view; point href at the first survivor. */
+function withFilteredChildren(
+  item: NavigationItem,
+  codes: string[] | null
+): NavigationItem {
+  const childReqs = CHILD_NAV_REQUIREMENTS[item.key];
+  if (!item.children?.length || !childReqs) return item;
+  const children = item.children.filter((child) =>
+    holdsAny(codes, childReqs[child.key] ?? [])
+  );
+  if (children.length === 0) return { ...item, children };
+  const hrefStillValid = children.some((child) => child.href === item.href);
+  return {
+    ...item,
+    children,
+    href: hrefStillValid ? item.href : (children[0].href ?? item.href),
+  };
+}
 
 /**
  * The sidebar areas, in the order they appear between the dashboard and
@@ -84,7 +108,7 @@ export function buildNavigation(
   return [
     dashboardNavigation,
     ...platform,
-    ...byArea.map((module) => module.nav),
+    ...byArea.map((module) => withFilteredChildren(module.nav, codes)),
     ...settings,
   ].filter((item) => holdsAny(codes, NAV_REQUIREMENTS[item.key] ?? []));
 }

@@ -13,7 +13,8 @@ export type SettingsTabKey =
 
 /** The codes each tab needs. A tab nobody can act on is not offered. */
 export const SETTINGS_TAB_REQUIREMENTS: Record<SettingsTabKey, string[]> = {
-  users: [...SETTINGS_CODES.users, ...SETTINGS_CODES.roles, ...SETTINGS_CODES.branches],
+  // Users / roles only — branch grants must not open the Users tab.
+  users: [...SETTINGS_CODES.users, ...SETTINGS_CODES.roles],
   company: [...SETTINGS_CODES.company],
   modules: [...SETTINGS_CODES.modules],
   "document-layout": [...SETTINGS_CODES.documentLayout],

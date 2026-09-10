@@ -12,3 +12,4 @@ export {
   salesNavbar,
   salesSubmenu,
 } from "./manifest";
+export { firstSalesHref, salesSubmenuFor, useSalesNavbar } from "./useSalesNavbar";
