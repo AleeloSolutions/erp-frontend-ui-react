@@ -5,8 +5,7 @@
  * as packages register themselves at runtime (`modules/registry.ts`);
  * `useModules()` there is the union, and it is what the sidebar and the
  * routes read. Whether a tenant actually gets a module is decided by
- * `me.enabled_modules`. Inventory ships as a zip from `kaabe-module-kit`
- * (not compiled in), so it is not listed here.
+ * `me.enabled_modules`.
  */
 
 import { notesManifest } from "./notes/manifest";

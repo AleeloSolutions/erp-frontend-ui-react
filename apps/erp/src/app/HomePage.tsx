@@ -32,7 +32,7 @@ export default function HomePage() {
           />
         }
       />
-      <div className="grid gap-3 min-[721px]:grid-cols-3">
+      <div className="grid gap-3 min-[721px]:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Component demos</CardTitle>
@@ -62,22 +62,6 @@ export default function HomePage() {
               className="inline-flex font-bold text-erp-blue hover:underline"
             >
               Go to customers →
-            </Link>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Inventory (mock)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-[12px] text-erp-muted">
-            <p className="m-0">
-              Products catalog with list, create, edit, delete, and stock levels.
-            </p>
-            <Link
-              to="/inventory/products"
-              className="inline-flex font-bold text-erp-blue hover:underline"
-            >
-              Go to products →
             </Link>
           </CardContent>
         </Card>

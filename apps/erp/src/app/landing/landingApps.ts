@@ -9,7 +9,6 @@ export const LANDING_APPS: LandingApp[] = [
   { kind: "crm", labelKey: "apps.customers", to: "/sales/customers" },
   { kind: "documents", labelKey: "apps.quotations", to: "/sales/quotations" },
   { kind: "accounting", labelKey: "apps.invoices", to: "/sales/invoices" },
-  { kind: "inventory", labelKey: "apps.products", to: "/inventory/products" },
   { kind: "dashboard", labelKey: "apps.dashboard", to: "/dashboard" },
 ];
 
