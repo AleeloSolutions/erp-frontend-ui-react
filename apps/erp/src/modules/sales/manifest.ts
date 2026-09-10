@@ -7,7 +7,6 @@ export const salesSubmenu = [
   { key: "quotations", label: "Quotations", href: "/sales/quotations" },
   { key: "invoices", label: "Invoices", href: "/sales/invoices" },
   { key: "contracts", label: "Contracts", href: "/sales/contracts" },
-  { key: "orders", label: "Sales orders", href: "/sales/orders" },
 ];
 
 export const salesNavbar = {
@@ -22,7 +21,7 @@ export const salesManifest: ModuleManifest = {
   id: "sales",
   label: "Sales",
   version: "0.1.0",
-  description: "Customers, quotations, contracts, and sales orders.",
+  description: "Customers, quotations, invoices, and contracts.",
   icon: ShoppingCart,
   path: "/sales",
   nav: {
@@ -35,7 +34,6 @@ export const salesManifest: ModuleManifest = {
       { key: "quotations", label: "Quotations", href: "/sales/quotations" },
       { key: "invoices", label: "Invoices", href: "/sales/invoices" },
       { key: "contracts", label: "Contracts", href: "/sales/contracts" },
-      { key: "orders", label: "Sales orders", href: "/sales/orders" },
     ],
   },
   submenu: salesSubmenu,

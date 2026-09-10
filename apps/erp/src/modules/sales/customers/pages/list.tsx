@@ -29,22 +29,13 @@ import { useCustomersQuery, useDeleteCustomerMutation } from "../queries";
 import type { Customer } from "../api";
 import { ApiError } from "@/lib/api-client";
 import { useSession } from "@/app/session";
+import { can } from "@/modules/sales/shared";
 
 /** DataTable sorting -> DRF `?ordering=`; `-` means descending. */
 function orderingOf(sorting: SortingState): string {
   const [first] = sorting;
   if (!first) return "name";
   return first.desc ? `-${first.id}` : first.id;
-}
-
-/** Any rung of a verb: a narrower one still opens the control. */
-function holdsAny(codes: string[] | undefined, resource: string, verb: string): boolean {
-  if (!codes) return true; // still loading; the API is the boundary
-  return [
-    `${resource}.${verb}`,
-    `${resource}.${verb}_branch`,
-    `${resource}.${verb}_own`,
-  ].some((code) => codes.includes(code));
 }
 
 export default function CustomersPage() {
@@ -79,9 +70,9 @@ export default function CustomersPage() {
   const deleteMutation = useDeleteCustomerMutation();
 
   const codes = session?.permissions;
-  const canCreate = holdsAny(codes, "sales.customer", "create");
-  const canEdit = holdsAny(codes, "sales.customer", "edit");
-  const canDelete = holdsAny(codes, "sales.customer", "delete");
+  const canCreate = can(codes, "sales.customer", "create");
+  const canEdit = can(codes, "sales.customer", "edit");
+  const canDelete = can(codes, "sales.customer", "delete");
 
   const filters = useMemo<DataTableFilter[]>(
     () => [
@@ -118,7 +109,7 @@ export default function CustomersPage() {
         size: 220,
         cell: ({ row }) => {
           const customer = row.original;
-          return canEdit ? (
+          return (
             <button
               type="button"
               className="border-0 bg-transparent p-0 text-left text-erp-brand-third hover:underline"
@@ -126,8 +117,6 @@ export default function CustomersPage() {
             >
               {customer.name}
             </button>
-          ) : (
-            <span>{customer.name}</span>
           );
         },
       },
@@ -166,19 +155,18 @@ export default function CustomersPage() {
         ),
       },
     ],
-    [canEdit, navigate]
+    [navigate]
   );
 
   /** Only the actions this viewer may actually perform are offered. */
   function rowActions(customer: Customer): DataTableRowAction[] {
-    const actions: DataTableRowAction[] = [];
-    if (canEdit) {
-      actions.push({
-        key: "edit",
-        label: "Edit",
+    const actions: DataTableRowAction[] = [
+      {
+        key: "open",
+        label: canEdit ? "Edit" : "Open",
         onClick: () => navigate(`/sales/customers/${customer.uuid}/edit`),
-      });
-    }
+      },
+    ];
     if (canDelete) {
       actions.push({
         key: "delete",

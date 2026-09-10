@@ -1,116 +1,61 @@
-import { formatCurrency, formatDate } from "@erp/ui";
-import { mockContracts, type DemoContract } from "../shared/demo-table";
-import { MockApiError, mockDelay } from "@/lib/mock";
+/**
+ * Contracts against `/api/v1/sales/contracts/`.
+ *
+ * Header-only (v1): no lines, no document number. A contract is filed,
+ * edited, and archived once its term ends -- the same "own records"
+ * shape as a customer, not the numbered-document shape of an invoice.
+ */
 
-export type Contract = DemoContract;
-export type ContractStatus = Contract["status"];
+import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
+import type { Page } from "@/lib/api-client";
+import { query, type BranchRef, type ListParams } from "../shared/api";
+import type { Customer } from "../customers/api";
 
-export interface ContractListParams {
-  search?: string;
-  status?: ContractStatus | "all";
-  page?: number;
-  pageSize?: number;
-}
+export type ContractStatus = "draft" | "active" | "expired";
 
-export interface ContractListResult {
-  data: Contract[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
-export interface CreateContractInput {
+export interface Contract {
+  uuid: string;
   name: string;
-  customer: string;
-  startDate: string;
-  endDate: string;
+  customer: Pick<Customer, "uuid" | "name" | "email" | "phone" | "currency">;
+  branch: BranchRef | null;
+  start_date: string;
+  end_date: string;
+  value_amount: string;
   status: ContractStatus;
-  value: number;
+  notes: string;
+  salesperson_name: string | null;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-let store: Contract[] = mockContracts.map((contract) => ({ ...contract }));
-let nextId = store.length + 1;
-
-function formatDisplayDate(isoDate: string) {
-  const date = new Date(`${isoDate}T00:00:00`);
-  if (Number.isNaN(date.getTime())) {
-    return isoDate;
-  }
-  return formatDate(date);
+export interface ContractInput {
+  customer: string;
+  branch?: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  value_amount?: string;
+  status?: ContractStatus;
+  notes?: string;
 }
 
-export async function listContracts(
-  params: ContractListParams = {}
-): Promise<ContractListResult> {
-  await mockDelay();
-
-  const page = params.page ?? 1;
-  const pageSize = params.pageSize ?? 10;
-  const search = params.search?.trim().toLowerCase() ?? "";
-  const status = params.status ?? "all";
-
-  let filtered = [...store];
-
-  if (search) {
-    filtered = filtered.filter(
-      (contract) =>
-        contract.name.toLowerCase().includes(search) ||
-        contract.customer.toLowerCase().includes(search)
-    );
-  }
-
-  if (status !== "all") {
-    filtered = filtered.filter((contract) => contract.status === status);
-  }
-
-  const total = filtered.length;
-  const start = (page - 1) * pageSize;
-  const data = filtered.slice(start, start + pageSize);
-
-  return { data, total, page, pageSize };
+export function listContracts(params: ListParams = {}): Promise<Page<Contract>> {
+  return apiGetPage<Contract>(`/v1/sales/contracts/?${query(params)}`);
 }
 
-export async function getContract(id: string): Promise<Contract> {
-  await mockDelay(300);
-  const contract = store.find((item) => item.id === id);
-  if (!contract) {
-    throw new MockApiError("Contract not found", 404);
-  }
-  return { ...contract };
+export function getContract(uuid: string) {
+  return apiGet<Contract>(`/v1/sales/contracts/${uuid}/`);
 }
 
-export async function createContract(input: CreateContractInput): Promise<Contract> {
-  await mockDelay(700);
-
-  if (input.name.toLowerCase().includes("fail")) {
-    throw new MockApiError("Unable to create contract. Please try again.");
-  }
-
-  const contract: Contract = {
-    id: String(nextId++),
-    name: input.name,
-    customer: input.customer,
-    startDate: formatDisplayDate(input.startDate),
-    endDate: formatDisplayDate(input.endDate),
-    status: input.status,
-    value: formatCurrency(input.value),
-  };
-
-  store = [contract, ...store];
-  return contract;
+export function createContract(input: ContractInput) {
+  return apiPost<Contract>("/v1/sales/contracts/", input);
 }
 
-export async function deleteContract(id: string): Promise<void> {
-  await mockDelay(500);
-  const exists = store.some((item) => item.id === id);
-  if (!exists) {
-    throw new MockApiError("Contract not found", 404);
-  }
-  store = store.filter((item) => item.id !== id);
+export function updateContract(uuid: string, input: Partial<ContractInput>) {
+  return apiPatch<Contract>(`/v1/sales/contracts/${uuid}/`, input);
 }
 
-/** Test helper — reset in-memory store to seed data. */
-export function resetContractStore() {
-  store = mockContracts.map((contract) => ({ ...contract }));
-  nextId = store.length + 1;
+export function deleteContract(uuid: string) {
+  return apiDelete<void>(`/v1/sales/contracts/${uuid}/`);
 }

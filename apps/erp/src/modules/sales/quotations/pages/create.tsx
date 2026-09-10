@@ -1,15 +1,29 @@
-import { useMemo, useState } from "react";
+/**
+ * New quotation, against `/api/v1/sales/quotations/`.
+ *
+ * A new quotation is always a draft: `POST` stores it, and only sending it
+ * later allocates a number. Nothing here computes what will be charged —
+ * the amounts beside the lines are the editor's own estimate, shown so the
+ * page is not blank while the draft is typed, and they are replaced by the
+ * server's figures the moment it is saved.
+ */
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AppShell, useNavbarDefaults } from "@/app";
+import { useSession } from "@/app/session";
 import {
   ControlPanel,
+  Dropdown,
   FormDatePicker,
   FormDropdown,
   FormField,
   FormGrid,
+  FormInput,
   FormSection,
+  FormSelect,
   FormShell,
   FormStatusBar,
   FormStickyHeader,
@@ -17,63 +31,108 @@ import {
   Input,
   LineItemsTable,
   PageActions,
-  formatCurrency,
+  Tabs,
+  Textarea,
+  useToast,
+  type DropdownItem,
   type LineItemsColumn,
+  type LineItemsRowHelpers,
+  type LineItemsSpecialRow,
   type StatusStep,
 } from "@erp/ui";
-import { useToast } from "@erp/ui";
 import { salesNavbar } from "@/modules/sales/manifest";
-import { useCreateQuotationMutation } from "../queries";
 import { useCustomersQuery } from "@/modules/sales/customers";
+import { useCreateQuotationMutation } from "../queries";
+import { can, useSalesSettingsQuery, useTaxesQuery } from "@/modules/sales/shared";
 import {
   createEmptyQuotationLine,
+  createQuotationNoteLine,
+  createQuotationSectionLine,
+  emptyQuotationForm,
+  estimateLineAmount,
+  estimateUntaxedTotal,
+  formatMoney,
+  hasChargeableLine,
   quotationFormSchema,
+  toLineInputs,
+  validUntilFrom,
   type QuotationFormValues,
   type QuotationLineFormValue,
 } from "@/modules/sales/quotations/schema";
-import { MockApiError } from "@/lib/mock";
+import { ApiError } from "@/lib/api-client";
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function plusDaysIso(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
+/** Read-only until it is saved and sent — sending is its own action. */
 const statusSteps: StatusStep[] = [
-  { key: "Draft", label: "Draft" },
-  { key: "Pending", label: "Pending" },
-  { key: "Approved", label: "Approved" },
+  { key: "draft", label: "Draft" },
+  { key: "sent", label: "Pending" },
 ];
+
+const detailTabs = [
+  { key: "lines", label: "Quotation Lines" },
+  { key: "other", label: "Other Info" },
+];
+
+/** Odoo behaviour: a section subtotals every product row below it, down to the next section. */
+function sectionEstimate(
+  sectionLine: QuotationLineFormValue,
+  allLines: QuotationLineFormValue[]
+) {
+  const startIndex = allLines.findIndex((line) => line.id === sectionLine.id);
+  let sum = 0;
+  for (let i = startIndex + 1; i < allLines.length; i++) {
+    const line = allLines[i];
+    if (line.kind === "section") break;
+    sum += estimateLineAmount(line);
+  }
+  return sum;
+}
 
 export default function QuotationCreatePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const session = useSession();
   const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "quotations" });
   const createMutation = useCreateQuotationMutation();
+  const canCreate = can(session?.permissions, "sales.quotation", "create");
+
+  useEffect(() => {
+    if (session && !canCreate) {
+      navigate("/sales/quotations", { replace: true });
+    }
+  }, [session, canCreate, navigate]);
+
+  const [activeTab, setActiveTab] = useState("lines");
   const [lines, setLines] = useState<QuotationLineFormValue[]>([
     createEmptyQuotationLine(),
   ]);
   const [linesError, setLinesError] = useState<string | null>(null);
 
-  // One page of customers feeds the picker, as the invoice form does; the
-  // Dropdown filters what it was given.
+  // One page of customers feeds the picker; the Dropdown filters what it
+  // was given, so a tenant past this many needs a server-backed search.
   const customersQuery = useCustomersQuery({
     ordering: "name",
     pageSize: 100,
     filters: { is_archived: "false" },
   });
-  const customerOptions = useMemo(
-    () =>
-      (customersQuery.data?.data ?? []).map((customer) => ({
-        label: customer.name,
-        // This document records its customer by name, so the name is the key.
-        value: customer.name,
-      })),
-    [customersQuery.data]
+  const taxesQuery = useTaxesQuery();
+  const settingsQuery = useSalesSettingsQuery();
+  const settings = settingsQuery.data;
+
+  const customers = useMemo(() => customersQuery.data?.data ?? [], [customersQuery.data]);
+  const taxes = useMemo(
+    () => (taxesQuery.data?.data ?? []).filter((tax) => !tax.is_archived),
+    [taxesQuery.data]
+  );
+  const defaultTax = taxes.find((tax) => tax.is_default) ?? null;
+  const defaultValidDays = settings?.default_valid_days ?? 30;
+
+  const customerItems = useMemo<DropdownItem[]>(
+    () => customers.map((customer) => ({ key: customer.uuid, label: customer.name })),
+    [customers]
+  );
+  const taxItems = useMemo<DropdownItem[]>(
+    () => taxes.map((tax) => ({ key: tax.uuid, label: `${tax.name} (${tax.rate}%)` })),
+    [taxes]
   );
 
   const {
@@ -81,32 +140,61 @@ export default function QuotationCreatePage() {
     handleSubmit,
     watch,
     setValue,
+    setError,
     formState: { errors },
   } = useForm<QuotationFormValues>({
     resolver: zodResolver(quotationFormSchema),
-    defaultValues: {
-      customer: "",
-      date: todayIso(),
-      validUntil: plusDaysIso(30),
-      status: "Draft",
-      notes: "",
-    },
+    defaultValues: emptyQuotationForm(),
   });
 
-  const total = lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
+  const customerUuid = watch("customer");
+  const selectedCustomer = customers.find((customer) => customer.uuid === customerUuid);
+  const currency = selectedCustomer?.currency ?? "";
+
+  // Tenant defaults arrive after the first render; seed valid-until and terms
+  // into the untouched form rather than making them a manual step.
+  const settingsSeeded = useRef(false);
+  useEffect(() => {
+    if (!settings || settingsSeeded.current) return;
+    settingsSeeded.current = true;
+    setValue(
+      "valid_until",
+      validUntilFrom(watch("issue_date"), settings.default_valid_days)
+    );
+    if (settings.quotation_terms) {
+      setValue("terms", settings.quotation_terms);
+    }
+  }, [settings, setValue, watch]);
+
+  // The tenant's default tax only arrives after the first render; seed it
+  // into the untouched starter rows rather than making it a manual step.
+  useEffect(() => {
+    if (!defaultTax) return;
+    setLines((previous) =>
+      previous.map((line) =>
+        line.kind === "product" && line.tax === null && line.description === ""
+          ? { ...line, tax: defaultTax.uuid }
+          : line
+      )
+    );
+  }, [defaultTax]);
+
+  const untaxedEstimate = estimateUntaxedTotal(lines);
 
   const lineColumns: LineItemsColumn<QuotationLineFormValue>[] = [
     {
       key: "description",
       label: "Description",
-      size: 320,
+      size: 340,
       minSize: 200,
+      maxSize: 560,
       renderCell: (row, { onChange, onCommit }) => (
-        <Input
+        <Textarea
+          autoGrow
           chrome="cell"
           value={row.description}
-          placeholder="Line description"
-          onChange={(e) => onChange({ description: e.target.value })}
+          placeholder="What is being quoted"
+          onChange={(event) => onChange({ description: event.target.value })}
           onBlur={onCommit}
         />
       ),
@@ -115,81 +203,157 @@ export default function QuotationCreatePage() {
       key: "quantity",
       label: "Quantity",
       align: "end",
-      size: 100,
+      size: 90,
       minSize: 70,
+      maxSize: 140,
       renderCell: (row, { onChange, onCommit }) => (
+        // Text, not number: the API takes decimals as strings and a number
+        // input would round "0.10" into whatever the browser prefers.
         <Input
-          type="number"
+          inputMode="decimal"
           chrome="cell"
           className="text-end"
           value={row.quantity}
-          onChange={(e) => onChange({ quantity: Number(e.target.value) })}
+          onChange={(event) => onChange({ quantity: event.target.value })}
           onBlur={onCommit}
         />
       ),
     },
     {
-      key: "unitPrice",
-      label: "Unit Price",
+      key: "unit_price",
+      label: "Price",
       align: "end",
-      size: 110,
+      size: 100,
       minSize: 80,
+      maxSize: 160,
       renderCell: (row, { onChange, onCommit }) => (
         <Input
-          type="number"
-          step="0.01"
+          inputMode="decimal"
           chrome="cell"
           className="text-end"
-          value={row.unitPrice}
-          onChange={(e) => onChange({ unitPrice: Number(e.target.value) })}
+          value={row.unit_price}
+          onChange={(event) => onChange({ unit_price: event.target.value })}
           onBlur={onCommit}
         />
       ),
     },
     {
-      key: "subtotal",
-      label: "Subtotal",
+      key: "tax",
+      label: "Taxes",
+      size: 150,
+      minSize: 110,
+      maxSize: 220,
+      renderCell: (row, { onChange, onCommit }) => (
+        <Dropdown
+          trigger="field"
+          searchable
+          clearable
+          chrome="cell"
+          placeholder="No tax"
+          value={row.tax}
+          items={taxItems}
+          onChange={(key) => {
+            onChange({ tax: key });
+            onCommit();
+          }}
+        />
+      ),
+    },
+    {
+      key: "amount",
+      label: "Amount",
       align: "end",
-      size: 120,
+      size: 130,
       hideable: false,
       renderCell: (row) => (
-        <span className="font-bold">{formatCurrency(row.quantity * row.unitPrice)}</span>
+        <span className="font-bold">
+          {formatMoney(estimateLineAmount(row).toFixed(2), currency)}
+        </span>
       ),
     },
   ];
 
+  function getQuotationSpecialRow(
+    row: QuotationLineFormValue,
+    { onChange, onCommit }: LineItemsRowHelpers<QuotationLineFormValue>
+  ): LineItemsSpecialRow | undefined {
+    if (row.kind === "section") {
+      return {
+        content: (
+          <Textarea
+            autoGrow
+            chrome="cell"
+            value={row.description}
+            placeholder="Section"
+            onChange={(event) => onChange({ description: event.target.value })}
+            onBlur={onCommit}
+          />
+        ),
+        trailingCells: [
+          <span key="amount" className="font-bold">
+            {formatMoney(sectionEstimate(row, lines).toFixed(2), currency)}
+          </span>,
+        ],
+      };
+    }
+    if (row.kind === "note") {
+      return {
+        content: (
+          <Textarea
+            autoGrow
+            chrome="cell"
+            value={row.description}
+            placeholder="Note"
+            className="italic text-erp-muted"
+            onChange={(event) => onChange({ description: event.target.value })}
+            onBlur={onCommit}
+          />
+        ),
+      };
+    }
+    return undefined;
+  }
+
   async function onSubmit(values: QuotationFormValues) {
-    const validLines = lines.filter((line) => line.description.trim().length > 0);
-    if (validLines.length === 0) {
+    if (!hasChargeableLine(lines)) {
       setLinesError("Add at least one line with a description.");
+      setActiveTab("lines");
       return;
     }
     setLinesError(null);
 
     try {
       const quotation = await createMutation.mutateAsync({
-        customer: values.customer,
-        date: values.date,
-        validUntil: values.validUntil,
-        status: values.status,
-        notes: values.notes,
-        lines: validLines.map(({ description, quantity, unitPrice }) => ({
-          description,
-          quantity,
-          unitPrice,
-        })),
+        ...values,
+        lines: toLineInputs(lines),
       });
       toast({
-        title: "Quotation created",
-        description: `${quotation.number} was added successfully.`,
+        title: "Draft quotation created",
+        description: "It gets its number when you send it.",
         variant: "success",
       });
-      navigate("/sales/quotations");
+      // Straight to the record: sending, and the server's real totals, live there.
+      navigate(`/sales/quotations/${quotation.uuid}/edit`);
     } catch (error) {
-      const message =
-        error instanceof MockApiError ? error.message : "Could not create quotation.";
-      toast({ title: "Create failed", description: message, variant: "error" });
+      // The API owns the rules the form cannot know — a customer over their
+      // credit limit, a tax that no longer applies.
+      if (error instanceof ApiError && error.fields) {
+        for (const [field, messages] of Object.entries(error.fields)) {
+          if (field in quotationFormSchema.shape) {
+            setError(field as keyof QuotationFormValues, { message: messages[0] });
+          }
+        }
+      }
+      toast({
+        title: "Could not create the quotation",
+        description: error instanceof ApiError ? error.message : "Please try again.",
+        variant: "error",
+      });
     }
+  }
+
+  if (session && !canCreate) {
+    return null;
   }
 
   return (
@@ -203,23 +367,18 @@ export default function QuotationCreatePage() {
         <FormStatusBar
           sticky={false}
           steps={statusSteps}
-          currentStepKey={watch("status")}
-          onStepChange={(key) =>
-            setValue("status", key as QuotationFormValues["status"], {
-              shouldDirty: true,
-            })
-          }
+          currentStepKey="draft"
           actions={[
             {
               key: "create",
-              label: "Confirm",
+              label: "Save",
               variant: "primary",
               loading: createMutation.isPending,
               onClick: handleSubmit(onSubmit),
             },
             {
-              key: "cancel",
-              label: "Cancel",
+              key: "discard",
+              label: "Discard",
               variant: "secondary",
               disabled: createMutation.isPending,
               onClick: () => navigate("/sales/quotations"),
@@ -229,98 +388,168 @@ export default function QuotationCreatePage() {
       </FormStickyHeader>
 
       <FormShell onSubmit={handleSubmit(onSubmit)}>
-        <FormSection title="Quotation details">
-          <FormGrid columns={12}>
-            <FormField
-              label="Customer"
-              required
-              htmlFor="quotation-customer"
-              error={errors.customer?.message}
-              description={
-                customersQuery.isError
-                  ? "Customers could not be loaded."
-                  : customersQuery.isSuccess && customerOptions.length === 0
-                    ? "No customers yet - add one under Sales > Customers."
-                    : undefined
-              }
-              span={6}
-            >
-              <FormDropdown
-                id="quotation-customer"
-                searchable
-                placeholder="Search customer..."
-                error={Boolean(errors.customer)}
-                disabled={customersQuery.isLoading}
-                value={watch("customer") || null}
-                items={customerOptions.map((option) => ({
-                  key: option.value,
-                  label: option.label,
-                }))}
-                onChange={(key) =>
-                  setValue("customer", key ?? "", {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                  })
-                }
-              />
-            </FormField>
-            <FormField
-              label="Date"
-              required
-              htmlFor="quotation-date"
-              error={errors.date?.message}
-              span={4}
-            >
-              <FormDatePicker
-                id="quotation-date"
-                error={Boolean(errors.date)}
-                {...register("date")}
-              />
-            </FormField>
-            <FormField
-              label="Valid until"
-              required
-              htmlFor="quotation-valid-until"
-              error={errors.validUntil?.message}
-              span={4}
-            >
-              <FormDatePicker
-                id="quotation-valid-until"
-                error={Boolean(errors.validUntil)}
-                {...register("validUntil")}
-              />
-            </FormField>
-            <FormField
-              label="Notes"
-              htmlFor="quotation-notes"
-              error={errors.notes?.message}
-              span={12}
-            >
-              <FormTextarea
-                id="quotation-notes"
-                error={Boolean(errors.notes)}
-                {...register("notes")}
-              />
-            </FormField>
-          </FormGrid>
-        </FormSection>
+        <div>
+          <p className="m-0 text-[0.875rem] font-[500] text-erp-muted">Quotation</p>
+          <h1 className="m-0 mb-[0.2em] mt-[0.2em] text-[2.1rem] font-[500] leading-tight text-erp-text">
+            Draft
+          </h1>
+        </div>
 
-        <FormSection title="Order lines" description={linesError ?? undefined}>
-          <LineItemsTable<QuotationLineFormValue>
-            tableId="sales-quotation-create-lines"
-            columns={lineColumns}
-            rows={lines}
-            onRowsChange={setLines}
-            createEmptyRow={createEmptyQuotationLine}
-            aria-label="Quotation lines"
-          />
-          <div className="flex justify-end border-t border-erp-border px-2 py-2">
-            <div className="flex items-center gap-3 text-[13px]">
-              <span className="font-bold text-erp-text">Total</span>
-              <span className="font-bold text-erp-text">{formatCurrency(total)}</span>
+        <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+          <div>
+            <div className="grid grid-cols-[auto_1fr] items-center gap-x-2">
+              <label className="text-base font-[500]" htmlFor="quotation-customer">
+                Customer<span className="text-erp-error"> *</span>
+              </label>
+              <div className="max-w-sm">
+                <FormDropdown
+                  id="quotation-customer"
+                  searchable
+                  placeholder="Search customer..."
+                  error={Boolean(errors.customer)}
+                  disabled={customersQuery.isLoading}
+                  value={customerUuid || null}
+                  items={customerItems}
+                  onChange={(key) => {
+                    setValue("customer", key ?? "", {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    });
+                    // Tenant default validity decides the expiry; the user can
+                    // still overrule it below.
+                    if (key) {
+                      setValue(
+                        "valid_until",
+                        validUntilFrom(watch("issue_date"), defaultValidDays),
+                        { shouldDirty: true }
+                      );
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            {errors.customer ? (
+              <p className="m-0 mt-1 text-[10px] text-erp-error">
+                {errors.customer.message}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1.5">
+            <label className="font-semibold" htmlFor="quotation-date">
+              Quotation Date<span className="text-erp-error"> *</span>
+            </label>
+            <FormDatePicker
+              id="quotation-date"
+              error={Boolean(errors.issue_date)}
+              {...register("issue_date")}
+            />
+            <label className="font-[500] font-semibold" htmlFor="quotation-valid-until">
+              Valid until<span className="text-erp-error"> *</span>
+            </label>
+            <FormDatePicker
+              id="quotation-valid-until"
+              error={Boolean(errors.valid_until)}
+              {...register("valid_until")}
+            />
+          </div>
+        </div>
+
+        <Tabs
+          items={detailTabs}
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          aria-label="Quotation details"
+        />
+
+        {activeTab === "lines" ? (
+          <div>
+            <LineItemsTable<QuotationLineFormValue>
+              tableId="sales-quotation-create-lines"
+              columns={lineColumns}
+              rows={lines}
+              onRowsChange={setLines}
+              createEmptyRow={() => createEmptyQuotationLine(defaultTax?.uuid ?? null)}
+              getSpecialRow={getQuotationSpecialRow}
+              secondaryFooterActions={[
+                {
+                  key: "section",
+                  label: "Add a section",
+                  onClick: () =>
+                    setLines((prev) => [...prev, createQuotationSectionLine()]),
+                },
+                {
+                  key: "note",
+                  label: "Add a note",
+                  onClick: () => setLines((prev) => [...prev, createQuotationNoteLine()]),
+                },
+              ]}
+              aria-label="Quotation lines"
+            />
+            {linesError ? (
+              <p className="m-0 mt-1.5 px-2 text-[10px] text-erp-error">{linesError}</p>
+            ) : null}
+            <div className="mt-0 flex justify-end px-2">
+              <div className="w-68 border-t border-t-erp-muted pt-2">
+                <dl className="m-0 mx-auto w-54">
+                  <div className="flex items-center justify-between py-0.5">
+                    <dt>Untaxed Amount:</dt>
+                    <dd className="m-0 text-[1rem] font-[600]">
+                      {formatMoney(untaxedEstimate.toFixed(2), currency)}
+                    </dd>
+                  </div>
+                </dl>
+                <p className="m-0 mt-2 text-[11px] text-erp-muted">
+                  Tax and the total are calculated by the server when this draft is saved.
+                </p>
+              </div>
             </div>
           </div>
-        </FormSection>
+        ) : (
+          <FormSection title="Other info" className="border-b-0">
+            <FormGrid columns={12}>
+              <FormField
+                label="Customer reference"
+                htmlFor="quotation-customer-reference"
+                span={6}
+              >
+                <FormInput
+                  id="quotation-customer-reference"
+                  {...register("customer_reference")}
+                />
+              </FormField>
+              <FormField label="Discount type" htmlFor="quotation-discount-type" span={3}>
+                <FormSelect
+                  id="quotation-discount-type"
+                  options={[
+                    { label: "Percentage", value: "percentage" },
+                    { label: "Fixed amount", value: "fixed" },
+                  ]}
+                  {...register("discount_type")}
+                />
+              </FormField>
+              <FormField
+                label="Discount"
+                htmlFor="quotation-discount-value"
+                error={errors.discount_value?.message}
+                span={3}
+              >
+                <FormInput
+                  id="quotation-discount-value"
+                  inputMode="decimal"
+                  error={Boolean(errors.discount_value)}
+                  {...register("discount_value")}
+                />
+              </FormField>
+              <FormField label="Terms and conditions" htmlFor="quotation-terms" span={12}>
+                <FormTextarea id="quotation-terms" {...register("terms")} />
+              </FormField>
+              <FormField label="Notes" htmlFor="quotation-notes" span={12}>
+                <FormTextarea id="quotation-notes" {...register("notes")} />
+              </FormField>
+            </FormGrid>
+          </FormSection>
+        )}
       </FormShell>
     </AppShell>
   );

@@ -6,10 +6,12 @@
  * it elsewhere. That is a rare enough case to leave to the edit form.
  */
 
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AppShell, useNavbarDefaults } from "@/app";
+import { useSession } from "@/app/session";
 import {
   ControlPanel,
   FormShell,
@@ -18,6 +20,7 @@ import {
   useToast,
 } from "@erp/ui";
 import { salesNavbar } from "@/modules/sales/manifest";
+import { can } from "@/modules/sales/shared";
 import { useCreateCustomerMutation } from "../queries";
 import { CustomerForm } from "../components/CustomerForm";
 import {
@@ -30,8 +33,16 @@ import { ApiError } from "@/lib/api-client";
 export default function CustomerCreatePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const session = useSession();
   const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "customers" });
   const createMutation = useCreateCustomerMutation();
+  const canCreate = can(session?.permissions, "sales.customer", "create");
+
+  useEffect(() => {
+    if (session && !canCreate) {
+      navigate("/sales/customers", { replace: true });
+    }
+  }, [session, canCreate, navigate]);
 
   const {
     register,
@@ -72,6 +83,10 @@ export default function CustomerCreatePage() {
         variant: "error",
       });
     }
+  }
+
+  if (session && !canCreate) {
+    return null;
   }
 
   return (

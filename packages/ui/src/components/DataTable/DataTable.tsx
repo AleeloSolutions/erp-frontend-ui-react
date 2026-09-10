@@ -12,7 +12,19 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table";
 import { MoreHorizontal } from "lucide-react";
-import { cn } from "../../utils";
+import {
+  bucketDate,
+  cn,
+  dateMatchesFilterTokens,
+  encodeCustomRange,
+  isCustomRangeValue,
+  labelForDateFilterToken,
+  parseCustomRange,
+  parsePeriodGroupingColumnId,
+  sortPeriodGrains,
+  toISODate,
+  type PeriodGrain,
+} from "../../utils";
 import { Checkbox } from "../../primitives/Checkbox";
 import { Dropdown } from "../Dropdown";
 import {
@@ -20,6 +32,7 @@ import {
   type SearchFilterChip,
   type SearchFilterItem,
 } from "../SearchFilter";
+import { CustomRangeFields } from "../SearchFilter/CustomRangeFields";
 import { DataTableBulkActions } from "./DataTableBulkActions";
 import { DataTableColumnsMenu } from "./DataTableColumnsMenu";
 import { DataTableHeader } from "./DataTableHeader";
@@ -27,6 +40,7 @@ import { DataTableColumnResizer } from "./DataTableColumnResizer";
 import { DataTableBody } from "./DataTableBody";
 import { DataTablePagination } from "./DataTablePagination";
 import { DataTableLoading } from "./DataTableLoading";
+import { defaultDatePresetOptions } from "./dateFilterOptions";
 import {
   getColumnWidthStyle,
   estimateDataColumnSizing,
@@ -38,6 +52,7 @@ import { CONTROL_PANEL_HEIGHT, NAVBAR_HEIGHT } from "../../layout/stickyOffsets"
 import type {
   DataTableBulkAction,
   DataTableFilter,
+  DataTableFilterOption,
   DataTableFilterValues,
   DataTableFilteringConfig,
   DataTableGroupingOption,
@@ -56,6 +71,197 @@ const VISIBILITY_STORAGE_PREFIX = "erp.datatable.visibility.";
  */
 const DEFAULT_COLUMN_MIN_SIZE = 44;
 const DEFAULT_COLUMN_MAX_SIZE = 640;
+
+type PanelFilterItem = SearchFilterItem & {
+  selectable?: boolean;
+  defaultExpanded?: boolean;
+  children?: PanelFilterItem[];
+  extra?: ReactNode;
+};
+
+function readRowDateIso(row: Record<string, unknown>, field: string): string {
+  const raw = row[field];
+  if (raw == null) return "";
+  if (typeof raw === "string") {
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) return toISODate(parsed);
+    return "";
+  }
+  if (raw instanceof Date && !Number.isNaN(raw.getTime())) return toISODate(raw);
+  return "";
+}
+
+function findGroupingOption(
+  options: DataTableGroupingOption[],
+  value: string
+): DataTableGroupingOption | undefined {
+  for (const option of options) {
+    if (option.value === value) return option;
+    if (option.children?.length) {
+      const found = findGroupingOption(option.children, value);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+function collectPeriodColumnIds(
+  options: DataTableGroupingOption[]
+): { id: string; grain: PeriodGrain; dateField: string; label: string }[] {
+  const out: { id: string; grain: PeriodGrain; dateField: string; label: string }[] = [];
+  options.forEach((option) => {
+    if (option.children?.length) {
+      option.children.forEach((child) => {
+        const parsed = parsePeriodGroupingColumnId(child.value);
+        if (parsed) {
+          out.push({
+            id: child.value,
+            grain: parsed.grain,
+            dateField: option.dateField ?? parsed.dateField,
+            label: child.label,
+          });
+        }
+      });
+    }
+    const self = parsePeriodGroupingColumnId(option.value);
+    if (self) {
+      out.push({
+        id: option.value,
+        grain: self.grain,
+        dateField: option.dateField ?? self.dateField,
+        label: option.label,
+      });
+    }
+  });
+  return out;
+}
+
+function toggleToken(selected: string[], token: string, on: boolean): string[] {
+  if (on) {
+    return selected.includes(token) ? selected : [...selected, token];
+  }
+  return selected.filter((entry) => entry !== token);
+}
+
+function buildFilterOptionItems(
+  filter: DataTableFilter,
+  options: DataTableFilterOption[],
+  selected: string[],
+  onChange: (next: string[]) => void,
+  dividerBeforeFirst: boolean
+): PanelFilterItem[] {
+  return options.map((option, optionIndex) => {
+    const hasChildren = Boolean(option.children?.length);
+    const isCustom = Boolean(option.customRange);
+    const customToken = selected.find(isCustomRangeValue);
+    const customRange = customToken ? parseCustomRange(customToken) : null;
+    const isChecked = isCustom ? Boolean(customToken) : selected.includes(option.value);
+
+    const expandOnly =
+      !isCustom &&
+      (option.selectable === false || (hasChildren && option.selectable !== true));
+
+    return {
+      id: `${filter.key}:${option.value}`,
+      label: option.label,
+      checked: expandOnly ? false : isChecked,
+      selectable: !expandOnly,
+      dividerBefore: dividerBeforeFirst && optionIndex === 0,
+      defaultExpanded: hasChildren || (isCustom && isChecked),
+      onSelect: expandOnly
+        ? undefined
+        : () => {
+            if (isCustom) {
+              if (isChecked) {
+                onChange(selected.filter((entry) => !isCustomRangeValue(entry)));
+                return;
+              }
+              const today = toISODate(new Date());
+              onChange([
+                ...selected.filter((entry) => !isCustomRangeValue(entry)),
+                encodeCustomRange(today, today),
+              ]);
+              return;
+            }
+            onChange(toggleToken(selected, option.value, !isChecked));
+          },
+      children: hasChildren
+        ? buildFilterOptionItems(filter, option.children!, selected, onChange, false)
+        : undefined,
+      extra:
+        isCustom && isChecked ? (
+          <CustomRangeFields
+            from={customRange?.from ?? ""}
+            to={customRange?.to ?? ""}
+            onChange={({ from, to }) => {
+              if (!from || !to) return;
+              onChange([
+                ...selected.filter((entry) => !isCustomRangeValue(entry)),
+                encodeCustomRange(from, to),
+              ]);
+            }}
+          />
+        ) : undefined,
+    };
+  });
+}
+
+function buildGroupOptionItems(
+  options: DataTableGroupingOption[],
+  grouping: string[],
+  setGrouping: (next: string[] | ((prev: string[]) => string[])) => void,
+  dividerBeforeFirst = false
+): PanelFilterItem[] {
+  return options.map((option, index) => {
+    const hasChildren = Boolean(option.children?.length);
+    const childIds = option.children?.map((child) => child.value) ?? [];
+    const anyChildActive = childIds.some((id) => grouping.includes(id));
+    const isActive = grouping.includes(option.value);
+
+    const isAggregatingParent =
+      hasChildren && (Boolean(option.dateField) || option.selectable === true);
+
+    if (isAggregatingParent) {
+      return {
+        id: option.value,
+        label: option.label,
+        checked: anyChildActive,
+        active: anyChildActive,
+        selectable: true,
+        dividerBefore: dividerBeforeFirst && index === 0,
+        defaultExpanded: option.defaultExpanded ?? true,
+        onSelect: () =>
+          setGrouping((prev) => prev.filter((id) => !childIds.includes(id))),
+        children: buildGroupOptionItems(option.children!, grouping, setGrouping),
+      };
+    }
+
+    const expandOnly =
+      option.selectable === false || (hasChildren && option.selectable !== true);
+
+    return {
+      id: option.value,
+      label: option.label,
+      checked: expandOnly ? false : isActive,
+      active: expandOnly ? false : isActive,
+      selectable: !expandOnly,
+      dividerBefore: dividerBeforeFirst && index === 0,
+      defaultExpanded: option.defaultExpanded ?? hasChildren,
+      onSelect: expandOnly
+        ? undefined
+        : () =>
+            setGrouping((prev) =>
+              prev.includes(option.value)
+                ? prev.filter((id) => id !== option.value)
+                : [...prev, option.value]
+            ),
+      children: hasChildren
+        ? buildGroupOptionItems(option.children!, grouping, setGrouping)
+        : undefined,
+    };
+  });
+}
 
 export interface DataTableSearchConfig {
   value: string;
@@ -303,6 +509,23 @@ export function DataTable<TData, TValue = unknown>({
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (!enableGrouping || groupingOptions.length === 0) return;
+    const periodIds = collectPeriodColumnIds(groupingOptions).map((item) => item.id);
+    if (periodIds.length === 0) return;
+    setColumnVisibility((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      periodIds.forEach((id) => {
+        if (next[id] !== false) {
+          next[id] = false;
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [enableGrouping, groupingOptions]);
+
   const sorting = controlledSorting?.state ?? internalSorting;
   const setSorting = controlledSorting?.onChange ?? setInternalSorting;
   const filterValues = controlledFiltering?.state ?? internalFilters;
@@ -310,6 +533,24 @@ export function DataTable<TData, TValue = unknown>({
 
   const tableColumns = useMemo(() => {
     const cols: ColumnDef<TData, TValue>[] = [...columns];
+
+    if (enableGrouping && groupingOptions.length > 0) {
+      const periodCols = collectPeriodColumnIds(groupingOptions);
+      periodCols.forEach((period) => {
+        if (cols.some((column) => column.id === period.id)) return;
+        cols.push({
+          id: period.id,
+          header: period.label,
+          accessorFn: (row) => {
+            const iso = readRowDateIso(row as Record<string, unknown>, period.dateField);
+            return iso ? bucketDate(iso, period.grain) : "Unspecified";
+          },
+          enableHiding: false,
+          enableSorting: false,
+          meta: { fill: false },
+        } as ColumnDef<TData, TValue>);
+      });
+    }
 
     if (selectable) {
       cols.unshift({
@@ -396,49 +637,79 @@ export function DataTable<TData, TValue = unknown>({
           maxSize: column.maxSize ?? column.size ?? 36,
         };
       }
+      if (parsePeriodGroupingColumnId(column.id ?? "")) {
+        return {
+          ...column,
+          enableResizing: false,
+          enableHiding: false,
+          enableSorting: false,
+          size: column.size ?? 1,
+          minSize: 0,
+          maxSize: 1,
+        };
+      }
       return {
         ...column,
         minSize: column.minSize ?? DEFAULT_COLUMN_MIN_SIZE,
         maxSize: column.maxSize ?? DEFAULT_COLUMN_MAX_SIZE,
       };
     });
-  }, [columns, selectable, getRowActions, activeRowId]);
+  }, [columns, selectable, getRowActions, activeRowId, enableGrouping, groupingOptions]);
 
   const filteredBySearch = useMemo(() => {
-    if (manualFiltering) return data;
-
     let rows = data;
 
-    if (searchable && debouncedSearch.trim()) {
-      const query = debouncedSearch.trim().toLowerCase();
-      rows = rows.filter((row) =>
-        Object.values(row as Record<string, unknown>)
-          .map(getCellSearchText)
-          .join(" ")
-          .toLowerCase()
-          .includes(query)
-      );
+    if (!manualFiltering) {
+      if (searchable && debouncedSearch.trim()) {
+        const query = debouncedSearch.trim().toLowerCase();
+        rows = rows.filter((row) =>
+          Object.values(row as Record<string, unknown>)
+            .map(getCellSearchText)
+            .join(" ")
+            .toLowerCase()
+            .includes(query)
+        );
+      }
+
+      filters.forEach((filter) => {
+        if (filter.type === "date-presets") return;
+        const raw = filterValues[filter.key];
+        if (Array.isArray(raw)) {
+          if (raw.length === 0) return;
+          rows = rows.filter((row) => {
+            const value = String((row as Record<string, unknown>)[filter.key] ?? "");
+            return raw.includes(value);
+          });
+          return;
+        }
+        if (!raw) return;
+        rows = rows.filter((row) => {
+          const value = String(
+            (row as Record<string, unknown>)[filter.key] ?? ""
+          ).toLowerCase();
+          const needle = String(raw).toLowerCase();
+          if (filter.type === "text") return value.includes(needle);
+          return value === needle;
+        });
+      });
     }
 
     filters.forEach((filter) => {
+      if (filter.type !== "date-presets") return;
       const raw = filterValues[filter.key];
-      if (Array.isArray(raw)) {
-        if (raw.length === 0) return;
-        rows = rows.filter((row) => {
-          const value = String((row as Record<string, unknown>)[filter.key] ?? "");
-          return raw.includes(value);
-        });
-        return;
-      }
-      if (!raw) return;
-      rows = rows.filter((row) => {
-        const value = String(
-          (row as Record<string, unknown>)[filter.key] ?? ""
-        ).toLowerCase();
-        const needle = String(raw).toLowerCase();
-        if (filter.type === "text") return value.includes(needle);
-        return value === needle;
-      });
+      const selected = Array.isArray(raw)
+        ? raw
+        : typeof raw === "string" && raw
+          ? [raw]
+          : [];
+      if (selected.length === 0) return;
+      const field = filter.dateField ?? filter.key;
+      rows = rows.filter((row) =>
+        dateMatchesFilterTokens(
+          readRowDateIso(row as Record<string, unknown>, field),
+          selected
+        )
+      );
     });
 
     return rows;
@@ -588,13 +859,18 @@ export function DataTable<TData, TValue = unknown>({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot after first non-empty load
   }, [loading, data, columns, containerWidth, visibleLeafKey]);
 
-  const resolvedGroupingOptions = useMemo(() => {
+  const resolvedGroupingOptions = useMemo((): DataTableGroupingOption[] => {
     if (!enableGrouping) return [];
     if (groupingOptions.length > 0) return groupingOptions;
     // Dimensions = table columns (not filter option values)
     return table
       .getAllLeafColumns()
-      .filter((column) => column.id !== "__select" && column.id !== "__actions")
+      .filter(
+        (column) =>
+          column.id !== "__select" &&
+          column.id !== "__actions" &&
+          !parsePeriodGroupingColumnId(column.id)
+      )
       .map((column) => ({
         label:
           typeof column.columnDef.header === "string"
@@ -607,6 +883,25 @@ export function DataTable<TData, TValue = unknown>({
   const totalRows = isServerPagination ? pagination.total : filteredBySearch.length;
 
   const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
+
+  const orderedGrouping = useMemo(() => {
+    if (grouping.length <= 1) return grouping;
+    const periodIds = grouping.filter((id) => parsePeriodGroupingColumnId(id));
+    const otherIds = grouping.filter((id) => !parsePeriodGroupingColumnId(id));
+    if (periodIds.length === 0) return grouping;
+    const grains = sortPeriodGrains(
+      periodIds
+        .map((id) => parsePeriodGroupingColumnId(id)?.grain)
+        .filter((grain): grain is PeriodGrain => Boolean(grain))
+    );
+    const sortedPeriodIds = grains.map((grain) => {
+      const match = periodIds.find(
+        (id) => parsePeriodGroupingColumnId(id)?.grain === grain
+      );
+      return match!;
+    });
+    return [...otherIds, ...sortedPeriodIds];
+  }, [grouping]);
 
   function handleFilterChange(key: string, value: string | string[]) {
     setFilterValues({
@@ -629,6 +924,19 @@ export function DataTable<TData, TValue = unknown>({
         : [];
     if (selected.length === 0) return;
 
+    if (filter.type === "date-presets") {
+      searchFilterChips.push({
+        id: filter.key,
+        label: filter.label,
+        prefix: filter.label,
+        values: selected.map(labelForDateFilterToken),
+        separator: "/",
+        kind: "filter",
+        onRemove: () => handleFilterChange(filter.key, []),
+      } as SearchFilterChip);
+      return;
+    }
+
     const labels = selected.map(
       (item) => filter.options?.find((option) => option.value === item)?.label ?? item
     );
@@ -642,10 +950,36 @@ export function DataTable<TData, TValue = unknown>({
   });
 
   if (grouping.length > 0) {
-    const labels = grouping.map(
-      (groupId) =>
-        resolvedGroupingOptions.find((item) => item.value === groupId)?.label ?? groupId
-    );
+    const labels: string[] = [];
+    const consumed = new Set<string>();
+
+    resolvedGroupingOptions.forEach((option) => {
+      if (!option.children?.length) return;
+      const selectedChildren = option.children.filter((child) =>
+        grouping.includes(child.value)
+      );
+      if (selectedChildren.length === 0) return;
+      const grainOrder = sortPeriodGrains(
+        selectedChildren
+          .map((child) => parsePeriodGroupingColumnId(child.value)?.grain)
+          .filter((grain): grain is PeriodGrain => Boolean(grain))
+      );
+      const sortedChildren = [...selectedChildren].sort((a, b) => {
+        const ga = parsePeriodGroupingColumnId(a.value)?.grain;
+        const gb = parsePeriodGroupingColumnId(b.value)?.grain;
+        if (!ga || !gb) return 0;
+        return grainOrder.indexOf(ga) - grainOrder.indexOf(gb);
+      });
+      labels.push(option.label, ...sortedChildren.map((child) => child.label));
+      sortedChildren.forEach((child) => consumed.add(child.value));
+    });
+
+    grouping.forEach((groupId) => {
+      if (consumed.has(groupId)) return;
+      const found = findGroupingOption(resolvedGroupingOptions, groupId);
+      labels.push(found?.label ?? groupId);
+    });
+
     searchFilterChips.push({
       id: "group",
       label: labels[0] ?? "Group",
@@ -655,8 +989,37 @@ export function DataTable<TData, TValue = unknown>({
     });
   }
 
-  const panelFilterItems: SearchFilterItem[] = [];
+  const panelFilterItems: PanelFilterItem[] = [];
   filters.forEach((filter, filterIndex) => {
+    if (filter.type === "date-presets") {
+      const raw = filterValues[filter.key];
+      const selected = Array.isArray(raw)
+        ? raw
+        : typeof raw === "string" && raw
+          ? [raw]
+          : [];
+      const options = filter.options?.length
+        ? filter.options
+        : defaultDatePresetOptions();
+      panelFilterItems.push({
+        id: filter.key,
+        label: filter.label,
+        checked: selected.length > 0,
+        selectable: true,
+        defaultExpanded: true,
+        dividerBefore: filterIndex > 0,
+        onSelect: () => handleFilterChange(filter.key, []),
+        children: buildFilterOptionItems(
+          filter,
+          options,
+          selected,
+          (next) => handleFilterChange(filter.key, next),
+          false
+        ),
+      });
+      return;
+    }
+
     if (
       filter.type === "select" ||
       filter.type === "date" ||
@@ -668,7 +1031,25 @@ export function DataTable<TData, TValue = unknown>({
         : typeof raw === "string" && raw
           ? [raw]
           : [];
-      (filter.options ?? []).forEach((option, optionIndex) => {
+      const options = filter.options ?? [];
+      if (options.some((option) => option.children?.length)) {
+        panelFilterItems.push({
+          id: filter.key,
+          label: filter.label,
+          selectable: false,
+          defaultExpanded: true,
+          dividerBefore: filterIndex > 0,
+          children: buildFilterOptionItems(
+            filter,
+            options,
+            selected,
+            (next) => handleFilterChange(filter.key, next),
+            false
+          ),
+        });
+        return;
+      }
+      options.forEach((option, optionIndex) => {
         const isChecked = selected.includes(option.value);
         panelFilterItems.push({
           id: `${filter.key}:${option.value}`,
@@ -687,21 +1068,11 @@ export function DataTable<TData, TValue = unknown>({
     }
   });
 
-  const panelGroupItems: SearchFilterItem[] = resolvedGroupingOptions.map((option) => {
-    const isActive = grouping.includes(option.value);
-    return {
-      id: option.value,
-      label: option.label,
-      checked: isActive,
-      active: isActive,
-      onSelect: () =>
-        setGrouping((prev) =>
-          prev.includes(option.value)
-            ? prev.filter((id) => id !== option.value)
-            : [...prev, option.value]
-        ),
-    };
-  });
+  const panelGroupItems: PanelFilterItem[] = buildGroupOptionItems(
+    resolvedGroupingOptions,
+    grouping,
+    setGrouping
+  );
 
   const showSearchFilter =
     searchable || filters.length > 0 || resolvedGroupingOptions.length > 0;
@@ -725,7 +1096,7 @@ export function DataTable<TData, TValue = unknown>({
 
   const hideableColumns = table
     .getAllLeafColumns()
-    .filter((column) => column.getCanHide());
+    .filter((column) => column.getCanHide() && !parsePeriodGroupingColumnId(column.id));
   const visibleHideableCount = hideableColumns.filter((column) =>
     column.getIsVisible()
   ).length;
@@ -759,8 +1130,8 @@ export function DataTable<TData, TValue = unknown>({
       readOnly={!searchable}
       placeholder={searchable ? (searchPlaceholder ?? "Search...") : "Search..."}
       chips={searchFilterChips}
-      filters={panelFilterItems}
-      groupBy={panelGroupItems}
+      filters={panelFilterItems as SearchFilterItem[]}
+      groupBy={panelGroupItems as SearchFilterItem[]}
     />
   ) : null;
 
@@ -852,7 +1223,7 @@ export function DataTable<TData, TValue = unknown>({
                 <DataTableBody
                   table={table}
                   emptyMessage={emptyMessage}
-                  groupingColumnIds={grouping}
+                  groupingColumnIds={orderedGrouping}
                   activeRowId={activeRowId}
                   onClearActiveRow={() => setActiveRowId(null)}
                   getRowClassName={getRowClassName}

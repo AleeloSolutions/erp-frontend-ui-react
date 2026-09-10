@@ -11,12 +11,8 @@ import {
 } from "@erp/ui";
 import { ApiError } from "@/lib/api-client";
 import {
-  COUNTRY_OPTIONS,
-  CURRENCY_OPTIONS,
-  LANGUAGE_OPTIONS,
   PRIMARY_INTEREST_OPTIONS,
   TEAM_SIZE_OPTIONS,
-  TIMEZONE_OPTIONS,
   withCurrentValue,
   type CompanyInfo,
 } from "./settingsCompany";
@@ -158,50 +154,6 @@ export function CompanyInfoForm({ initialValues, onSave }: CompanyInfoFormProps)
               type="email"
               value={values.email}
               onChange={(event) => updateField("email", event.target.value)}
-            />
-          </FormField>
-        </FormGrid>
-      </FormSection>
-
-      <FormSection
-        title="Localization"
-        description="Drives formatting, currency and scheduled jobs."
-      >
-        <FormGrid>
-          <FormField label="Language" htmlFor="company-language" span={6}>
-            <FormSelect
-              id="company-language"
-              name="language"
-              options={withCurrentValue(LANGUAGE_OPTIONS, values.language)}
-              value={values.language}
-              onChange={(event) => updateField("language", event.target.value)}
-            />
-          </FormField>
-          <FormField label="Country" htmlFor="company-country" span={6}>
-            <FormSelect
-              id="company-country"
-              name="country"
-              options={withCurrentValue(COUNTRY_OPTIONS, values.country)}
-              value={values.country}
-              onChange={(event) => updateField("country", event.target.value)}
-            />
-          </FormField>
-          <FormField label="Timezone" htmlFor="company-timezone" span={6}>
-            <FormSelect
-              id="company-timezone"
-              name="timezone"
-              options={withCurrentValue(TIMEZONE_OPTIONS, values.timezone)}
-              value={values.timezone}
-              onChange={(event) => updateField("timezone", event.target.value)}
-            />
-          </FormField>
-          <FormField label="Currency" htmlFor="company-currency" span={6}>
-            <FormSelect
-              id="company-currency"
-              name="currency"
-              options={withCurrentValue(CURRENCY_OPTIONS, values.currency)}
-              value={values.currency}
-              onChange={(event) => updateField("currency", event.target.value)}
             />
           </FormField>
         </FormGrid>

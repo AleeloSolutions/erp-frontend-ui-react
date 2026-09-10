@@ -1,48 +1,77 @@
+/**
+ * Sales → Contracts, against `/api/v1/sales/contracts/`.
+ *
+ * Header-only (v1): no lines, no document number. Only a draft is ever
+ * hard-deleted; anything past draft is archived instead, same rule as an
+ * invoice or quotation.
+ */
+
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import type { ColumnDef } from "@tanstack/react-table";
-import { Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import type { ColumnDef, SortingState } from "@tanstack/react-table";
+import {
+  ConfirmDialog,
+  ControlPanel,
+  DataTable,
+  PageActions,
+  StatusBadge,
+  useDebounce,
+  useToast,
+  type DataTableFilter,
+  type DataTableFilterValues,
+  type DataTableRowAction,
+} from "@erp/ui";
 import { AppShell, useNavbarDefaults } from "@/app";
-import { ControlPanel, DataTable, PageActions } from "@erp/ui";
-import { Button, ConfirmDialog, Drawer, StatusBadge, useToast } from "@erp/ui";
+import { useSession } from "@/app/session";
 import { salesNavbar } from "@/modules/sales/manifest";
 import { useContractsQuery, useDeleteContractMutation } from "../queries";
-import { useDebounce } from "@erp/ui";
 import type { Contract } from "../api";
-import type { DataTableFilter, DataTableFilterValues } from "@erp/ui";
-import { MockApiError } from "@/lib/mock";
-import { draftRowClassNameWhen } from "@/modules/sales/shared/draftRowClassName";
+import { ApiError } from "@/lib/api-client";
+import { can } from "@/modules/sales/shared";
+import { CONTRACT_STATUS_LABELS, formatMoney } from "@/modules/sales/contracts/schema";
+
+function orderingOf(sorting: SortingState): string {
+  const [first] = sorting;
+  if (!first) return "-start_date";
+  return first.desc ? `-${first.id}` : first.id;
+}
 
 export default function ContractsPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "contracts" });
+  const session = useSession();
+
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState<DataTableFilterValues>({});
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "start_date", desc: true },
+  ]);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([]);
-  const [detailContract, setDetailContract] = useState<Contract | null>(null);
+  const [pageSize, setPageSize] = useState(25);
+  const [pendingDelete, setPendingDelete] = useState<Contract | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
   const statusFilter = String(filterValues.status ?? "");
-  const status =
-    statusFilter === "Active" || statusFilter === "Draft" || statusFilter === "Expired"
-      ? statusFilter
-      : "all";
 
-  const listParams = useMemo(
+  const params = useMemo(
     () => ({
       search: debouncedSearch,
-      status: status as "all" | "Active" | "Draft" | "Expired",
+      ordering: orderingOf(sorting),
       page,
       pageSize,
+      filters: { status: statusFilter },
     }),
-    [debouncedSearch, status, page, pageSize]
+    [debouncedSearch, sorting, page, pageSize, statusFilter]
   );
 
-  const contractsQuery = useContractsQuery(listParams);
+  const contractsQuery = useContractsQuery(params);
   const deleteMutation = useDeleteContractMutation();
+
+  const codes = session?.permissions;
+  const canCreate = can(codes, "sales.contract", "create");
+  const canEdit = can(codes, "sales.contract", "edit");
+  const canDelete = can(codes, "sales.contract", "delete");
 
   const filters = useMemo<DataTableFilter[]>(
     () => [
@@ -52,9 +81,9 @@ export default function ContractsPage() {
         type: "select",
         placeholder: "All statuses",
         options: [
-          { label: "Active", value: "Active" },
-          { label: "Draft", value: "Draft" },
-          { label: "Expired", value: "Expired" },
+          { label: "Draft", value: "draft" },
+          { label: "Active", value: "active" },
+          { label: "Expired", value: "expired" },
         ],
       },
     ],
@@ -68,78 +97,77 @@ export default function ContractsPage() {
         header: "Contract",
         meta: { fill: true },
         size: 220,
-        cell: ({ row, getValue }) => (
+        cell: ({ row }) => (
           <button
             type="button"
-            className="hover:underline"
-            onClick={() => setDetailContract(row.original)}
+            className="border-0 bg-transparent p-0 text-left text-erp-brand-third hover:underline"
+            onClick={() => navigate(`/sales/contracts/${row.original.uuid}/edit`)}
           >
-            {String(getValue())}
+            {row.original.name}
           </button>
         ),
       },
       {
-        accessorKey: "customer",
+        id: "customer",
         header: "Customer",
-        size: 200,
-      },
-      {
-        accessorKey: "startDate",
-        header: "Start date",
-        size: 120,
-      },
-      {
-        accessorKey: "endDate",
-        header: "End date",
-        size: 120,
-      },
-      {
-        accessorKey: "value",
-        header: "Value",
-        size: 120,
-      },
-      {
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ getValue }) => <StatusBadge status={String(getValue())} />,
-        size: 110,
-      },
-      {
-        id: "__actions",
-        header: "",
         enableSorting: false,
-        size: 52,
+        size: 200,
+        cell: ({ row }) => row.original.customer.name,
+      },
+      { accessorKey: "start_date", header: "Start date", size: 120 },
+      { accessorKey: "end_date", header: "End date", size: 120 },
+      {
+        id: "status",
+        header: "Status",
+        enableSorting: false,
+        size: 110,
         cell: ({ row }) => (
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Delete ${row.original.name}`}
-            onClick={() => setPendingDeleteIds([row.original.id])}
-          >
-            <Trash2 className="h-3.5 w-3.5 text-erp-error" />
-          </Button>
+          <StatusBadge status={CONTRACT_STATUS_LABELS[row.original.status]} />
         ),
       },
+      {
+        accessorKey: "value_amount",
+        header: "Value",
+        meta: { align: "right" },
+        size: 130,
+        cell: ({ row }) =>
+          formatMoney(row.original.value_amount, row.original.customer.currency),
+      },
     ],
-    []
+    [navigate]
   );
 
-  async function confirmDelete() {
-    try {
-      for (const id of pendingDeleteIds) {
-        await deleteMutation.mutateAsync(id);
-      }
-      toast({
-        title: pendingDeleteIds.length > 1 ? "Contracts deleted" : "Contract deleted",
-        description: `${pendingDeleteIds.length} record(s) removed.`,
-        variant: "success",
+  function rowActions(contract: Contract): DataTableRowAction[] {
+    const actions: DataTableRowAction[] = [
+      {
+        key: "open",
+        label: canEdit ? "Edit" : "Open",
+        onClick: () => navigate(`/sales/contracts/${contract.uuid}/edit`),
+      },
+    ];
+    if (canDelete && contract.status === "draft") {
+      actions.push({
+        key: "delete",
+        label: "Delete",
+        danger: true,
+        onClick: () => setPendingDelete(contract),
       });
-      setPendingDeleteIds([]);
-      setDetailContract(null);
+    }
+    return actions;
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    try {
+      await deleteMutation.mutateAsync(pendingDelete.uuid);
+      toast({ title: "Contract deleted", variant: "success" });
+      setPendingDelete(null);
     } catch (error) {
-      const message =
-        error instanceof MockApiError ? error.message : "Could not delete contract.";
-      toast({ title: "Delete failed", description: message, variant: "error" });
+      toast({
+        title: "Could not delete the contract",
+        description: error instanceof ApiError ? error.message : "Please try again.",
+        variant: "error",
+      });
     }
   }
 
@@ -147,24 +175,26 @@ export default function ContractsPage() {
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
       <DataTable
         tableId="sales-contracts"
-        renderToolbar={({ searchFilter, pagination, bulkActions }) => (
+        renderToolbar={({ searchFilter, pagination }) => (
           <ControlPanel
             pageActions={
-              <PageActions
-                buttons={[
-                  {
-                    key: "new",
-                    children: "New",
-                    variant: "primary",
-                    size: "sm",
-                    onClick: () => navigate("/sales/contracts/new"),
-                  },
-                ]}
-              />
+              canCreate ? (
+                <PageActions
+                  buttons={[
+                    {
+                      key: "new",
+                      children: "New",
+                      variant: "primary",
+                      size: "sm",
+                      onClick: () => navigate("/sales/contracts/new"),
+                    },
+                  ]}
+                />
+              ) : undefined
             }
             endSlot={pagination}
           >
-            {bulkActions ?? searchFilter}
+            {searchFilter}
           </ControlPanel>
         )}
         columns={columns}
@@ -187,108 +217,40 @@ export default function ContractsPage() {
             setPage(1);
           },
         }}
-        selectable
+        sorting={{
+          state: sorting,
+          onChange: (next) => {
+            setSorting(next);
+            setPage(1);
+          },
+        }}
         loading={contractsQuery.isLoading || contractsQuery.isFetching}
-        error={
-          contractsQuery.isError
-            ? contractsQuery.error.message || "Failed to load contracts"
-            : null
-        }
-        getRowId={(row) => row.id}
-        getRowClassName={(contract) => draftRowClassNameWhen(contract.status)}
+        error={contractsQuery.isError ? contractsQuery.error.message : null}
+        getRowId={(row) => row.uuid}
+        getRowActions={rowActions}
         pagination={{
           page,
           pageSize,
-          total: contractsQuery.data?.total ?? 0,
+          total: contractsQuery.data?.meta.total ?? 0,
           onPageChange: setPage,
           onPageSizeChange: (size) => {
             setPageSize(size);
             setPage(1);
           },
         }}
-        bulkActions={[
-          {
-            key: "delete",
-            label: "Delete",
-            variant: "danger",
-            onClick: (rows) => setPendingDeleteIds(rows.map((row) => row.id)),
-          },
-        ]}
-        emptyMessage="No contracts found. Try adjusting filters or create a new contract."
+        emptyMessage="No contracts match this search."
       />
 
       <ConfirmDialog
-        open={pendingDeleteIds.length > 0}
-        title={
-          pendingDeleteIds.length > 1 ? "Delete selected contracts?" : "Delete contract?"
-        }
-        description="This mock action removes records from the in-memory store."
+        open={pendingDelete !== null}
+        title="Delete this draft?"
+        description="It was never activated, so removing it leaves nothing behind. An active or expired contract is archived instead, never deleted."
         confirmLabel="Delete"
         variant="danger"
         loading={deleteMutation.isPending}
-        onCancel={() => setPendingDeleteIds([])}
+        onCancel={() => setPendingDelete(null)}
         onConfirm={() => void confirmDelete()}
       />
-
-      <Drawer
-        open={Boolean(detailContract)}
-        onClose={() => setDetailContract(null)}
-        title={detailContract?.name}
-        description="Contract detail drawer (mock)"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setDetailContract(null)}>
-              Close
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                if (detailContract) {
-                  setPendingDeleteIds([detailContract.id]);
-                }
-              }}
-            >
-              Delete
-            </Button>
-          </>
-        }
-      >
-        {detailContract ? (
-          <dl className="m-0 grid gap-2 text-[12px]">
-            <div>
-              <dt className="text-erp-subtle">Customer</dt>
-              <dd className="m-0 font-bold text-erp-text">{detailContract.customer}</dd>
-            </div>
-            <div>
-              <dt className="text-erp-subtle">Start date</dt>
-              <dd className="m-0 font-bold text-erp-text">{detailContract.startDate}</dd>
-            </div>
-            <div>
-              <dt className="text-erp-subtle">End date</dt>
-              <dd className="m-0 font-bold text-erp-text">{detailContract.endDate}</dd>
-            </div>
-            <div>
-              <dt className="text-erp-subtle">Value</dt>
-              <dd className="m-0 font-bold text-erp-text">{detailContract.value}</dd>
-            </div>
-            <div>
-              <dt className="text-erp-subtle">Status</dt>
-              <dd className="m-0 mt-1">
-                <StatusBadge status={detailContract.status} />
-              </dd>
-            </div>
-            <p className="m-0 mt-2 text-[11px] text-erp-muted">
-              Need a new record?{" "}
-              <Link
-                to="/sales/contracts/new"
-                className="font-bold text-erp-blue hover:underline"
-              >
-                Create contract
-              </Link>
-            </p>
-          </dl>
-        ) : null}
-      </Drawer>
     </AppShell>
   );
 }

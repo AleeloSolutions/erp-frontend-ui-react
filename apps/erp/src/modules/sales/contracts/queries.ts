@@ -1,18 +1,27 @@
+/**
+ * React Query hooks for contracts.
+ *
+ * Lists are server-side paginated, so the query key carries the whole
+ * parameter object and a page change is a new query rather than a client
+ * filter over everything.
+ */
+
 import {
   useMutation,
   useQuery,
   useQueryClient,
   type UseQueryOptions,
 } from "@tanstack/react-query";
+import type { Page } from "@/lib/api-client";
+import type { ListParams } from "../shared/api";
 import {
   createContract,
   deleteContract,
   getContract,
   listContracts,
+  updateContract,
   type Contract,
-  type ContractListParams,
-  type ContractListResult,
-  type CreateContractInput,
+  type ContractInput,
 } from "./api";
 
 export const contractKeys = {
@@ -24,8 +33,8 @@ export const contractKeys = {
 };
 
 export function useContractsQuery(
-  params: ContractListParams = {},
-  options?: Omit<UseQueryOptions<ContractListResult, Error>, "queryKey" | "queryFn">
+  params: ListParams = {},
+  options?: Omit<UseQueryOptions<Page<Contract>, Error>, "queryKey" | "queryFn">
 ) {
   return useQuery({
     queryKey: contractKeys.list(params as Record<string, unknown>),
@@ -35,33 +44,45 @@ export function useContractsQuery(
 }
 
 export function useContractQuery(
-  id: string,
+  uuid: string,
   options?: Omit<UseQueryOptions<Contract, Error>, "queryKey" | "queryFn">
 ) {
   return useQuery({
-    queryKey: contractKeys.detail(id),
-    queryFn: () => getContract(id),
-    enabled: Boolean(id),
+    queryKey: contractKeys.detail(uuid),
+    queryFn: () => getContract(uuid),
+    enabled: Boolean(uuid),
     ...options,
   });
 }
 
 export function useCreateContractMutation() {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: (input: CreateContractInput) => createContract(input),
+    mutationFn: (input: ContractInput) => createContract(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: contractKeys.lists() });
     },
   });
 }
 
+export function useUpdateContractMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ uuid, input }: { uuid: string; input: Partial<ContractInput> }) =>
+      updateContract(uuid, input),
+    onSuccess: (contract) => {
+      void queryClient.invalidateQueries({ queryKey: contractKeys.lists() });
+      void queryClient.invalidateQueries({
+        queryKey: contractKeys.detail(contract.uuid),
+      });
+    },
+  });
+}
+
 export function useDeleteContractMutation() {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: (id: string) => deleteContract(id),
+    mutationFn: (uuid: string) => deleteContract(uuid),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: contractKeys.all });
     },

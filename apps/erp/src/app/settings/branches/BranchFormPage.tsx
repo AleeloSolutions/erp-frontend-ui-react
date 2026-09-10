@@ -21,6 +21,7 @@ import {
 } from "@erp/ui";
 import { AppShell, useNavbarDefaults } from "@/app";
 import { ApiError } from "@/lib/api-client";
+import { settingsNavbar } from "../settingsModules";
 import { createBranch, updateBranch, useBranch, type BranchInput } from "../branchesApi";
 
 const STATUS_STEPS: StatusStep[] = [
@@ -45,7 +46,10 @@ export default function BranchFormPage() {
   const { uuid } = useParams<{ uuid: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const navbar = useNavbarDefaults({ brandLabel: "Settings" });
+  const navbar = useNavbarDefaults({
+    ...settingsNavbar,
+    submenuActiveKey: "general",
+  });
 
   const { branch, loading } = useBranch(uuid);
   const [values, setValues] = useState<BranchInput>(EMPTY);

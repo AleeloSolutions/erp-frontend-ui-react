@@ -11,6 +11,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AppShell, useNavbarDefaults } from "@/app";
+import { useSession } from "@/app/session";
 import {
   ControlPanel,
   FormShell,
@@ -18,9 +19,11 @@ import {
   FormStickyHeader,
   PageActions,
   useToast,
+  type FormStatusBarAction,
   type StatusStep,
 } from "@erp/ui";
 import { salesNavbar } from "@/modules/sales/manifest";
+import { can } from "@/modules/sales/shared";
 import { useCustomerQuery, useUpdateCustomerMutation } from "../queries";
 import { CustomerForm } from "../components/CustomerForm";
 import {
@@ -39,7 +42,9 @@ export default function CustomerEditPage() {
   const { uuid = "" } = useParams<{ uuid: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const session = useSession();
   const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "customers" });
+  const canEdit = can(session?.permissions, "sales.customer", "edit");
 
   const customerQuery = useCustomerQuery(uuid);
   const updateMutation = useUpdateCustomerMutation();
@@ -122,6 +127,32 @@ export default function CustomerEditPage() {
     }
   }
 
+  const actions: FormStatusBarAction[] = canEdit
+    ? [
+        {
+          key: "save",
+          label: "Save",
+          variant: "primary",
+          loading: updateMutation.isPending,
+          onClick: handleSubmit(onSubmit),
+        },
+        {
+          key: "cancel",
+          label: "Cancel",
+          variant: "secondary",
+          disabled: updateMutation.isPending,
+          onClick: () => navigate("/sales/customers"),
+        },
+      ]
+    : [
+        {
+          key: "back",
+          label: "Back",
+          variant: "secondary",
+          onClick: () => navigate("/sales/customers"),
+        },
+      ];
+
   return (
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
       <FormStickyHeader>
@@ -134,23 +165,10 @@ export default function CustomerEditPage() {
           sticky={false}
           steps={LIFECYCLE}
           currentStepKey={customer?.is_archived ? "archived" : "active"}
-          onStepChange={(key) => void setArchived(key === "archived")}
-          actions={[
-            {
-              key: "save",
-              label: "Save",
-              variant: "primary",
-              loading: updateMutation.isPending,
-              onClick: handleSubmit(onSubmit),
-            },
-            {
-              key: "cancel",
-              label: "Cancel",
-              variant: "secondary",
-              disabled: updateMutation.isPending,
-              onClick: () => navigate("/sales/customers"),
-            },
-          ]}
+          onStepChange={
+            canEdit ? (key) => void setArchived(key === "archived") : undefined
+          }
+          actions={actions}
         />
       </FormStickyHeader>
 
@@ -167,6 +185,7 @@ export default function CustomerEditPage() {
             onCustomerTypeChange={(value) =>
               setValue("customer_type", value, { shouldDirty: true })
             }
+            readOnly={!canEdit}
           />
         )}
       </FormShell>

@@ -41,13 +41,7 @@ export const SETTINGS_CODES = {
 /** Nav key -> the codes that make it worth showing. Empty = always shown. */
 export const NAV_REQUIREMENTS: Record<string, string[]> = {
   dashboard: [],
-  sales: viewing(
-    "sales.customer",
-    "sales.quotation",
-    "sales.invoice",
-    "sales.contract",
-    "sales.order"
-  ),
+  sales: viewing("sales.customer", "sales.quotation", "sales.invoice", "sales.contract"),
   notes: viewing("notes.note"),
   settings: [
     ...SETTINGS_CODES.company,

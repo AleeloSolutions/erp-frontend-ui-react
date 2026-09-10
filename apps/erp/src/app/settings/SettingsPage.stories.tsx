@@ -29,30 +29,42 @@ type Story = StoryObj<typeof meta>;
 
 export const Users: Story = {
   args: {
+    defaultModule: "general",
     defaultTab: "users",
   },
 };
 
 export const CompanyInfo: Story = {
   args: {
+    defaultModule: "general",
     defaultTab: "company",
   },
 };
 
 export const Modules: Story = {
   args: {
+    defaultModule: "general",
     defaultTab: "modules",
   },
 };
 
 export const DocumentLayout: Story = {
   args: {
+    defaultModule: "general",
     defaultTab: "document-layout",
+  },
+};
+
+export const Language: Story = {
+  args: {
+    defaultModule: "general",
+    defaultTab: "language",
   },
 };
 
 export const DocumentLayoutConfigure: Story = {
   args: {
+    defaultModule: "general",
     defaultTab: "document-layout",
     defaultDocumentLayoutOpen: true,
   },
@@ -60,6 +72,7 @@ export const DocumentLayoutConfigure: Story = {
 
 export const CompanyEdit: Story = {
   args: {
+    defaultModule: "general",
     defaultTab: "company",
     defaultDetailView: "company-edit",
   },
@@ -67,7 +80,29 @@ export const CompanyEdit: Story = {
 
 export const UsersManage: Story = {
   args: {
+    defaultModule: "general",
     defaultTab: "users",
     defaultDetailView: "users-manage",
+  },
+};
+
+export const Sales: Story = {
+  args: {
+    defaultModule: "sales",
+    defaultTab: "sales",
+  },
+};
+
+export const AccountingStub: Story = {
+  args: {
+    defaultModule: "accounting",
+    defaultTab: "accounting-stub",
+  },
+};
+
+export const InventoriesStub: Story = {
+  args: {
+    defaultModule: "inventories",
+    defaultTab: "inventories-stub",
   },
 };

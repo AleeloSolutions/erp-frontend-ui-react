@@ -1,11 +1,23 @@
 import { Fragment } from "react";
 import type { Row, Table } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
-import { cn } from "../../utils";
+import { cn, formatPeriodBucket, parsePeriodGroupingColumnId } from "../../utils";
 import { DataTableEmpty } from "./DataTableEmpty";
 import { DataTableTruncatedCell } from "./DataTableTruncatedCell";
 import { getColumnCellStyle } from "./column-width";
 import "../../types/table";
+
+function groupingBadgeLabel(columnId: string): string {
+  const period = parsePeriodGroupingColumnId(columnId);
+  if (!period) return columnId;
+  return period.grain.charAt(0).toUpperCase() + period.grain.slice(1);
+}
+
+function groupingValueLabel(columnId: string, raw: string): string {
+  const period = parsePeriodGroupingColumnId(columnId);
+  if (!period) return raw;
+  return formatPeriodBucket(raw, period.grain);
+}
 
 export interface DataTableBodyProps<TData> {
   table: Table<TData>;
@@ -140,10 +152,10 @@ function GroupedRows<TData>({
                 style={{ paddingInlineStart: 16 + pad }}
               >
                 <span className="inline-flex items-center rounded-full bg-erp-info-bg px-[0.65em] py-[0.25em] text-[0.75em] font-medium text-erp-info">
-                  {columnId}
+                  {groupingBadgeLabel(columnId)}
                 </span>
                 <span className="min-w-0 truncate text-[14px] font-medium text-erp-text">
-                  {groupName}
+                  {groupingValueLabel(columnId, groupName)}
                 </span>
                 <span className="ms-auto shrink-0 text-[14px] text-erp-muted">
                   {groupRows.length} item{groupRows.length === 1 ? "" : "s"}

@@ -16,6 +16,9 @@ import { SettingsBranchesPanel } from "./SettingsBranchesPanel";
 import { SettingsModulesPanel } from "./SettingsModulesPanel";
 import { SettingsRolesPanel } from "./SettingsRolesPanel";
 import { SettingsSection } from "./SettingsSection";
+import { LanguageSettingsForm } from "./LanguageSettingsForm";
+import { SalesSettingsPanel } from "./SalesSettingsPanel";
+import { SettingsStubPanel } from "./SettingsStubPanel";
 import { SettingsUsersPanel } from "./SettingsUsersPanel";
 
 export interface SettingsTabPanelProps {
@@ -277,7 +280,47 @@ export function SettingsTabPanel({
     );
   }
 
-  const overviews: Record<SettingsTabKey, () => ReactElement> = {
+  if (activeTab === "language") {
+    return (
+      <div role="tabpanel" aria-label="Language">
+        <LanguageSettingsForm
+          key={loaded ? "live" : "demo"}
+          initialValues={info}
+          onSave={save}
+        />
+      </div>
+    );
+  }
+
+  if (activeTab === "sales") {
+    return <SalesSettingsPanel />;
+  }
+
+  if (activeTab === "accounting-stub") {
+    return (
+      <SettingsStubPanel
+        title="Accounting settings"
+        description="Accounting configuration (fiscal year, chart of accounts defaults, and more) will appear here."
+      />
+    );
+  }
+
+  if (activeTab === "inventories-stub") {
+    return (
+      <SettingsStubPanel
+        title="Inventory settings"
+        description="Inventory configuration (units, warehouses defaults, and more) will appear here."
+      />
+    );
+  }
+
+  const overviews: Record<
+    Exclude<
+      SettingsTabKey,
+      "language" | "sales" | "accounting-stub" | "inventories-stub"
+    >,
+    () => ReactElement
+  > = {
     users: () => <SettingsUsersOverview onOpenDetail={onOpenDetail} />,
     company: () => (
       <SettingsCompanyOverview

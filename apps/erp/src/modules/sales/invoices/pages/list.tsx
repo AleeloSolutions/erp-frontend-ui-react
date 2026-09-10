@@ -34,7 +34,7 @@ import { salesNavbar } from "@/modules/sales/manifest";
 import { useDeleteInvoiceMutation, useInvoicesQuery } from "../queries";
 import type { Invoice } from "../api";
 import { ApiError } from "@/lib/api-client";
-import { DRAFT_ROW_CLASS_NAME } from "@/modules/sales/shared/draftRowClassName";
+import { DRAFT_ROW_CLASS_NAME, can } from "@/modules/sales/shared";
 import {
   INVOICE_STATUS_LABELS,
   PAYMENT_STATE_LABELS,
@@ -46,16 +46,6 @@ function orderingOf(sorting: SortingState): string {
   const [first] = sorting;
   if (!first) return "-issue_date";
   return first.desc ? `-${first.id}` : first.id;
-}
-
-/** Any rung of a verb: a narrower one still opens the control. */
-function holdsAny(codes: string[] | undefined, resource: string, verb: string): boolean {
-  if (!codes) return true; // still loading; the API is the boundary
-  return [
-    `${resource}.${verb}`,
-    `${resource}.${verb}_branch`,
-    `${resource}.${verb}_own`,
-  ].some((code) => codes.includes(code));
 }
 
 export default function InvoicesPage() {
@@ -93,9 +83,9 @@ export default function InvoicesPage() {
   const deleteMutation = useDeleteInvoiceMutation();
 
   const codes = session?.permissions;
-  const canCreate = holdsAny(codes, "sales.invoice", "create");
-  const canEdit = holdsAny(codes, "sales.invoice", "edit");
-  const canDelete = holdsAny(codes, "sales.invoice", "delete");
+  const canCreate = can(codes, "sales.invoice", "create");
+  const canEdit = can(codes, "sales.invoice", "edit");
+  const canDelete = can(codes, "sales.invoice", "delete");
 
   const filters = useMemo<DataTableFilter[]>(
     () => [

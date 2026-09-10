@@ -1,4 +1,4 @@
-/** Contracts: still the in-memory mock — phase 2 gives them real tables. */
+/** Contracts, against `/api/v1/sales/contracts/`. Header-only (v1): no lines, no document number. */
 export { contractRoutes } from "./routes";
 export * from "./queries";
 export * from "./api";

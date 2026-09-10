@@ -1,4 +1,12 @@
-/** Quotations: still the in-memory mock — phase 2 gives them real tables. */
+/** Quotations: the slice's public surface. Pages stay private to `routes`. */
 export { quotationRoutes } from "./routes";
+export { quotationKeys } from "./queries";
 export * from "./queries";
-export * from "./api";
+export type {
+  Quotation,
+  QuotationInput,
+  QuotationLine,
+  QuotationLineInput,
+  QuotationStatus,
+  LineKind,
+} from "./api";

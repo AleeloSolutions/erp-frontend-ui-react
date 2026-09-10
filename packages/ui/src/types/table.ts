@@ -2,7 +2,7 @@ import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import type { ButtonVariant } from "./common";
 
 declare module "@tanstack/react-table" {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/unused-vars
   interface ColumnMeta<TData, TValue> {
     align?: "left" | "right" | "center";
     /** When true, column is preferred to absorb leftover / remainder width. */
@@ -12,11 +12,20 @@ declare module "@tanstack/react-table" {
   }
 }
 
-export type DataTableFilterType = "text" | "select" | "multi-select" | "date";
+export type DataTableFilterType =
+  "text" | "select" | "multi-select" | "date" | "date-presets";
 
 export interface DataTableFilterOption {
   label: string;
   value: string;
+  /** Nested options (Odoo Create Date → months / quarters / years). */
+  children?: DataTableFilterOption[];
+  /** Expand-only parent row (no checkbox). */
+  selectable?: boolean;
+  /** Opens From–To editors when selected. Value uses `custom:from:to`. */
+  customRange?: boolean;
+  /** Hairline above this option (e.g. before year block). */
+  dividerBefore?: boolean;
 }
 
 export interface DataTableFilter {
@@ -25,6 +34,11 @@ export interface DataTableFilter {
   type: DataTableFilterType;
   options?: DataTableFilterOption[];
   placeholder?: string;
+  /**
+   * For `date-presets`: row field used for client-side range matching.
+   * Defaults to `key` when omitted.
+   */
+  dateField?: string;
 }
 
 export type DataTableFilterValues = Record<string, string | string[]>;
@@ -66,8 +80,21 @@ export interface DataTableFilteringConfig {
 export interface DataTableGroupingOption {
   /** Display label for the Group By panel (column / dimension name). */
   label: string;
-  /** Column id used to reorganize rows — not a filter option value. */
+  /**
+   * Column id used to reorganize rows — not a filter option value.
+   * For expandable date parents, use a stable id (e.g. `order_date`); children
+   * hold the real `__period:…` / column ids.
+   */
   value: string;
+  children?: DataTableGroupingOption[];
+  /** Expand-only parent (Odoo “Order Date”) when false. */
+  selectable?: boolean;
+  defaultExpanded?: boolean;
+  /**
+   * When set on a parent, children are period grains over this row date field.
+   * Child `value`s should be `periodGroupingColumnId(grain, dateField)`.
+   */
+  dateField?: string;
 }
 
 export interface DataTableChip {

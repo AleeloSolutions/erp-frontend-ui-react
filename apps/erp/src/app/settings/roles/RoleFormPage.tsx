@@ -23,6 +23,7 @@ import {
 } from "@erp/ui";
 import { AppShell, useNavbarDefaults } from "@/app";
 import { ApiError } from "@/lib/api-client";
+import { settingsNavbar } from "../settingsModules";
 import {
   NO_ACCESS,
   ROLE_CODES,
@@ -45,7 +46,10 @@ export default function RoleFormPage() {
   const { uuid } = useParams<{ uuid: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const navbar = useNavbarDefaults({ brandLabel: "Settings" });
+  const navbar = useNavbarDefaults({
+    ...settingsNavbar,
+    submenuActiveKey: "general",
+  });
 
   const { role, loading } = useRole(uuid);
   const matrix = usePermissionMatrix();

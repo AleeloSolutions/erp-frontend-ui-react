@@ -30,7 +30,10 @@
     "closePanel": "Close search filters",
     "or": "or",
     "remove": "Remove",
-    "search": "Search..."
+    "search": "Search...",
+    "dateFrom": "From",
+    "dateTo": "To",
+    "customRange": "Custom Range"
   },
   "dropdown": {
     "noResults": "No results",

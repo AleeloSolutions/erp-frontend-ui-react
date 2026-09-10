@@ -1,8 +1,17 @@
-import { useMemo } from "react";
+/**
+ * Add a contract, against `/api/v1/sales/contracts/`.
+ *
+ * Header-only (v1): no lines. The branch is not asked for, same rule as
+ * a new customer — filed at the user's own branch unless they hold the
+ * unscoped create rung.
+ */
+
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AppShell, useNavbarDefaults } from "@/app";
+import { useSession } from "@/app/session";
 import {
   ControlPanel,
   FormDatePicker,
@@ -14,40 +23,40 @@ import {
   FormShell,
   FormStatusBar,
   FormStickyHeader,
+  FormTextarea,
   PageActions,
+  useToast,
   type StatusStep,
 } from "@erp/ui";
-import { useToast } from "@erp/ui";
 import { salesNavbar } from "@/modules/sales/manifest";
-import { useCreateContractMutation } from "../queries";
+import { can } from "@/modules/sales/shared";
 import { useCustomersQuery } from "@/modules/sales/customers";
+import { useCreateContractMutation } from "../queries";
 import {
+  CONTRACT_STATUS_LABELS,
   contractFormSchema,
+  emptyContractForm,
   type ContractFormValues,
 } from "@/modules/sales/contracts/schema";
-import { MockApiError } from "@/lib/mock";
+import { ApiError } from "@/lib/api-client";
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function plusDaysIso(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-const statusSteps: StatusStep[] = [
-  { key: "Draft", label: "Draft" },
-  { key: "Active", label: "Active" },
-  { key: "Expired", label: "Expired" },
-];
+const statusSteps: StatusStep[] = (
+  Object.entries(CONTRACT_STATUS_LABELS) as [ContractFormValues["status"], string][]
+).map(([key, label]) => ({ key, label }));
 
 export default function ContractCreatePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const session = useSession();
   const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "contracts" });
   const createMutation = useCreateContractMutation();
+  const canCreate = can(session?.permissions, "sales.contract", "create");
+
+  useEffect(() => {
+    if (session && !canCreate) {
+      navigate("/sales/contracts", { replace: true });
+    }
+  }, [session, canCreate, navigate]);
 
   // One page of customers feeds the picker, as the invoice form does; the
   // Dropdown filters what it was given.
@@ -56,55 +65,54 @@ export default function ContractCreatePage() {
     pageSize: 100,
     filters: { is_archived: "false" },
   });
-  const customerOptions = useMemo(
-    () =>
-      (customersQuery.data?.data ?? []).map((customer) => ({
-        label: customer.name,
-        // This document records its customer by name, so the name is the key.
-        value: customer.name,
-      })),
-    [customersQuery.data]
-  );
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    setError,
     formState: { errors },
   } = useForm<ContractFormValues>({
     resolver: zodResolver(contractFormSchema),
-    defaultValues: {
-      name: "",
-      customer: "",
-      startDate: todayIso(),
-      endDate: plusDaysIso(365),
-      status: "Draft",
-      value: "",
-    },
+    defaultValues: emptyContractForm(),
   });
 
   async function onSubmit(values: ContractFormValues) {
     try {
       const contract = await createMutation.mutateAsync({
-        name: values.name,
         customer: values.customer,
-        startDate: values.startDate,
-        endDate: values.endDate,
+        name: values.name,
+        start_date: values.start_date,
+        end_date: values.end_date,
         status: values.status,
-        value: Number(values.value),
+        value_amount: values.value_amount || "0",
+        notes: values.notes,
       });
       toast({
         title: "Contract created",
-        description: `${contract.name} was added successfully.`,
+        description: `${contract.name} was added.`,
         variant: "success",
       });
       navigate("/sales/contracts");
     } catch (error) {
-      const message =
-        error instanceof MockApiError ? error.message : "Could not create contract.";
-      toast({ title: "Create failed", description: message, variant: "error" });
+      if (error instanceof ApiError && error.fields) {
+        for (const [field, messages] of Object.entries(error.fields)) {
+          if (field in contractFormSchema.shape) {
+            setError(field as keyof ContractFormValues, { message: messages[0] });
+          }
+        }
+      }
+      toast({
+        title: "Could not create the contract",
+        description: error instanceof ApiError ? error.message : "Please try again.",
+        variant: "error",
+      });
     }
+  }
+
+  if (session && !canCreate) {
+    return null;
   }
 
   return (
@@ -165,7 +173,8 @@ export default function ContractCreatePage() {
               description={
                 customersQuery.isError
                   ? "Customers could not be loaded."
-                  : customersQuery.isSuccess && customerOptions.length === 0
+                  : customersQuery.isSuccess &&
+                      (customersQuery.data?.data.length ?? 0) === 0
                     ? "No customers yet - add one under Sales > Customers."
                     : undefined
               }
@@ -178,9 +187,9 @@ export default function ContractCreatePage() {
                 error={Boolean(errors.customer)}
                 disabled={customersQuery.isLoading}
                 value={watch("customer") || null}
-                items={customerOptions.map((option) => ({
-                  key: option.value,
-                  label: option.label,
+                items={(customersQuery.data?.data ?? []).map((customer) => ({
+                  key: customer.uuid,
+                  label: customer.name,
                 }))}
                 onChange={(key) =>
                   setValue("customer", key ?? "", {
@@ -194,43 +203,43 @@ export default function ContractCreatePage() {
               label="Start date"
               required
               htmlFor="contract-start-date"
-              error={errors.startDate?.message}
+              error={errors.start_date?.message}
               span={4}
             >
               <FormDatePicker
                 id="contract-start-date"
-                error={Boolean(errors.startDate)}
-                {...register("startDate")}
+                error={Boolean(errors.start_date)}
+                {...register("start_date")}
               />
             </FormField>
             <FormField
               label="End date"
               required
               htmlFor="contract-end-date"
-              error={errors.endDate?.message}
+              error={errors.end_date?.message}
               span={4}
             >
               <FormDatePicker
                 id="contract-end-date"
-                error={Boolean(errors.endDate)}
-                {...register("endDate")}
+                error={Boolean(errors.end_date)}
+                {...register("end_date")}
               />
             </FormField>
             <FormField
               label="Value"
-              required
               htmlFor="contract-value"
-              error={errors.value?.message}
+              error={errors.value_amount?.message}
               span={4}
             >
               <FormInput
                 id="contract-value"
-                type="number"
-                step="0.01"
-                min="0"
-                error={Boolean(errors.value)}
-                {...register("value")}
+                inputMode="decimal"
+                error={Boolean(errors.value_amount)}
+                {...register("value_amount")}
               />
+            </FormField>
+            <FormField label="Notes" htmlFor="contract-notes" span={12}>
+              <FormTextarea id="contract-notes" {...register("notes")} />
             </FormField>
           </FormGrid>
         </FormSection>

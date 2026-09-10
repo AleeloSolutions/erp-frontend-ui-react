@@ -23,6 +23,7 @@ export {
   DataTablePagination,
   type DataTablePaginationProps,
 } from "./DataTablePagination";
+export { defaultDatePresetOptions, periodGroupingOption } from "./dateFilterOptions";
 export {
   getColumnCellStyle,
   getColumnWidthStyle,

@@ -31,6 +31,7 @@ import {
 } from "@erp/ui";
 import { AppShell, useNavbarDefaults } from "@/app";
 import { ApiError } from "@/lib/api-client";
+import { settingsNavbar } from "../settingsModules";
 import {
   ROLE_CODES,
   completeCodes,
@@ -113,7 +114,10 @@ export default function UserFormPage() {
   const { uuid } = useParams<{ uuid: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const navbar = useNavbarDefaults({ brandLabel: "Settings" });
+  const navbar = useNavbarDefaults({
+    ...settingsNavbar,
+    submenuActiveKey: "general",
+  });
 
   const { user, loading, reload } = useTenantUser(uuid);
   const roles = useTenantRoles();

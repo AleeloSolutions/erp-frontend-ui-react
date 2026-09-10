@@ -8,6 +8,6 @@ export const quotationRoutes = (
   <Route path="quotations">
     <Route index element={<QuotationsPage />} />
     <Route path="new" element={<QuotationCreatePage />} />
-    <Route path=":id/edit" element={<QuotationEditPage />} />
+    <Route path=":uuid/edit" element={<QuotationEditPage />} />
   </Route>
 );

@@ -1,171 +1,133 @@
-import { formatCurrency, formatDate } from "@erp/ui";
-import {
-  mockQuotations,
-  type DemoQuotation,
-  type QuotationLine,
-} from "../shared/demo-table";
-import { MockApiError, mockDelay } from "@/lib/mock";
+/**
+ * Quotations against `/api/v1/sales/quotations/`.
+ *
+ * Totals are never sent: the backend computes them from the lines and
+ * sends them back, so the form shows what will actually be charged.
+ *
+ * The `Customer` import is real coupling, not laziness — a quotation
+ * carries a trimmed copy of the customer it was issued to, the same way
+ * an invoice does.
+ */
 
-export type Quotation = DemoQuotation;
-export type QuotationStatus = Quotation["status"];
-export type { QuotationLine };
+import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
+import type { Page } from "@/lib/api-client";
+import { query, type BranchRef, type ListParams } from "../shared/api";
+import type { Customer } from "../customers/api";
+import type { Invoice } from "../invoices/api";
 
-export interface QuotationListParams {
-  search?: string;
-  status?: QuotationStatus | "all";
-  page?: number;
-  pageSize?: number;
-}
+export type QuotationStatus = "draft" | "sent" | "accepted" | "cancelled";
 
-export interface QuotationListResult {
-  data: Quotation[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export type LineKind = "product" | "section" | "note";
 
-export interface QuotationLineInput {
+export interface QuotationLine {
+  uuid: string;
+  position: number;
+  kind: LineKind;
   description: string;
-  quantity: number;
-  unitPrice: number;
+  quantity: string;
+  unit_price: string;
+  /** The tax's uuid; null on a section or note row. */
+  tax: string | null;
+  /** What the rate was worth the day it was charged, not what it is now. */
+  tax_rate: string;
+  line_subtotal: string;
+  line_tax_amount: string;
+  line_total: string;
 }
 
-export interface CreateQuotationInput {
-  customer: string;
-  date: string;
-  validUntil: string;
+export interface Quotation {
+  uuid: string;
+  /** Empty until the quotation is sent. */
+  number: string;
+  customer: Pick<Customer, "uuid" | "name" | "email" | "phone" | "currency">;
+  branch: BranchRef | null;
+  issue_date: string;
+  valid_until: string;
   status: QuotationStatus;
+  currency: string;
+  discount_type: "percentage" | "fixed";
+  discount_value: string;
+  subtotal_amount: string;
+  discount_amount: string;
+  tax_amount: string;
+  total_amount: string;
+  customer_reference: string;
+  notes: string;
+  terms: string;
+  salesperson_name: string | null;
+  lines: QuotationLine[];
+  sent_at: string | null;
+  accepted_at: string | null;
+  cancelled_at: string | null;
+  /** The invoice this quotation was converted to, if any. */
+  converted_invoice: string | null;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** One row of the editor's grid. Amounts are absent: the API computes them. */
+export interface QuotationLineInput {
+  kind: LineKind;
+  description: string;
+  quantity: string;
+  unit_price: string;
+  tax: string | null;
+}
+
+export interface QuotationInput {
+  customer: string;
+  branch?: string;
+  issue_date?: string;
+  valid_until?: string;
+  discount_type?: "percentage" | "fixed";
+  discount_value?: string;
+  customer_reference?: string;
   notes?: string;
-  lines: QuotationLineInput[];
+  terms?: string;
+  lines?: QuotationLineInput[];
 }
 
-export type UpdateQuotationInput = CreateQuotationInput;
-
-let store: Quotation[] = mockQuotations.map((quotation) => ({ ...quotation }));
-let nextId = store.length + 1;
-let nextLineId = 1;
-
-function formatDisplayDate(isoDate: string) {
-  const date = new Date(`${isoDate}T00:00:00`);
-  if (Number.isNaN(date.getTime())) {
-    return isoDate;
-  }
-  return formatDate(date);
+export function listQuotations(params: ListParams = {}): Promise<Page<Quotation>> {
+  return apiGetPage<Quotation>(`/v1/sales/quotations/?${query(params)}`);
 }
 
-function toLines(lines: QuotationLineInput[]): QuotationLine[] {
-  return lines.map((line) => ({ id: `l-${nextLineId++}`, ...line }));
+export function getQuotation(uuid: string) {
+  return apiGet<Quotation>(`/v1/sales/quotations/${uuid}/`);
 }
 
-function totalAmount(lines: QuotationLineInput[]) {
-  return lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
+export function createQuotation(input: QuotationInput) {
+  return apiPost<Quotation>("/v1/sales/quotations/", input);
 }
 
-export async function listQuotations(
-  params: QuotationListParams = {}
-): Promise<QuotationListResult> {
-  await mockDelay();
-
-  const page = params.page ?? 1;
-  const pageSize = params.pageSize ?? 10;
-  const search = params.search?.trim().toLowerCase() ?? "";
-  const status = params.status ?? "all";
-
-  let filtered = [...store];
-
-  if (search) {
-    filtered = filtered.filter(
-      (quotation) =>
-        quotation.number.toLowerCase().includes(search) ||
-        quotation.customer.toLowerCase().includes(search) ||
-        quotation.amount.toLowerCase().includes(search)
-    );
-  }
-
-  if (status !== "all") {
-    filtered = filtered.filter((quotation) => quotation.status === status);
-  }
-
-  const total = filtered.length;
-  const start = (page - 1) * pageSize;
-  const data = filtered.slice(start, start + pageSize);
-
-  return { data, total, page, pageSize };
+export function updateQuotation(uuid: string, input: Partial<QuotationInput>) {
+  return apiPatch<Quotation>(`/v1/sales/quotations/${uuid}/`, input);
 }
 
-export async function getQuotation(id: string): Promise<Quotation> {
-  await mockDelay(300);
-  const quotation = store.find((item) => item.id === id);
-  if (!quotation) {
-    throw new MockApiError("Quotation not found", 404);
-  }
-  return { ...quotation };
+export function deleteQuotation(uuid: string) {
+  return apiDelete<void>(`/v1/sales/quotations/${uuid}/`);
 }
 
-export async function createQuotation(input: CreateQuotationInput): Promise<Quotation> {
-  await mockDelay(700);
-
-  if (input.customer.toLowerCase().includes("fail")) {
-    throw new MockApiError("Unable to create quotation. Please try again.");
-  }
-
-  const id = String(nextId++);
-  const quotation: Quotation = {
-    id,
-    number: `QT-2026-${id.padStart(4, "0")}`,
-    customer: input.customer,
-    date: formatDisplayDate(input.date),
-    validUntil: formatDisplayDate(input.validUntil),
-    status: input.status,
-    amount: formatCurrency(totalAmount(input.lines)),
-    lines: toLines(input.lines),
-  };
-
-  store = [quotation, ...store];
-  return quotation;
+/** Issue the quotation: this is what allocates its number. */
+export function sendQuotation(uuid: string) {
+  return apiPost<Quotation>(`/v1/sales/quotations/${uuid}/send/`);
 }
 
-export async function updateQuotation(
-  id: string,
-  input: UpdateQuotationInput
-): Promise<Quotation> {
-  await mockDelay(700);
-
-  const index = store.findIndex((item) => item.id === id);
-  if (index < 0) {
-    throw new MockApiError("Quotation not found", 404);
-  }
-
-  if (input.customer.toLowerCase().includes("fail")) {
-    throw new MockApiError("Unable to update quotation. Please try again.");
-  }
-
-  const existing = store[index];
-  const quotation: Quotation = {
-    ...existing,
-    customer: input.customer,
-    date: formatDisplayDate(input.date),
-    validUntil: formatDisplayDate(input.validUntil),
-    status: input.status,
-    amount: formatCurrency(totalAmount(input.lines)),
-    lines: toLines(input.lines),
-  };
-
-  store = [...store.slice(0, index), quotation, ...store.slice(index + 1)];
-  return quotation;
+/** The customer said yes. Only a sent quotation can be accepted. */
+export function acceptQuotation(uuid: string) {
+  return apiPost<Quotation>(`/v1/sales/quotations/${uuid}/accept/`);
 }
 
-export async function deleteQuotation(id: string): Promise<void> {
-  await mockDelay(500);
-  const exists = store.some((item) => item.id === id);
-  if (!exists) {
-    throw new MockApiError("Quotation not found", 404);
-  }
-  store = store.filter((item) => item.id !== id);
+/** Void a sent or accepted quotation. The number stays. */
+export function cancelQuotation(uuid: string) {
+  return apiPost<Quotation>(`/v1/sales/quotations/${uuid}/cancel/`);
 }
 
-/** Test helper — reset in-memory store to seed data. */
-export function resetQuotationStore() {
-  store = mockQuotations.map((quotation) => ({ ...quotation }));
-  nextId = store.length + 1;
+/**
+ * Convert an accepted quotation to a draft invoice, copying its lines.
+ * Refused if the quotation is not accepted, has no product line, or has
+ * already been converted (one conversion per quotation).
+ */
+export function convertQuotationToInvoice(uuid: string) {
+  return apiPost<Invoice>(`/v1/sales/quotations/${uuid}/convert-to-invoice/`);
 }

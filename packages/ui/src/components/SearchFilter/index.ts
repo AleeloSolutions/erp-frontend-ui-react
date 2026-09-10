@@ -5,3 +5,4 @@ export {
   type SearchFilterChipKind,
   type SearchFilterItem,
 } from "./SearchFilter";
+export { CustomRangeFields } from "./CustomRangeFields";

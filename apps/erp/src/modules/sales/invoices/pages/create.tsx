@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AppShell, useNavbarDefaults } from "@/app";
+import { useSession } from "@/app/session";
 import {
   ControlPanel,
   Dropdown,
@@ -42,7 +43,7 @@ import {
 import { salesNavbar } from "@/modules/sales/manifest";
 import { useCustomersQuery } from "@/modules/sales/customers";
 import { useCreateInvoiceMutation } from "../queries";
-import { useTaxesQuery } from "@/modules/sales/shared";
+import { can, useTaxesQuery } from "@/modules/sales/shared";
 import {
   createEmptyInvoiceLine,
   createInvoiceNoteLine,
@@ -89,8 +90,16 @@ function sectionEstimate(
 export default function InvoiceCreatePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const session = useSession();
   const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "invoices" });
   const createMutation = useCreateInvoiceMutation();
+  const canCreate = can(session?.permissions, "sales.invoice", "create");
+
+  useEffect(() => {
+    if (session && !canCreate) {
+      navigate("/sales/invoices", { replace: true });
+    }
+  }, [session, canCreate, navigate]);
 
   const [activeTab, setActiveTab] = useState("lines");
   const [lines, setLines] = useState<InvoiceLineFormValue[]>([createEmptyInvoiceLine()]);
@@ -321,6 +330,10 @@ export default function InvoiceCreatePage() {
         variant: "error",
       });
     }
+  }
+
+  if (session && !canCreate) {
+    return null;
   }
 
   return (

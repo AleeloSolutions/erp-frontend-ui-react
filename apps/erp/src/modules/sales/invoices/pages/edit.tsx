@@ -17,6 +17,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Printer } from "lucide-react";
 import { AppShell, useNavbarDefaults } from "@/app";
+import { useSession } from "@/app/session";
 import {
   Button,
   ConfirmDialog,
@@ -55,8 +56,9 @@ import {
   usePostInvoiceMutation,
   useRecordPaymentMutation,
   useUpdateInvoiceMutation,
+  useVoidPaymentMutation,
 } from "../queries";
-import { usePaymentMethodsQuery, useTaxesQuery } from "@/modules/sales/shared";
+import { can, usePaymentMethodsQuery, useTaxesQuery } from "@/modules/sales/shared";
 import type { Invoice } from "../api";
 import {
   INVOICE_STATUS_LABELS,
@@ -102,17 +104,22 @@ export default function InvoiceEditPage() {
   const { uuid = "" } = useParams<{ uuid: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const session = useSession();
   const navbar = useNavbarDefaults({ ...salesNavbar, submenuActiveKey: "invoices" });
+  const canEdit = can(session?.permissions, "sales.invoice", "edit");
+  const canDelete = can(session?.permissions, "sales.invoice", "delete");
 
   const invoiceQuery = useInvoiceQuery(uuid);
   const invoice = invoiceQuery.data;
   const isDraft = invoice?.status === "draft";
   const isPosted = invoice?.status === "posted";
+  const editable = Boolean(isDraft && canEdit);
 
   const updateMutation = useUpdateInvoiceMutation();
   const postMutation = usePostInvoiceMutation();
   const cancelMutation = useCancelInvoiceMutation();
   const paymentMutation = useRecordPaymentMutation();
+  const voidPaymentMutation = useVoidPaymentMutation();
 
   const customersQuery = useCustomersQuery({
     ordering: "name",
@@ -362,35 +369,52 @@ export default function InvoiceEditPage() {
     }
   }
 
+  async function voidPayment(paymentUuid: string) {
+    try {
+      await voidPaymentMutation.mutateAsync({ invoiceUuid: uuid, paymentUuid });
+      toast({ title: "Payment voided", variant: "success" });
+    } catch (error) {
+      toast({
+        title: "Could not void the payment",
+        description: error instanceof ApiError ? error.message : "Please try again.",
+        variant: "error",
+      });
+    }
+  }
+
   /** What this invoice's state actually permits — nothing else is offered. */
   function statusActions(): FormStatusBarAction[] {
     if (!invoice) return [];
     if (isDraft) {
-      return [
-        {
-          key: "save",
-          label: "Save",
-          variant: "primary",
-          loading: updateMutation.isPending,
-          onClick: handleSubmit(onSubmit),
-        },
-        {
-          key: "post",
-          label: "Post",
-          variant: "teal",
-          loading: postMutation.isPending,
-          onClick: () => setConfirming("post"),
-        },
-        {
-          key: "back",
-          label: "Back",
-          variant: "secondary",
-          onClick: () => navigate("/sales/invoices"),
-        },
-      ];
+      const actions: FormStatusBarAction[] = [];
+      if (canEdit) {
+        actions.push(
+          {
+            key: "save",
+            label: "Save",
+            variant: "primary",
+            loading: updateMutation.isPending,
+            onClick: handleSubmit(onSubmit),
+          },
+          {
+            key: "post",
+            label: "Post",
+            variant: "teal",
+            loading: postMutation.isPending,
+            onClick: () => setConfirming("post"),
+          }
+        );
+      }
+      actions.push({
+        key: "back",
+        label: "Back",
+        variant: "secondary",
+        onClick: () => navigate("/sales/invoices"),
+      });
+      return actions;
     }
     const actions: FormStatusBarAction[] = [];
-    if (isPosted && invoice.payment_status !== "paid") {
+    if (canEdit && isPosted && invoice.payment_status !== "paid") {
       actions.push({
         key: "pay",
         label: "Record payment",
@@ -407,7 +431,7 @@ export default function InvoiceEditPage() {
           }),
       });
     }
-    if (isPosted) {
+    if (canDelete && isPosted) {
       actions.push({
         key: "cancel-invoice",
         label: "Cancel invoice",
@@ -499,7 +523,7 @@ export default function InvoiceEditPage() {
                   searchable
                   placeholder="Search customer..."
                   error={Boolean(errors.customer)}
-                  disabled={!isDraft}
+                  disabled={!editable}
                   value={watch("customer") || null}
                   items={customerItems}
                   onChange={(key) =>
@@ -520,7 +544,7 @@ export default function InvoiceEditPage() {
                 <FormDatePicker
                   id="invoice-date"
                   error={Boolean(errors.issue_date)}
-                  disabled={!isDraft}
+                  disabled={!editable}
                   {...register("issue_date")}
                 />
               </FormField>
@@ -534,7 +558,7 @@ export default function InvoiceEditPage() {
                 <FormDatePicker
                   id="invoice-due-date"
                   error={Boolean(errors.due_date)}
-                  disabled={!isDraft}
+                  disabled={!editable}
                   {...register("due_date")}
                 />
               </FormField>
@@ -557,7 +581,7 @@ export default function InvoiceEditPage() {
 
             {activeTab === "lines" ? (
               <FormSection title="Invoice lines" className="border-b-0">
-                {isDraft ? (
+                {editable ? (
                   <>
                     <LineItemsTable<InvoiceLineFormValue>
                       tableId="sales-invoice-edit-lines"
@@ -674,6 +698,9 @@ export default function InvoiceEditPage() {
                           <th className="py-1.5 text-left font-bold">Method</th>
                           <th className="py-1.5 text-left font-bold">Reference</th>
                           <th className="py-1.5 text-right font-bold">Amount</th>
+                          {canEdit ? (
+                            <th className="py-1.5 text-right font-bold"> </th>
+                          ) : null}
                         </tr>
                       </thead>
                       <tbody>
@@ -692,6 +719,20 @@ export default function InvoiceEditPage() {
                                 formatMoney(entry.amount, currency)
                               )}
                             </td>
+                            {canEdit ? (
+                              <td className="py-1.5 text-right">
+                                {!entry.voided_at ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    loading={voidPaymentMutation.isPending}
+                                    onClick={() => void voidPayment(entry.uuid)}
+                                  >
+                                    Void payment
+                                  </Button>
+                                ) : null}
+                              </td>
+                            ) : null}
                           </tr>
                         ))}
                       </tbody>
@@ -709,7 +750,7 @@ export default function InvoiceEditPage() {
                   >
                     <FormInput
                       id="invoice-customer-reference"
-                      disabled={!isDraft}
+                      disabled={!editable}
                       {...register("customer_reference")}
                     />
                   </FormField>
@@ -720,7 +761,7 @@ export default function InvoiceEditPage() {
                   >
                     <FormSelect
                       id="invoice-discount-type"
-                      disabled={!isDraft}
+                      disabled={!editable}
                       options={[
                         { label: "Percentage", value: "percentage" },
                         { label: "Fixed amount", value: "fixed" },
@@ -737,7 +778,7 @@ export default function InvoiceEditPage() {
                     <FormInput
                       id="invoice-discount-value"
                       inputMode="decimal"
-                      disabled={!isDraft}
+                      disabled={!editable}
                       error={Boolean(errors.discount_value)}
                       {...register("discount_value")}
                     />
@@ -760,14 +801,14 @@ export default function InvoiceEditPage() {
                   >
                     <FormTextarea
                       id="invoice-terms"
-                      disabled={!isDraft}
+                      disabled={!editable}
                       {...register("terms")}
                     />
                   </FormField>
                   <FormField label="Notes" htmlFor="invoice-notes" span={12}>
                     <FormTextarea
                       id="invoice-notes"
-                      disabled={!isDraft}
+                      disabled={!editable}
                       {...register("notes")}
                     />
                   </FormField>

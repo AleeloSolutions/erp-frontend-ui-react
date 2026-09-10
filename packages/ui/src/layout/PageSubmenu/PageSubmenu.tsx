@@ -40,6 +40,14 @@ export function PageSubmenu({ items, activeKey, className }: PageSubmenuProps) {
             key={item.key}
             to={item.href}
             aria-current={active ? "page" : undefined}
+            onClick={
+              item.onClick
+                ? (event) => {
+                    event.preventDefault();
+                    item.onClick?.();
+                  }
+                : undefined
+            }
             className={cn(
               "inline-flex h-8 shrink-0 items-center rounded px-2.5 text-[13px] font-normal text-erp-muted whitespace-nowrap transition-colors",
               "hover:bg-black/[0.06] hover:text-erp-text",

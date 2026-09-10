@@ -21,6 +21,8 @@ export interface CustomerFormProps {
   errors: Partial<Record<keyof CustomerFormValues, { message?: string }>>;
   customerType: CustomerFormValues["customer_type"];
   onCustomerTypeChange: (value: CustomerFormValues["customer_type"]) => void;
+  /** When true, every control is non-interactive (view-only). */
+  readOnly?: boolean;
 }
 
 export function CustomerForm({
@@ -28,9 +30,10 @@ export function CustomerForm({
   errors,
   customerType,
   onCustomerTypeChange,
+  readOnly = false,
 }: CustomerFormProps) {
   return (
-    <>
+    <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
       <FormSection title="Basic information">
         <FormGrid columns={12}>
           <FormField label="Type" htmlFor="customer-type" span={12}>
@@ -165,6 +168,6 @@ export function CustomerForm({
           </FormField>
         </FormGrid>
       </FormSection>
-    </>
+    </fieldset>
   );
 }

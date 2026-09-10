@@ -5,4 +5,5 @@
  */
 export * from "./api";
 export * from "./queries";
+export * from "./permissions";
 export { DRAFT_ROW_CLASS_NAME, draftRowClassNameWhen } from "./draftRowClassName";
