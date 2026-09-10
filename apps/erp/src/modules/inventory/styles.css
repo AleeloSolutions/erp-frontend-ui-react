@@ -1,0 +1,4 @@
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+@import "../../../../kaabe-frontend/packages/ui/src/tokens/index.css";
+@source "./";
