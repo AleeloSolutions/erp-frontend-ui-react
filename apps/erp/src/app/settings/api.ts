@@ -292,13 +292,8 @@ export function useDocumentLayout() {
         toInvoiceSettings(
           savedLayout,
           savedIdentity ?? {
-            street: "",
-            street2: "",
-            city: "",
-            state: "",
-            zip: "",
-            country: "",
-            tax_number: "",
+            ...addressColumns(next),
+            tax_number: next.taxId ?? "",
           }
         )
       );
