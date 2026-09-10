@@ -1,3 +1,7 @@
+/**
+ * Platform → Module packages, against `/api/v1/platform/packages/`.
+ */
+
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ToastProvider } from "@erp/ui";
@@ -8,7 +12,9 @@ import ModulePackagesPage from "./ModulePackagesPage";
 const api = vi.hoisted(() => ({
   reload: vi.fn(),
   uploadPackage: vi.fn(),
-  installPackage: vi.fn(),
+  promotePackage: vi.fn(),
+  markPackageDeployed: vi.fn(),
+  activatePackage: vi.fn(),
   packages: [] as ModulePackage[],
   listeners: new Set<() => void>(),
   setPackages(next: ModulePackage[]) {
@@ -39,7 +45,10 @@ vi.mock("./packagesApi", async () => {
       };
     },
     uploadPackage: api.uploadPackage,
-    installPackage: api.installPackage,
+    promotePackage: api.promotePackage,
+    installPackage: api.promotePackage,
+    markPackageDeployed: api.markPackageDeployed,
+    activatePackage: api.activatePackage,
   };
 });
 
@@ -70,6 +79,10 @@ const UPLOADED: ModulePackage = {
   has_styles: false,
   checksum: "abc",
   install_log: "",
+  backend_pr_url: "",
+  frontend_pr_url: "",
+  promoted_at: null,
+  deployed_at: null,
   installed_at: null,
   uploaded_by: "platform@kaabe.local",
   created_at: "2026-09-08T10:00:00Z",
@@ -90,7 +103,9 @@ describe("ModulePackagesPage", () => {
   beforeEach(() => {
     api.reload.mockClear();
     api.uploadPackage.mockReset();
-    api.installPackage.mockReset();
+    api.promotePackage.mockReset();
+    api.markPackageDeployed.mockReset();
+    api.activatePackage.mockReset();
     api.listeners.clear();
     api.setPackages([UPLOADED]);
   });
@@ -110,29 +125,27 @@ describe("ModulePackagesPage", () => {
     expect(api.reload).toHaveBeenCalledTimes(1);
   });
 
-  it("asks before installing, then starts the pipeline and reloads", async () => {
-    api.installPackage.mockResolvedValue({ ...UPLOADED, status: "installing" });
+  it("asks before promoting, then starts the pipeline and reloads", async () => {
+    api.promotePackage.mockResolvedValue({ ...UPLOADED, status: "promoting" });
     renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "Row actions" }));
-    fireEvent.click(screen.getByText("Install"));
-    expect(api.installPackage).not.toHaveBeenCalled();
-    const buttons = screen.getAllByRole("button", { name: "Install" });
+    fireEvent.click(screen.getByText("Promote"));
+    expect(api.promotePackage).not.toHaveBeenCalled();
+    const buttons = screen.getAllByRole("button", { name: "Promote" });
     fireEvent.click(buttons[buttons.length - 1]);
 
-    await waitFor(() => expect(api.installPackage).toHaveBeenCalledWith("pk1"));
+    await waitFor(() => expect(api.promotePackage).toHaveBeenCalledWith("pk1"));
     expect(api.reload).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the install log of the selected package", () => {
+  it("shows the promote log of the selected package", () => {
     api.setPackages([
-      { ...UPLOADED, status: "failed", install_log: "[10:00:00] migrations failed" },
+      { ...UPLOADED, status: "failed", install_log: "[10:00:00] promote failed" },
     ]);
     renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "Point of Sale" }));
-    expect(screen.getByLabelText("Install log").textContent).toContain(
-      "migrations failed"
-    );
+    expect(screen.getByLabelText("Install log").textContent).toContain("promote failed");
   });
 });

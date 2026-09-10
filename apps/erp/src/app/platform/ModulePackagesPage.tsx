@@ -1,10 +1,5 @@
 /**
- * Platform → Module packages: the senior's screen.
- *
- * Upload a module zip, install it, watch the pipeline's log land. An
- * install runs on the server (checks, unpack, migrate, activate for every
- * tenant, reload); the list polls while it runs. Platform accounts only
- * (RequirePlatform, and the API's own 404).
+ * Platform → Module packages: upload, promote to PRs, mark deployed, activate.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -25,7 +20,9 @@ import {
 import { AppShell, useNavbarDefaults } from "@/app";
 import { ApiError } from "@/lib/api-client";
 import {
-  installPackage,
+  activatePackage,
+  markPackageDeployed,
+  promotePackage,
   uploadPackage,
   usePackages,
   type ModulePackage,
@@ -34,8 +31,11 @@ import {
 
 const STATUS_BADGE: Record<PackageStatus, { status: string; label: string }> = {
   uploaded: { status: "draft", label: "Uploaded" },
-  installing: { status: "pending", label: "Installing" },
-  installed: { status: "active", label: "Installed" },
+  promoting: { status: "pending", label: "Promoting" },
+  installing: { status: "pending", label: "Promoting" },
+  pr_open: { status: "pending", label: "PRs open" },
+  deployed: { status: "active", label: "Deployed" },
+  installed: { status: "active", label: "Activated" },
   failed: { status: "overdue", label: "Failed" },
   superseded: { status: "inactive", label: "Superseded" },
 };
@@ -53,29 +53,28 @@ export default function ModulePackagesPage() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [pendingInstall, setPendingInstall] = useState<ModulePackage | null>(null);
+  const [pendingPromote, setPendingPromote] = useState<ModulePackage | null>(null);
+  const [pendingActivate, setPendingActivate] = useState<ModulePackage | null>(null);
   const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
 
   const selected = packages.find((row) => row.uuid === selectedUuid) ?? null;
   const seenStatus = useRef<Record<string, PackageStatus>>({});
 
-  // Toast when a pipeline finishes: start only said "Installing…", so success
-  // / failure need their own message once the polled status lands.
   useEffect(() => {
     for (const row of packages) {
       const previous = seenStatus.current[row.uuid];
       seenStatus.current[row.uuid] = row.status;
-      if (previous !== "installing") continue;
-      if (row.status === "installed") {
+      if (previous !== "promoting" && previous !== "installing") continue;
+      if (row.status === "pr_open") {
         toast({
-          title: `${row.label} ${row.version} installed`,
-          description: "Switched on for every workspace.",
+          title: `${row.label} ${row.version} PRs opened`,
+          description: "Review, merge, deploy, then Mark deployed.",
           variant: "success",
         });
       } else if (row.status === "failed") {
         toast({
-          title: `${row.label} ${row.version} failed to install`,
-          description: "Open the install log for detail.",
+          title: `${row.label} ${row.version} failed to promote`,
+          description: "Open the log for detail.",
           variant: "error",
         });
       }
@@ -97,7 +96,7 @@ export default function ModulePackagesPage() {
       const uploaded = await uploadPackage(file);
       toast({
         title: `${uploaded.label} ${uploaded.version} uploaded`,
-        description: "Checked and stored. Install it when you are ready.",
+        description: "Checked and stored. Promote it when you are ready.",
         variant: "success",
       });
       setFile(null);
@@ -111,19 +110,54 @@ export default function ModulePackagesPage() {
     }
   }
 
-  async function install(row: ModulePackage) {
+  async function promote(row: ModulePackage) {
     try {
-      await installPackage(row.uuid);
+      await promotePackage(row.uuid);
       toast({
-        title: `Installing ${row.label} ${row.version}`,
-        description: "The log below follows the pipeline.",
+        title: `Promoting ${row.label} ${row.version}`,
+        description: "Opening pull requests on backend and frontend.",
         variant: "info",
       });
-      setPendingInstall(null);
+      setPendingPromote(null);
       setSelectedUuid(row.uuid);
       reload();
     } catch (err) {
-      reportFailure(err, `Could not start installing ${row.label}`);
+      reportFailure(err, `Could not start promoting ${row.label}`);
+    }
+  }
+
+  async function markDeployed(row: ModulePackage) {
+    try {
+      await markPackageDeployed(row.uuid);
+      toast({
+        title: `${row.label} marked deployed`,
+        description: "You can Activate it for every workspace.",
+        variant: "success",
+      });
+      reload();
+    } catch (err) {
+      reportFailure(err, `Could not mark ${row.label} deployed`);
+    }
+  }
+
+  async function activate(row: ModulePackage) {
+    try {
+      const result = await activatePackage(row.uuid);
+      toast({
+        title:
+          result.status === "installed"
+            ? `${row.label} activated`
+            : `${row.label} activate finished with ${result.status}`,
+        description:
+          result.status === "installed"
+            ? "Switched on for every workspace."
+            : "Open the log for detail.",
+        variant: result.status === "installed" ? "success" : "error",
+      });
+      setPendingActivate(null);
+      reload();
+    } catch (err) {
+      reportFailure(err, `Could not activate ${row.label}`);
     }
   }
 
@@ -156,15 +190,42 @@ export default function ModulePackagesPage() {
         },
       },
       {
-        id: "frontend",
-        header: "Frontend",
-        size: 100,
+        id: "prs",
+        header: "PRs",
+        size: 140,
         enableSorting: false,
-        cell: ({ row }) => (row.original.has_bundle ? "Bundle" : "—"),
+        cell: ({ row }) => {
+          const { backend_pr_url: backend, frontend_pr_url: frontend } = row.original;
+          if (!backend && !frontend) return "—";
+          return (
+            <span className="inline-flex flex-col gap-0.5 text-[11px]">
+              {backend ? (
+                <a
+                  href={backend}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-erp-blue hover:underline"
+                >
+                  Backend
+                </a>
+              ) : null}
+              {frontend ? (
+                <a
+                  href={frontend}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-erp-blue hover:underline"
+                >
+                  Frontend
+                </a>
+              ) : null}
+            </span>
+          );
+        },
       },
       {
         id: "installed_at",
-        header: "Installed",
+        header: "Activated",
         size: 170,
         cell: ({ row }) => formatDateTime(row.original.installed_at),
       },
@@ -179,9 +240,23 @@ export default function ModulePackagesPage() {
     ];
     if (row.status === "uploaded" || row.status === "failed") {
       actions.push({
-        key: "install",
-        label: row.status === "failed" ? "Retry install" : "Install",
-        onClick: () => setPendingInstall(row),
+        key: "promote",
+        label: row.status === "failed" ? "Retry promote" : "Promote",
+        onClick: () => setPendingPromote(row),
+      });
+    }
+    if (row.status === "pr_open") {
+      actions.push({
+        key: "mark-deployed",
+        label: "Mark deployed",
+        onClick: () => void markDeployed(row),
+      });
+    }
+    if (row.status === "deployed") {
+      actions.push({
+        key: "activate",
+        label: "Activate",
+        onClick: () => setPendingActivate(row),
       });
     }
     return actions;
@@ -216,7 +291,7 @@ export default function ModulePackagesPage() {
             Upload
           </Button>
           <span className="text-erp-muted">
-            manifest.json, backend/apps/&lt;key&gt;/, frontend/module.js
+            Promote opens PRs → Mark deployed → Activate for every workspace
           </span>
         </CardContent>
       </Card>
@@ -237,7 +312,7 @@ export default function ModulePackagesPage() {
         <Card className="mt-4">
           <CardHeader>
             <CardTitle>
-              {selected.label} {selected.version} — install log
+              {selected.label} {selected.version} — promote log
             </CardTitle>
             <span className="ms-auto">
               {(() => {
@@ -246,30 +321,70 @@ export default function ModulePackagesPage() {
               })()}
             </span>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            {(selected.backend_pr_url || selected.frontend_pr_url) && (
+              <div className="flex flex-wrap gap-3 text-[12px]">
+                {selected.backend_pr_url ? (
+                  <a
+                    href={selected.backend_pr_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-erp-blue hover:underline"
+                  >
+                    Backend PR
+                  </a>
+                ) : null}
+                {selected.frontend_pr_url ? (
+                  <a
+                    href={selected.frontend_pr_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-erp-blue hover:underline"
+                  >
+                    Frontend PR
+                  </a>
+                ) : null}
+              </div>
+            )}
             <pre
               className="m-0 max-h-80 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-erp-text"
               aria-label="Install log"
             >
-              {selected.install_log || "Not installed yet."}
+              {selected.install_log || "Not promoted yet."}
             </pre>
           </CardContent>
         </Card>
       ) : null}
 
       <ConfirmDialog
-        open={pendingInstall !== null}
+        open={pendingPromote !== null}
         title={
-          pendingInstall
-            ? `Install ${pendingInstall.label} ${pendingInstall.version}?`
+          pendingPromote
+            ? `Promote ${pendingPromote.label} ${pendingPromote.version}?`
             : ""
         }
-        description="Its migrations run now and it is switched on for every workspace. Members get no access until a role grants it; each workspace's admin role receives its permissions."
-        confirmLabel="Install"
+        description="Opens pull requests on the backend and frontend repos. It does not activate tenants until you Mark deployed and Activate after merge."
+        confirmLabel="Promote"
         variant="primary"
-        onCancel={() => setPendingInstall(null)}
+        onCancel={() => setPendingPromote(null)}
         onConfirm={() => {
-          if (pendingInstall) void install(pendingInstall);
+          if (pendingPromote) void promote(pendingPromote);
+        }}
+      />
+
+      <ConfirmDialog
+        open={pendingActivate !== null}
+        title={
+          pendingActivate
+            ? `Activate ${pendingActivate.label} ${pendingActivate.version}?`
+            : ""
+        }
+        description="Switches the module on for every workspace. Members get no access until a role grants it; each workspace's admin role receives its permissions."
+        confirmLabel="Activate"
+        variant="primary"
+        onCancel={() => setPendingActivate(null)}
+        onConfirm={() => {
+          if (pendingActivate) void activate(pendingActivate);
         }}
       />
     </AppShell>

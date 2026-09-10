@@ -1,14 +1,9 @@
 /**
  * Platform → Module packages, against `/api/v1/platform/packages/`.
  *
- * A package is a module zip a platform-staff member uploads; installing
- * it runs a pipeline on the server (checks, unpack, migrate, activate for
- * every tenant, reload) whose progress lands in the row's `install_log`.
- * While a package is installing the list polls, so the screen follows
- * the pipeline without a refresh.
- *
- * Plain state + effect rather than React Query, like the rest of the
- * app's own screens.
+ * Upload a zip, Promote opens backend/frontend PRs, Mark deployed after
+ * Coolify/Vercel are green, Manual Activate switches the module on for
+ * every workspace. While status is `promoting` the list polls.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -16,7 +11,14 @@ import { apiGet, apiPost } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
 
 export type PackageStatus =
-  "uploaded" | "installing" | "installed" | "failed" | "superseded";
+  | "uploaded"
+  | "promoting"
+  | "pr_open"
+  | "deployed"
+  | "installed"
+  | "failed"
+  | "superseded"
+  | "installing";
 
 export interface ModulePackage {
   uuid: string;
@@ -28,6 +30,10 @@ export interface ModulePackage {
   has_styles: boolean;
   checksum: string;
   install_log: string;
+  backend_pr_url: string;
+  frontend_pr_url: string;
+  promoted_at: string | null;
+  deployed_at: string | null;
   installed_at: string | null;
   uploaded_by: string | null;
   created_at: string;
@@ -45,8 +51,22 @@ export function uploadPackage(file: File) {
   return apiPost<ModulePackage>("/v1/platform/packages/", form, { rawBody: true });
 }
 
+/** Start promote-to-PR (alias path /install/). */
+export function promotePackage(uuid: string) {
+  return apiPost<ModulePackage>(`/v1/platform/packages/${uuid}/promote/`);
+}
+
+/** @deprecated use promotePackage */
 export function installPackage(uuid: string) {
-  return apiPost<ModulePackage>(`/v1/platform/packages/${uuid}/install/`);
+  return promotePackage(uuid);
+}
+
+export function markPackageDeployed(uuid: string) {
+  return apiPost<ModulePackage>(`/v1/platform/packages/${uuid}/mark-deployed/`);
+}
+
+export function activatePackage(uuid: string) {
+  return apiPost<ModulePackage>(`/v1/platform/packages/${uuid}/activate/`);
 }
 
 /** How often the list re-asks while a pipeline is running. */
@@ -66,7 +86,6 @@ export function usePackages(pollMs = POLL_MS) {
       return;
     }
     const id = ++requestId.current;
-    // Spinner only before the first successful (or empty) answer; polls stay quiet.
     if (!hasLoaded.current) setLoading(true);
     void listPackages()
       .then((rows) => {
@@ -84,8 +103,6 @@ export function usePackages(pollMs = POLL_MS) {
           }
           return current;
         });
-        // Always drop the spinner: a cancelled Strict-Mode remount used to
-        // leave loading true forever when the first request was abandoned.
         setLoading(false);
         hasLoaded.current = true;
       });
@@ -93,14 +110,14 @@ export function usePackages(pollMs = POLL_MS) {
 
   const reload = useCallback(() => setReloadToken((token) => token + 1), []);
 
-  // Steady interval while any row is installing — survives failed polls
-  // during Django autoreload without needing a page change.
-  const installing = packages.some((row) => row.status === "installing");
+  const promoting = packages.some(
+    (row) => row.status === "promoting" || row.status === "installing"
+  );
   useEffect(() => {
-    if (!installing) return;
+    if (!promoting) return;
     const timer = setInterval(reload, pollMs);
     return () => clearInterval(timer);
-  }, [installing, pollMs, reload]);
+  }, [promoting, pollMs, reload]);
 
   return { packages, loading, error, reload };
 }
