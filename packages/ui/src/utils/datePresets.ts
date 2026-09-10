@@ -152,6 +152,17 @@ export function resolveDateFilterToken(
   );
 }
 
+export function encodeDateRangesQuery(
+  tokens: string[],
+  now: Date = new Date()
+): string {
+  const ranges = tokens
+    .map((token) => resolveDateFilterToken(token, now))
+    .filter((range): range is DateRange => range != null);
+  if (ranges.length === 0) return "";
+  return ranges.map((range) => `${range.from}..${range.to}`).join("|");
+}
+
 /** True when `isoDate` falls in any of the selected tokens (OR semantics, Odoo-style). */
 export function dateMatchesFilterTokens(
   isoDate: string,

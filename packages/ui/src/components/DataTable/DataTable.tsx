@@ -314,6 +314,8 @@ export interface DataTableProps<TData, TValue = unknown> {
   enableGrouping?: boolean;
   /** Group By dimensions — column ids/labels (not filter option values). */
   groupingOptions?: DataTableGroupingOption[];
+  /** Fires when Group By selections change (including period grains). */
+  onGroupingChange?: (columnIds: string[]) => void;
   getRowId?: (originalRow: TData, index: number) => string;
   sorting?: DataTableSortingConfig;
   /**
@@ -392,6 +394,7 @@ export function DataTable<TData, TValue = unknown>({
   enableColumnResizing = true,
   enableGrouping = false,
   groupingOptions = [],
+  onGroupingChange,
   getRowId,
   sorting: controlledSorting,
   filtering: controlledFiltering,
@@ -435,6 +438,10 @@ export function DataTable<TData, TValue = unknown>({
   const [containerWidth, setContainerWidth] = useState(0);
   const [headerHeight, setHeaderHeight] = useState(40);
   const [grouping, setGrouping] = useState<string[]>([]);
+
+  useEffect(() => {
+    onGroupingChange?.(grouping);
+  }, [grouping, onGroupingChange]);
   const [paginationState, setPaginationState] = useState<PaginationState>({
     pageIndex: isServerPagination ? Math.max(0, pagination.page - 1) : 0,
     pageSize: isServerPagination ? pagination.pageSize : initialPageSize,
@@ -696,6 +703,8 @@ export function DataTable<TData, TValue = unknown>({
 
     filters.forEach((filter) => {
       if (filter.type !== "date-presets") return;
+      // Server lists own date filtering via issue_date_ranges (etc.).
+      if (manualFiltering) return;
       const raw = filterValues[filter.key];
       const selected = Array.isArray(raw)
         ? raw

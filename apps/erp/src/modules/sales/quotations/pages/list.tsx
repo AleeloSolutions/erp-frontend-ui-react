@@ -14,6 +14,7 @@ import {
   DataTable,
   Drawer,
   PageActions,
+  encodeDateRangesQuery,
   periodGroupingOption,
   StatusBadge,
   useDebounce,
@@ -50,21 +51,43 @@ export default function QuotationsPage() {
   ]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [periodGroupingActive, setPeriodGroupingActive] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Quotation | null>(null);
   const [detailQuotation, setDetailQuotation] = useState<Quotation | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
-  const statusFilter = String(filterValues.status ?? "");
+  const statusRaw = filterValues.status;
+  const statusFilter = Array.isArray(statusRaw)
+    ? String(statusRaw[0] ?? "")
+    : String(statusRaw ?? "");
+
+  const dateTokens = useMemo(() => {
+    const raw = filterValues.issue_date;
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === "string" && raw) return [raw];
+    return [];
+  }, [filterValues.issue_date]);
+
+  const issueDateRanges = useMemo(
+    () => encodeDateRangesQuery(dateTokens),
+    [dateTokens]
+  );
+
+  /** Period group-by needs enough rows from the filtered set to nest meaningfully. */
+  const listPageSize = periodGroupingActive ? Math.max(pageSize, 200) : pageSize;
 
   const params = useMemo(
     () => ({
       search: debouncedSearch,
       ordering: orderingOf(sorting),
       page,
-      pageSize,
-      filters: { status: statusFilter },
+      pageSize: listPageSize,
+      filters: {
+        ...(statusFilter ? { status: statusFilter } : {}),
+        ...(issueDateRanges ? { issue_date_ranges: issueDateRanges } : {}),
+      },
     }),
-    [debouncedSearch, sorting, page, pageSize, statusFilter]
+    [debouncedSearch, sorting, page, listPageSize, statusFilter, issueDateRanges]
   );
 
   const quotationsQuery = useQuotationsQuery(params);
@@ -224,6 +247,13 @@ export default function QuotationsPage() {
           { label: "Customer", value: "customer" },
           periodGroupingOption("Order Date", "issue_date", { defaultExpanded: true }),
         ]}
+        onGroupingChange={(columnIds) => {
+          const next = columnIds.some((id) => id.startsWith("__period:"));
+          setPeriodGroupingActive((prev) => {
+            if (prev !== next) setPage(1);
+            return next;
+          });
+        }}
         filters={filters}
         filtering={{
           state: filterValues,
@@ -248,7 +278,7 @@ export default function QuotationsPage() {
         }
         pagination={{
           page,
-          pageSize,
+          pageSize: listPageSize,
           total: quotationsQuery.data?.meta.total ?? 0,
           onPageChange: setPage,
           onPageSizeChange: (size) => {

@@ -18,6 +18,7 @@ export {
   buildOdooDateFilterOptions,
   dateMatchesFilterTokens,
   encodeCustomRange,
+  encodeDateRangesQuery,
   encodeMonthToken,
   encodeQuarterToken,
   encodeYearToken,
