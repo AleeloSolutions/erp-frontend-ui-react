@@ -10,6 +10,7 @@
 
 import type { NavigationItem } from "@erp/ui";
 import type { ModuleManifest } from "@/modules/types";
+import { isAuthenticated } from "@/lib/auth";
 
 /** Seeing a module at all: at any rung of the ladder. */
 export function viewing(...resources: string[]): string[] {
@@ -28,6 +29,7 @@ function anyScope(resource: string, verb: string): string[] {
 export const SETTINGS_CODES = {
   company: ["settings.client.edit"],
   documentLayout: ["settings.document_layout.edit"],
+  sales: ["settings.sales.edit"],
   users: [
     ...anyScope("settings.user", "create"),
     ...anyScope("settings.user", "edit"),
@@ -41,12 +43,14 @@ export const SETTINGS_CODES = {
 /**
  * Codes that open Settings in the sidebar and the `/settings` route.
  *
- * Branch / company / document-layout alone are not enough — those are
- * day-to-day ops, not administration. Owners and the seeded `admin` role
- * hold users/roles/modules codes; a member given only sales (or only
- * branches) must not see Settings or other people's accounts.
+ * Any grant that unlocks a Settings *tab* must open Settings. Branch
+ * grants alone do not: there is no Branches tab, and they must not unlock
+ * Users either.
  */
 export const SETTINGS_ACCESS_CODES: string[] = [
+  ...SETTINGS_CODES.company,
+  ...SETTINGS_CODES.documentLayout,
+  ...SETTINGS_CODES.sales,
   ...SETTINGS_CODES.users,
   ...SETTINGS_CODES.roles,
   ...SETTINGS_CODES.modules,
@@ -89,9 +93,11 @@ export function navRequirementFor(
 
 export function holdsAny(codes: string[] | null, required: string[]): boolean {
   if (required.length === 0) return true;
-  // Unknown yet (still loading, or Storybook): offer everything rather than
-  // flashing an empty sidebar. The API still refuses what it must.
-  if (codes === null) return true;
+  // Unknown yet while signed in (me/ still loading, or Storybook with a
+  // mocked session path): offer everything rather than flashing empty.
+  // Signed out (logout cleared tokens): offer nothing — otherwise every
+  // Settings tab briefly appears before the login redirect.
+  if (codes === null) return isAuthenticated();
   return required.some((code) => codes.includes(code));
 }
 

@@ -1,21 +1,25 @@
+/**
+ * Landing point on the tenant subdomain after a single-use `?token=` is
+ * issued: redeems it for a JWT pair and opens the dashboard.
+ *
+ * Used for two cases with different chrome:
+ * - New company signup (`?setup=1`): "Preparing your workspace…"
+ * - Ordinary login / workspace handoff: silent exchange (no ceremony)
+ */
+
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { setTokens } from "@/lib/auth";
 import { forgetSession } from "@/app/session";
 import { exchangeAutoLoginToken } from "./api";
 
-/**
- * Landing point on the tenant subdomain right after signup (or a
- * base-domain login): redeems the single-use `?token=` for a JWT pair
- * and drops the user in the dashboard. A used/expired token falls back
- * to the login form.
- */
 export default function WelcomePage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [failed, setFailed] = useState(false);
   // StrictMode runs effects twice in dev; the token is single-use.
   const ran = useRef(false);
+  const isNewCompanySetup = params.get("setup") === "1";
 
   useEffect(() => {
     if (ran.current) return;
@@ -51,12 +55,12 @@ export default function WelcomePage() {
             Go to sign in
           </Link>
         </>
-      ) : (
+      ) : isNewCompanySetup ? (
         <>
           <h1 className="m-0 text-lg font-bold">Preparing your workspace…</h1>
           <p className="m-0 text-[13px] text-erp-muted">Signing you in securely.</p>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

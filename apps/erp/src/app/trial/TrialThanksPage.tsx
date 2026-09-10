@@ -107,7 +107,7 @@ export default function TrialThanksPage() {
         // Enter the freshly provisioned workspace on its own subdomain,
         // signed in via the single-use token from the signup response.
         window.location.replace(
-          `${state.tenantUrl}/welcome?token=${encodeURIComponent(state.autoLoginToken)}`
+          `${state.tenantUrl}/welcome?token=${encodeURIComponent(state.autoLoginToken)}&setup=1`
         );
         return;
       }

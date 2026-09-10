@@ -3,35 +3,24 @@ import { holdsAny } from "@/app/access";
 import { SETTINGS_TAB_REQUIREMENTS, type SettingsTabKey } from "./settingsTabs";
 
 /** Top-level Settings areas shown in the Navbar. */
-export type SettingsModuleKey = "general" | "sales" | "accounting" | "inventories";
+export type SettingsModuleKey = "general" | "sales";
 
-export const SETTINGS_MODULE_ORDER: SettingsModuleKey[] = [
-  "general",
-  "sales",
-  "accounting",
-  "inventories",
-];
+export const SETTINGS_MODULE_ORDER: SettingsModuleKey[] = ["general", "sales"];
 
 export const SETTINGS_MODULE_LABELS: Record<SettingsModuleKey, string> = {
   general: "General",
   sales: "Sales",
-  accounting: "Accounting",
-  inventories: "Inventories",
 };
 
 /** Sub-tabs offered inside each Settings module. */
 export const SETTINGS_MODULE_TABS: Record<SettingsModuleKey, SettingsTabKey[]> = {
   general: ["company", "users", "document-layout", "language", "modules"],
   sales: ["sales"],
-  accounting: ["accounting-stub"],
-  inventories: ["inventories-stub"],
 };
 
 const STUB_TAB_LABELS: Partial<Record<SettingsTabKey, string>> = {
   language: "Language",
   sales: "Sales settings",
-  "accounting-stub": "Accounting settings",
-  "inventories-stub": "Inventory settings",
 };
 
 const GENERAL_TAB_LABELS: Partial<Record<SettingsTabKey, string>> = {

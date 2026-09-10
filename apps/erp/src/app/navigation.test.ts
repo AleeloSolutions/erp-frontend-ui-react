@@ -46,9 +46,10 @@ describe("buildNavigation", () => {
     ).toEqual(["dashboard", "settings"]);
   });
 
-  it("offers no module while the session is unknown", () => {
-    // "Installed" is not something to guess at; the platform entries stay.
-    expect(keys(null)).toEqual(["dashboard", "settings"]);
+  it("offers only unrestricted entries while the session is unknown", () => {
+    // No tokens → signed out: Settings must not flash open. Dashboard has
+    // an empty requirement list so it stays.
+    expect(keys(null)).toEqual(["dashboard"]);
   });
 
   it("places modules by area, in the declared order", () => {
@@ -85,7 +86,7 @@ describe("buildNavigation", () => {
     ]);
   });
 
-  it("hides Settings for members without administration codes", () => {
+  it("hides Settings when no Settings tab would be usable", () => {
     expect(
       keys({
         permissions: ["sales.customer.view", "sales.quotation.view"],
@@ -93,7 +94,7 @@ describe("buildNavigation", () => {
         user_type: "member",
       })
     ).toEqual(["dashboard", "sales"]);
-    // Branch-only grants used to open Settings (and the Users tab); they must not.
+    // Branch-only grants must not open Settings (no Branches tab; Users stays locked).
     expect(
       keys({
         permissions: ["settings.branch.create", "settings.branch.edit"],
@@ -101,6 +102,30 @@ describe("buildNavigation", () => {
         user_type: "member",
       })
     ).toEqual(["dashboard"]);
+  });
+
+  it("offers Settings for company or document-layout grants", () => {
+    expect(
+      keys({
+        permissions: ["sales.customer.view", "settings.client.edit"],
+        enabled_modules: ["sales"],
+        user_type: "member",
+      })
+    ).toEqual(["dashboard", "sales", "settings"]);
+    expect(
+      keys({
+        permissions: ["settings.document_layout.edit"],
+        enabled_modules: ["sales"],
+        user_type: "member",
+      })
+    ).toEqual(["dashboard", "settings"]);
+    expect(
+      keys({
+        permissions: ["settings.sales.edit"],
+        enabled_modules: ["sales"],
+        user_type: "member",
+      })
+    ).toEqual(["dashboard", "settings"]);
   });
 
   it("only offers Sales children the account can view", () => {

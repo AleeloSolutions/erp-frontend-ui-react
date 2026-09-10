@@ -91,7 +91,10 @@ export async function signOut() {
   } catch {
     // Already expired, or offline -- either way the session ends here.
   }
-  clearTokens();
+  // Drop tokens without notifying React: a null session makes holdsAny
+  // briefly treat every Settings tab as allowed. Keep the last gated UI
+  // painted until this document unloads on the login redirect.
+  clearTokens({ announce: false });
   forgetSession();
   window.location.assign(`${platformOrigin()}/login`);
 }

@@ -92,17 +92,3 @@ export const Sales: Story = {
     defaultTab: "sales",
   },
 };
-
-export const AccountingStub: Story = {
-  args: {
-    defaultModule: "accounting",
-    defaultTab: "accounting-stub",
-  },
-};
-
-export const InventoriesStub: Story = {
-  args: {
-    defaultModule: "inventories",
-    defaultTab: "inventories-stub",
-  },
-};

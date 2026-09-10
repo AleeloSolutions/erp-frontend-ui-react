@@ -1,5 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { Building2, CircleHelp, ShieldCheck, Users } from "lucide-react";
+import { SETTINGS_CODES, holdsAny } from "@/app/access";
+import { useSession } from "@/app/session";
 import { useCompanyInfo } from "../api";
 import { useBranches } from "../branchesApi";
 import { useRoles } from "../rolesApi";
@@ -18,7 +20,6 @@ import { SettingsRolesPanel } from "./SettingsRolesPanel";
 import { SettingsSection } from "./SettingsSection";
 import { LanguageSettingsForm } from "./LanguageSettingsForm";
 import { SalesSettingsPanel } from "./SalesSettingsPanel";
-import { SettingsStubPanel } from "./SettingsStubPanel";
 import { SettingsUsersPanel } from "./SettingsUsersPanel";
 
 export interface SettingsTabPanelProps {
@@ -77,6 +78,12 @@ function CountLabel({
 function SettingsUsersOverview({
   onOpenDetail,
 }: Pick<SettingsTabPanelProps, "onOpenDetail">) {
+  const session = useSession();
+  const codes = session?.permissions ?? null;
+  const canUsers = holdsAny(codes, [...SETTINGS_CODES.users]);
+  const canRoles = holdsAny(codes, [...SETTINGS_CODES.roles]);
+  const canBranches = holdsAny(codes, [...SETTINGS_CODES.branches]);
+
   // One page of one row: we only need meta.total, not the users themselves.
   const { total, loading: usersLoading } = useTenantUsers({
     search: "",
@@ -91,62 +98,68 @@ function SettingsUsersOverview({
   return (
     <SettingsOverviewShell>
       <SettingsSection title="Users">
-        <SettingsOverviewTile
-          icon={<Users className="h-[18px] w-[18px]" aria-hidden />}
-          title={
-            <span className="inline-flex items-center gap-1.5">
+        {canUsers ? (
+          <SettingsOverviewTile
+            icon={<Users className="h-[18px] w-[18px]" aria-hidden />}
+            title={
+              <span className="inline-flex items-center gap-1.5">
+                <CountLabel
+                  loading={usersLoading}
+                  count={total}
+                  singular="Active User"
+                  plural="Active Users"
+                />
+                <CircleHelp
+                  className="h-3.5 w-3.5 text-erp-brand-third"
+                  aria-label="Counts users with access to this workspace"
+                />
+              </span>
+            }
+            action={
+              <SettingsOverviewLink onClick={() => onOpenDetail("users-manage")}>
+                Manage Users
+              </SettingsOverviewLink>
+            }
+          />
+        ) : null}
+        {canRoles ? (
+          <SettingsOverviewTile
+            icon={<ShieldCheck className="h-[18px] w-[18px]" aria-hidden />}
+            title={
               <CountLabel
-                loading={usersLoading}
-                count={total}
-                singular="Active User"
-                plural="Active Users"
+                loading={rolesLoading}
+                count={roles.length}
+                singular="Role"
+                plural="Roles"
               />
-              <CircleHelp
-                className="h-3.5 w-3.5 text-erp-brand-third"
-                aria-label="Counts users with access to this workspace"
+            }
+            description="What each role may view, create, edit and delete"
+            action={
+              <SettingsOverviewLink onClick={() => onOpenDetail("roles-manage")}>
+                Manage Roles
+              </SettingsOverviewLink>
+            }
+          />
+        ) : null}
+        {canBranches ? (
+          <SettingsOverviewTile
+            icon={<Building2 className="h-[18px] w-[18px]" aria-hidden />}
+            title={
+              <CountLabel
+                loading={branchesLoading}
+                count={branches.length}
+                singular="Branch"
+                plural="Branches"
               />
-            </span>
-          }
-          action={
-            <SettingsOverviewLink onClick={() => onOpenDetail("users-manage")}>
-              Manage Users
-            </SettingsOverviewLink>
-          }
-        />
-        <SettingsOverviewTile
-          icon={<ShieldCheck className="h-[18px] w-[18px]" aria-hidden />}
-          title={
-            <CountLabel
-              loading={rolesLoading}
-              count={roles.length}
-              singular="Role"
-              plural="Roles"
-            />
-          }
-          description="What each role may view, create, edit and delete"
-          action={
-            <SettingsOverviewLink onClick={() => onOpenDetail("roles-manage")}>
-              Manage Roles
-            </SettingsOverviewLink>
-          }
-        />
-        <SettingsOverviewTile
-          icon={<Building2 className="h-[18px] w-[18px]" aria-hidden />}
-          title={
-            <CountLabel
-              loading={branchesLoading}
-              count={branches.length}
-              singular="Branch"
-              plural="Branches"
-            />
-          }
-          description="Shops and offices, and who works at each"
-          action={
-            <SettingsOverviewLink onClick={() => onOpenDetail("branches-manage")}>
-              Manage Branches
-            </SettingsOverviewLink>
-          }
-        />
+            }
+            description="Shops and offices, and who works at each"
+            action={
+              <SettingsOverviewLink onClick={() => onOpenDetail("branches-manage")}>
+                Manage Branches
+              </SettingsOverviewLink>
+            }
+          />
+        ) : null}
       </SettingsSection>
     </SettingsOverviewShell>
   );
@@ -159,6 +172,10 @@ function SettingsCompanyOverview({
 }: Pick<SettingsTabPanelProps, "onOpenDetail" | "onOpenDocumentLayout"> & {
   info: CompanyInfo;
 }) {
+  const session = useSession();
+  const canDocumentLayout = holdsAny(session?.permissions ?? null, [
+    ...SETTINGS_CODES.documentLayout,
+  ]);
   const { name, taxNumber } = info;
   const address = formatAddress(info);
 
@@ -191,15 +208,17 @@ function SettingsCompanyOverview({
             </SettingsOverviewLink>
           }
         />
-        <SettingsOverviewTile
-          title="Document Layout"
-          description="Choose the layout of your documents"
-          action={
-            <SettingsOverviewLink onClick={onOpenDocumentLayout}>
-              Configure Document Layout
-            </SettingsOverviewLink>
-          }
-        />
+        {canDocumentLayout ? (
+          <SettingsOverviewTile
+            title="Document Layout"
+            description="Choose the layout of your documents"
+            action={
+              <SettingsOverviewLink onClick={onOpenDocumentLayout}>
+                Configure Document Layout
+              </SettingsOverviewLink>
+            }
+          />
+        ) : null}
       </SettingsSection>
     </SettingsOverviewShell>
   );
@@ -296,29 +315,8 @@ export function SettingsTabPanel({
     return <SalesSettingsPanel />;
   }
 
-  if (activeTab === "accounting-stub") {
-    return (
-      <SettingsStubPanel
-        title="Accounting settings"
-        description="Accounting configuration (fiscal year, chart of accounts defaults, and more) will appear here."
-      />
-    );
-  }
-
-  if (activeTab === "inventories-stub") {
-    return (
-      <SettingsStubPanel
-        title="Inventory settings"
-        description="Inventory configuration (units, warehouses defaults, and more) will appear here."
-      />
-    );
-  }
-
   const overviews: Record<
-    Exclude<
-      SettingsTabKey,
-      "language" | "sales" | "accounting-stub" | "inventories-stub"
-    >,
+    Exclude<SettingsTabKey, "language" | "sales">,
     () => ReactElement
   > = {
     users: () => <SettingsUsersOverview onOpenDetail={onOpenDetail} />,

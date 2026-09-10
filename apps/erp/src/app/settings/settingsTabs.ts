@@ -2,14 +2,7 @@ import type { TabItem } from "@erp/ui";
 import { SETTINGS_CODES, holdsAny } from "@/app/access";
 
 export type SettingsTabKey =
-  | "users"
-  | "company"
-  | "modules"
-  | "document-layout"
-  | "language"
-  | "sales"
-  | "accounting-stub"
-  | "inventories-stub";
+  "users" | "company" | "modules" | "document-layout" | "language" | "sales";
 
 /** The codes each tab needs. A tab nobody can act on is not offered. */
 export const SETTINGS_TAB_REQUIREMENTS: Record<SettingsTabKey, string[]> = {
@@ -18,12 +11,10 @@ export const SETTINGS_TAB_REQUIREMENTS: Record<SettingsTabKey, string[]> = {
   company: [...SETTINGS_CODES.company],
   modules: [...SETTINGS_CODES.modules],
   "document-layout": [...SETTINGS_CODES.documentLayout],
-  // Language shares the company grant.
+  // Locale lives on the company settings row (same API as Company Info).
   language: [...SETTINGS_CODES.company],
-  // Sales settings write rides on Company Info edit (same as the API).
-  sales: [...SETTINGS_CODES.company],
-  "accounting-stub": [...SETTINGS_CODES.company],
-  "inventories-stub": [...SETTINGS_CODES.company],
+  // Invoicing defaults — dedicated tick, not Company profile.
+  sales: [...SETTINGS_CODES.sales],
 };
 
 /** Flat list kept for callers/tests; Settings UI uses settingsTabsForModule. */

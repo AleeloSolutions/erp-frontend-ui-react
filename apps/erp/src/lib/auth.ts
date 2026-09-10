@@ -52,14 +52,14 @@ export function setTokens(pair: TokenPair): void {
   announce();
 }
 
-export function clearTokens(): void {
+export function clearTokens(options?: { announce?: boolean }): void {
   try {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
   } catch {
     // ignore
   }
-  announce();
+  if (options?.announce !== false) announce();
 }
 
 export function isAuthenticated(): boolean {

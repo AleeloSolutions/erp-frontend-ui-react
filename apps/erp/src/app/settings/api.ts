@@ -24,6 +24,7 @@ import {
 } from "@erp/ui";
 import { apiGet, apiPatch } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
+import { useSession } from "@/app/session";
 import { defaultCompanyInfo, type CompanyInfo } from "./settingsCompany";
 
 interface ClientDetail {
@@ -208,6 +209,7 @@ async function blobFromObjectUrl(url: string): Promise<{ blob: Blob; filename: s
 }
 
 export function useDocumentLayout() {
+  const session = useSession();
   const [settings, setSettings] = useState<DocumentSettings>(defaultDocumentSettings);
   const [loaded, setLoaded] = useState(false);
 
@@ -231,47 +233,78 @@ export function useDocumentLayout() {
     };
   }, []);
 
-  const save = useCallback(async (next: DocumentSettings) => {
-    const layoutFields: Record<string, string> = {
-      layout: next.layout,
-      table_style: next.tableStyle,
-      font: next.font,
-      paper_format: next.paperFormat,
-      has_qr_code: String(next.showQrCode),
-      primary_color: next.primaryColor,
-      secondary_color: next.secondaryColor,
-      tagline: next.tagline ?? "",
-      footer_text: next.footerText ?? "",
-      bank_account: next.bankAccount ?? "",
-    };
-    const identityFields = {
-      ...addressColumns(next),
-      tax_number: next.taxId ?? "",
-    };
+  const save = useCallback(
+    async (next: DocumentSettings) => {
+      const layoutFields: Record<string, string> = {
+        layout: next.layout,
+        table_style: next.tableStyle,
+        font: next.font,
+        paper_format: next.paperFormat,
+        has_qr_code: String(next.showQrCode),
+        primary_color: next.primaryColor,
+        secondary_color: next.secondaryColor,
+        tagline: next.tagline ?? "",
+        footer_text: next.footerText ?? "",
+        bank_account: next.bankAccount ?? "",
+      };
+      const identityFields = {
+        ...addressColumns(next),
+        tax_number: next.taxId ?? "",
+      };
+      const canEditCompany =
+        session?.permissions == null ||
+        session.permissions.includes("settings.client.edit");
 
-    let savedLayout: DocumentLayoutDto;
-    if (next.logoUrl?.startsWith("blob:")) {
-      // A newly picked file: multipart, so the logo lands in storage and
-      // comes back as a URL that survives a reload.
-      const { blob, filename } = await blobFromObjectUrl(next.logoUrl);
-      const form = new FormData();
-      for (const [key, value] of Object.entries(layoutFields)) form.append(key, value);
-      form.append("logo", blob, filename);
-      savedLayout = await apiPatch<DocumentLayoutDto>("/v1/document-layout/", form, {
-        rawBody: true,
-      });
-    } else {
-      savedLayout = await apiPatch<DocumentLayoutDto>(
-        "/v1/document-layout/",
-        layoutFields
+      let savedLayout: DocumentLayoutDto;
+      if (next.logoUrl?.startsWith("blob:")) {
+        // A newly picked file: multipart, so the logo lands in storage and
+        // comes back as a URL that survives a reload.
+        const { blob, filename } = await blobFromObjectUrl(next.logoUrl);
+        const form = new FormData();
+        for (const [key, value] of Object.entries(layoutFields)) form.append(key, value);
+        form.append("logo", blob, filename);
+        savedLayout = await apiPatch<DocumentLayoutDto>("/v1/document-layout/", form, {
+          rawBody: true,
+        });
+      } else {
+        savedLayout = await apiPatch<DocumentLayoutDto>(
+          "/v1/document-layout/",
+          layoutFields
+        );
+      }
+
+      // Address / tax on the customizer live on client-config; only touch
+      // them when Company settings is granted — layout-only users must not 403.
+      let savedIdentity: CompanyIdentityDto | null = null;
+      if (canEditCompany) {
+        savedIdentity = await apiPatch<CompanyIdentityDto>(
+          "/v1/client-config/",
+          identityFields
+        );
+      } else {
+        try {
+          savedIdentity = await apiGet<CompanyIdentityDto>("/v1/client-config/");
+        } catch {
+          savedIdentity = null;
+        }
+      }
+      setSettings(
+        toInvoiceSettings(
+          savedLayout,
+          savedIdentity ?? {
+            street: "",
+            street2: "",
+            city: "",
+            state: "",
+            zip: "",
+            country: "",
+            tax_number: "",
+          }
+        )
       );
-    }
-    const savedIdentity = await apiPatch<CompanyIdentityDto>(
-      "/v1/client-config/",
-      identityFields
-    );
-    setSettings(toInvoiceSettings(savedLayout, savedIdentity));
-  }, []);
+    },
+    [session?.permissions]
+  );
 
   return { settings, loaded, save };
 }
