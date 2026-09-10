@@ -2,7 +2,7 @@ import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import type { ButtonVariant } from "./common";
 
 declare module "@tanstack/react-table" {
-  // eslint-disable-next-line @typescript-eslint/unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData, TValue> {
     align?: "left" | "right" | "center";
     /** When true, column is preferred to absorb leftover / remainder width. */

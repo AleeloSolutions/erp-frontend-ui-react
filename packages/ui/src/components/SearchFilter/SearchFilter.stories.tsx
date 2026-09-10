@@ -4,6 +4,7 @@ import { AlignJustify, ChevronLeft, ChevronRight } from "lucide-react";
 import { SearchFilter, type SearchFilterChip } from "./SearchFilter";
 import { Button } from "../../primitives/Button";
 import { Select } from "../../primitives/Select";
+import { buildOdooDateFilterOptions, labelForDateFilterToken } from "../../utils";
 
 const meta = {
   title: "Composites/SearchFilter",
@@ -524,5 +525,152 @@ export const ReadOnly: Story = {
         onRemove: () => undefined,
       },
     ],
+  },
+};
+
+/** Odoo Create Date (months / quarters / years) + Order Date period grains. */
+export const OdooDateFiltersAndGroupBy: Story = {
+  render: function OdooDateStory() {
+    const [value, setValue] = useState("");
+    const [open, setOpen] = useState(true);
+    const dateOptions = buildOdooDateFilterOptions();
+    const [dateTokens, setDateTokens] = useState<string[]>(() => {
+      const months = dateOptions.filter((o) => o.value.startsWith("month:")).slice(0, 3);
+      const quarters = dateOptions
+        .filter((o) => o.value.startsWith("quarter:"))
+        .slice(0, 3);
+      const years = dateOptions.filter((o) => o.value.startsWith("year:")).slice(0, 2);
+      return [...months, ...quarters, ...years].map((o) => o.value);
+    });
+    const [groups, setGroups] = useState<string[]>([
+      "__period:quarter:date",
+      "__period:month:date",
+      "__period:week:date",
+    ]);
+
+    function toggleDate(id: string) {
+      setDateTokens((prev) =>
+        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      );
+    }
+
+    function toggleGroup(id: string) {
+      setGroups((prev) =>
+        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      );
+    }
+
+    return (
+      <div className="min-h-[32rem] pb-8">
+        <ListSearchStrip>
+          <SearchFilter
+            value={value}
+            onChange={setValue}
+            panelOpen={open}
+            onPanelOpenChange={setOpen}
+            chips={[
+              ...(dateTokens.length
+                ? [
+                    {
+                      id: "create-date",
+                      label: "Create Date",
+                      prefix: "Create Date",
+                      values: dateTokens.map(labelForDateFilterToken),
+                      separator: "/",
+                      kind: "filter" as const,
+                      onRemove: () => setDateTokens([]),
+                    },
+                  ]
+                : []),
+              ...(groups.length
+                ? [
+                    {
+                      id: "group",
+                      label: "Order Date",
+                      values: [
+                        "Order Date",
+                        ...(["year", "quarter", "month", "week", "day"] as const)
+                          .filter((grain) => groups.includes(`__period:${grain}:date`))
+                          .map((grain) => grain.charAt(0).toUpperCase() + grain.slice(1)),
+                      ],
+                      kind: "group" as const,
+                      onRemove: () => setGroups([]),
+                    },
+                  ]
+                : []),
+            ]}
+            filters={[
+              { id: "mine", label: "My Quotations", onSelect: () => undefined },
+              {
+                id: "quotations",
+                label: "Quotations",
+                dividerBefore: true,
+                onSelect: () => undefined,
+              },
+              {
+                id: "create-date",
+                label: "Create Date",
+                checked: dateTokens.length > 0,
+                selectable: true,
+                defaultExpanded: true,
+                dividerBefore: true,
+                onSelect: () => {
+                  if (dateTokens.length > 0) setDateTokens([]);
+                },
+                children: dateOptions.map((option) => ({
+                  id: option.value,
+                  label: option.label,
+                  checked: dateTokens.includes(option.value),
+                  dividerBefore: option.dividerBefore,
+                  onSelect: () => toggleDate(option.value),
+                })),
+              },
+            ]}
+            groupBy={[
+              {
+                id: "salesperson",
+                label: "Salesperson",
+                checked: groups.includes("salesperson"),
+                onSelect: () => toggleGroup("salesperson"),
+              },
+              {
+                id: "order-date",
+                label: "Order Date",
+                checked: groups.some((id) => id.startsWith("__period:")),
+                selectable: true,
+                defaultExpanded: true,
+                onSelect: () =>
+                  setGroups((prev) => prev.filter((id) => !id.startsWith("__period:"))),
+                children: (
+                  [
+                    ["year", "Year"],
+                    ["quarter", "Quarter"],
+                    ["month", "Month"],
+                    ["week", "Week"],
+                    ["day", "Day"],
+                  ] as const
+                ).map(([grain, label]) => {
+                  const id = `__period:${grain}:date`;
+                  return {
+                    id,
+                    label,
+                    checked: groups.includes(id),
+                    onSelect: () => toggleGroup(id),
+                  };
+                }),
+              },
+            ]}
+          />
+        </ListSearchStrip>
+      </div>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Odoo Create Date (months / quarters / years) and Order Date grains. Check = selected; bg = hover only.",
+      },
+    },
   },
 };

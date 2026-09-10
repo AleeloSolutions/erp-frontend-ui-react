@@ -8,7 +8,16 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Filter, Layers, Search, Star, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  Layers,
+  Search,
+  Star,
+  X,
+} from "lucide-react";
 import { cn } from "../../utils";
 import { useUiTranslation } from "../../i18n";
 
@@ -18,8 +27,15 @@ export type SearchFilterChip = {
   id: string;
   /** Single-value fallback when `values` is omitted. */
   label: string;
-  /** Facet values — joined with “or” (filter) or “>” (group). */
+  /** Facet values — joined with `separator` / “or” (filter) or “>” (group). */
   values?: string[];
+  /** Optional field label shown before values (Odoo: “Create Date: …”). */
+  prefix?: string;
+  /**
+   * Join between values. Defaults: filter → translated “or”, group → “>”.
+   * Date multi-selects typically pass `"/"`.
+   */
+  separator?: string;
   kind?: SearchFilterChipKind;
   onRemove: () => void;
 };
@@ -32,6 +48,17 @@ export type SearchFilterItem = {
   onSelect?: () => void;
   dividerBefore?: boolean;
   disabled?: boolean;
+  /** Nested tree (Odoo Create Date / Order Date). */
+  children?: SearchFilterItem[];
+  /** Start expanded when the panel opens. Default false. */
+  defaultExpanded?: boolean;
+  /**
+   * When false, the row is expand-only (caret + label), not a checkbox.
+   * Defaults to true when `onSelect` is set, else false when only children.
+   */
+  selectable?: boolean;
+  /** Extra UI under the row (e.g. Custom Range From–To). */
+  extra?: ReactNode;
 };
 
 export interface SearchFilterProps {
@@ -56,6 +83,113 @@ export interface SearchFilterProps {
   className?: string;
 }
 
+function isItemSelectable(item: SearchFilterItem): boolean {
+  if (item.selectable != null) return item.selectable;
+  if (item.children && item.children.length > 0 && !item.onSelect) return false;
+  return Boolean(item.onSelect);
+}
+
+/**
+ * Odoo search panel row: check gutter | label | caret (parents, end).
+ * Selected = checkmark only; background only on hover.
+ */
+function PanelItemRow({ item, depth }: { item: SearchFilterItem; depth: number }) {
+  const hasChildren = Boolean(item.children && item.children.length > 0);
+  const [expanded, setExpanded] = useState(
+    () => Boolean(item.defaultExpanded) || Boolean(item.extra)
+  );
+  const selectable = isItemSelectable(item);
+  const checked = Boolean(item.checked || item.active);
+
+  useEffect(() => {
+    if (item.extra) setExpanded(true);
+  }, [item.extra]);
+
+  return (
+    <li role="none" className="relative">
+      {item.dividerBefore ? (
+        <div className="my-1 border-t border-erp-table-border" role="separator" />
+      ) : null}
+      <div className="flex min-w-0 items-center hover:bg-erp-menu-hover">
+        <button
+          type="button"
+          role={selectable ? "menuitemcheckbox" : "menuitem"}
+          aria-checked={selectable || checked ? checked : undefined}
+          aria-expanded={hasChildren ? expanded : undefined}
+          disabled={item.disabled}
+          onClick={() => {
+            if (selectable && item.onSelect) {
+              item.onSelect();
+              return;
+            }
+            if (hasChildren) setExpanded((prev) => !prev);
+          }}
+          className={cn(
+            "relative flex min-w-0 flex-1 items-center border-0 bg-transparent py-0.5 text-start text-[12px] leading-snug text-erp-text",
+            item.disabled && "cursor-not-allowed text-erp-muted",
+            "ps-2",
+            hasChildren ? "pe-0" : "pe-2"
+          )}
+        >
+          <span
+            className="relative me-1.5 grid h-4 w-3.5 shrink-0 place-items-center"
+            aria-hidden
+          >
+            {checked ? (
+              <Check className="h-2.5 w-2.5 text-erp-primary" strokeWidth={3} />
+            ) : null}
+          </span>
+          <span
+            className={cn(
+              "min-w-0 flex-1 truncate",
+              depth === 0 && hasChildren && "font-medium"
+            )}
+          >
+            {item.label}
+          </span>
+        </button>
+        {hasChildren ? (
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-expanded={expanded}
+            aria-label={expanded ? "Collapse" : "Expand"}
+            className="grid h-6 w-5 shrink-0 place-items-center border-0 bg-transparent p-0 text-erp-text"
+            onClick={(event) => {
+              event.stopPropagation();
+              setExpanded((prev) => !prev);
+            }}
+          >
+            {expanded ? (
+              <ChevronUp className="h-3 w-3" aria-hidden />
+            ) : (
+              <ChevronDown className="h-3 w-3" aria-hidden />
+            )}
+          </button>
+        ) : null}
+      </div>
+      {expanded && item.extra ? (
+        <div
+          className="pb-1.5 pt-0.5 ps-8"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          {item.extra}
+        </div>
+      ) : null}
+      {expanded && hasChildren ? (
+        <ul
+          className="relative m-0 ms-[1.125rem] list-none border-s border-erp-table-border py-0.5 ps-0"
+          role="none"
+        >
+          {item.children!.map((child) => (
+            <PanelItemRow key={child.id} item={child} depth={depth + 1} />
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  );
+}
+
 function PanelColumn({
   title,
   icon,
@@ -72,7 +206,7 @@ function PanelColumn({
   return (
     <div
       className={cn(
-        "w-48 shrink-0 px-2",
+        "w-52 shrink-0 px-2",
         showEndBorder &&
           "max-lg:mb-2 max-lg:border-b max-lg:border-erp-table-border max-lg:pb-2 lg:border-e lg:border-erp-table-border"
       )}
@@ -85,38 +219,7 @@ function PanelColumn({
         {items.length === 0 ? (
           <li className="px-3 py-0.5 text-[12px] text-erp-muted">{emptyLabel}</li>
         ) : (
-          items.map((item) => (
-            <li key={item.id} role="none">
-              {item.dividerBefore ? (
-                <div
-                  className="my-1.5 border-t border-erp-table-border"
-                  role="separator"
-                />
-              ) : null}
-              <button
-                type="button"
-                role="menuitemcheckbox"
-                aria-checked={Boolean(item.checked || item.active)}
-                disabled={item.disabled}
-                onClick={item.onSelect}
-                className={cn(
-                  "relative block w-full truncate rounded-none border-0 bg-transparent px-3 py-0.5 text-start text-[12px] leading-snug text-erp-text",
-                  "hover:bg-erp-menu-hover hover:text-erp-text",
-                  (item.active || item.checked) && "bg-erp-menu-hover",
-                  item.disabled &&
-                    "cursor-not-allowed text-erp-muted hover:bg-transparent"
-                )}
-              >
-                {item.checked ? (
-                  <Check
-                    className="absolute start-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-erp-primary"
-                    aria-hidden
-                  />
-                ) : null}
-                {item.label}
-              </button>
-            </li>
-          ))
+          items.map((item) => <PanelItemRow key={item.id} item={item} depth={0} />)
         )}
       </ul>
     </div>
@@ -136,7 +239,9 @@ function SearchFacet({
 }) {
   const kind = chip.kind ?? "filter";
   const values = chip.values && chip.values.length > 0 ? chip.values : [chip.label];
-  const separator = kind === "group" ? ">" : orLabel;
+  const separator = chip.separator ?? (kind === "group" ? ">" : orLabel);
+  const titleValues = values.join(` ${separator} `);
+  const title = chip.prefix ? `${chip.prefix}: ${titleValues}` : titleValues;
 
   return (
     <div
@@ -160,6 +265,11 @@ function SearchFacet({
         )}
       </span>
       <div className="relative z-[1] flex min-w-0 flex-wrap items-center ps-2">
+        {chip.prefix ? (
+          <small className="me-0.5 max-w-[8rem] truncate text-[12px] leading-none text-erp-text">
+            {chip.prefix}:
+          </small>
+        ) : null}
         {values.map((value, index) => (
           <span key={`${chip.id}:${value}:${index}`} className="contents">
             {index > 0 ? (
@@ -176,7 +286,7 @@ function SearchFacet({
         <button
           type="button"
           disabled={disabled}
-          aria-label={`${removeLabel}: ${values.join(` ${separator} `)}`}
+          aria-label={`${removeLabel}: ${title}`}
           title={removeLabel}
           className="px-2 py-0 text-erp-danger hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
           onClick={chip.onRemove}
@@ -317,7 +427,7 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
                 top: panelPos.top,
                 left: panelPos.left,
                 transform: "translateX(-50%)",
-                maxHeight: "min(50vh, 20rem)",
+                maxHeight: "min(50vh, 24rem)",
               }}
             >
               <PanelColumn
