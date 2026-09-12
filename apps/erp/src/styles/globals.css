@@ -1,3 +1,20 @@
 @import "tailwindcss";
 @import "../../../../packages/ui/src/tokens/index.css";
 @source "../../../../packages/ui/src";
+
+/*
+ * Reserve scrollbar space so empty ↔ loaded tables do not toggle the page
+ * scrollbar, change layout width, and remeasure columns in a loop (page shake).
+ */
+html {
+  scrollbar-gutter: stable;
+}
+
+@keyframes erp-fetch-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}

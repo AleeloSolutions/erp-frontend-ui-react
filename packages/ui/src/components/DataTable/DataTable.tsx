@@ -312,6 +312,12 @@ export interface DataTableProps<TData, TValue = unknown> {
    */
   getRowActions?: (row: TData) => DataTableRowAction[];
   loading?: boolean;
+  /**
+   * Soft in-place refresh (server filter/search). Keeps the current rows mounted
+   * and dims the body — unlike `loading`, which replaces the table with a
+   * skeleton and flashes the page.
+   */
+  fetching?: boolean;
   error?: string | null;
   emptyMessage?: string;
   enableColumnVisibility?: boolean;
@@ -397,6 +403,7 @@ export function DataTable<TData, TValue = unknown>({
   bulkActions = [],
   getRowActions,
   loading = false,
+  fetching = false,
   error = null,
   emptyMessage,
   enableColumnVisibility = true,
@@ -444,6 +451,8 @@ export function DataTable<TData, TValue = unknown>({
   );
   const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const containerWidthRef = useRef(0);
+  const headerHeightRef = useRef(40);
   const [containerWidth, setContainerWidth] = useState(0);
   const [headerHeight, setHeaderHeight] = useState(40);
   const [grouping, setGrouping] = useState<string[]>([]);
@@ -465,7 +474,7 @@ export function DataTable<TData, TValue = unknown>({
   }, [tableId, enableColumnVisibility, columnVisibility]);
 
   useEffect(() => {
-    const node = scrollRef.current;
+    const node = rootRef.current;
     if (!node) return;
 
     // Header row real height for resize handles. Zoom-correct so inline `px`
@@ -481,16 +490,26 @@ export function DataTable<TData, TValue = unknown>({
     };
 
     const measure = () => {
-      const width = Math.floor(node.clientWidth);
-      if (width > 0) setContainerWidth(width);
+      // Prefer the scroll/table host when mounted; fall back to root so the
+      // observer stays attached during the initial skeleton (no scrollRef yet).
+      const widthNode = scrollRef.current ?? node;
+      const width = Math.floor(widthNode.clientWidth);
+      // Ignore 1px scrollbar/subpixel jitter — that loop shakes the page.
+      if (width > 0 && Math.abs(width - containerWidthRef.current) >= 2) {
+        containerWidthRef.current = width;
+        setContainerWidth(width);
+      }
 
       const zoomFactor = measureZoomFactor(node);
       if (zoomFactor <= 0) return;
 
       const theadEl = node.querySelector("thead");
       if (theadEl) {
-        const height = theadEl.getBoundingClientRect().height;
-        if (height > 0) setHeaderHeight(height / zoomFactor);
+        const height = theadEl.getBoundingClientRect().height / zoomFactor;
+        if (height > 0 && Math.abs(height - headerHeightRef.current) >= 1) {
+          headerHeightRef.current = height;
+          setHeaderHeight(height);
+        }
       }
     };
 
@@ -504,7 +523,9 @@ export function DataTable<TData, TValue = unknown>({
       window.removeEventListener("resize", measure);
       visualViewport?.removeEventListener("resize", measure);
     };
-  }, [loading, error]);
+    // Attach once to rootRef (always mounted). Remounting on loading/error
+    // was re-measuring and feeding the scrollbar width oscillation.
+  }, []);
 
   useEffect(() => {
     const readDirection = () => {
@@ -1105,9 +1126,7 @@ export function DataTable<TData, TValue = unknown>({
     }
   });
 
-  const setGroupingSafe = (
-    next: string[] | ((prev: string[]) => string[])
-  ) => {
+  const setGroupingSafe = (next: string[] | ((prev: string[]) => string[])) => {
     if (catalogEmpty) return;
     setGrouping(next);
   };
@@ -1199,6 +1218,8 @@ export function DataTable<TData, TValue = unknown>({
     />
   ) : null;
 
+  const showLoadingSkeleton = loading && data.length === 0;
+
   return (
     <>
       {renderToolbar?.({
@@ -1206,17 +1227,34 @@ export function DataTable<TData, TValue = unknown>({
         pagination: pager,
         bulkActions: bulkActionsNode,
       })}
-      <div ref={rootRef} className={cn("bg-erp-table-bg", className)}>
+      <div ref={rootRef} className={cn("relative bg-erp-table-bg", className)}>
+        {/*
+          Indeterminate bar — absolute, so it never changes page height or
+          toggles the scrollbar (that was the shake). Signals in-place fetch.
+        */}
+        {fetching && !showLoadingSkeleton ? (
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-30 h-0.5 overflow-hidden bg-erp-secondary"
+            role="progressbar"
+            aria-busy="true"
+            aria-label="Loading"
+          >
+            <div className="h-full w-1/3 animate-[erp-fetch-slide_1s_ease-in-out_infinite] bg-erp-primary" />
+          </div>
+        ) : null}
         {error ? (
           <div className="grid min-h-[120px] place-items-center px-4 text-[0.875rem] text-erp-error">
             {error}
           </div>
-        ) : loading ? (
+        ) : showLoadingSkeleton ? (
           <DataTableLoading
             columns={table.getVisibleLeafColumns().length || columns.length + 1}
           />
         ) : (
-          <div className="relative w-full">
+          <div
+            className={cn("relative w-full", fetching && "opacity-70")}
+            aria-busy={fetching || undefined}
+          >
             <div ref={scrollRef} className="relative w-full">
               <DataTableColumnResizer
                 table={table}
