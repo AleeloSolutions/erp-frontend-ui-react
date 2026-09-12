@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "r
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@erp/ui";
-import { DomainField } from "./DomainField";
+import { DomainField, MIN_DOMAIN_LENGTH } from "./DomainField";
 import { TrialFloatingInput, TrialFloatingSelect } from "./TrialFloatingField";
 
 export interface SignupFormValues {
@@ -68,6 +68,7 @@ export function TrialGetStartedForm({
   const [companyName, setCompanyName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugBlocked, setSlugBlocked] = useState(true);
+  const [slugChecking, setSlugChecking] = useState(false);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("+252");
   const previousCountry = useRef("SO");
@@ -80,6 +81,8 @@ export function TrialGetStartedForm({
     if (!name.trim()) errors["trial-name"] = t("step2.errors.name");
     if (!companyName.trim()) errors["trial-company"] = t("step2.errors.companyName");
     if (!slug) errors["trial-domain"] = t("step2.errors.domainRequired");
+    else if (slug.length < MIN_DOMAIN_LENGTH)
+      errors["trial-domain"] = t("step2.errors.domainTooShort");
     else if (slugBlocked) errors["trial-domain"] = t("step2.errors.domainTaken");
     if (!EMAIL_PATTERN.test(email)) errors["trial-email"] = t("step2.errors.email");
     if (!PHONE_PATTERN.test(phone.replace(/[\s\-().]/g, ""))) {
@@ -102,7 +105,7 @@ export function TrialGetStartedForm({
     if (!submitted) return;
     setFieldErrors(validate());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submitted, name, companyName, slug, slugBlocked, email, phone]);
+  }, [submitted, name, companyName, slug, slugBlocked, slugChecking, email, phone]);
 
   // A rejected submit's server-side field errors render in the same
   // inline boxes and get the same scroll-to-first-error treatment.
@@ -204,13 +207,13 @@ export function TrialGetStartedForm({
 
             <DomainField
               companyName={companyName}
-              onChange={(nextSlug, blocked) => {
+              onChange={(nextSlug, blocked, checking) => {
                 setSlug(nextSlug);
                 setSlugBlocked(blocked);
+                setSlugChecking(checking);
               }}
               error={fieldErrors["trial-domain"]}
             />
-
             <div className="grid gap-0 lg:grid-cols-2 lg:gap-x-8">
               <div>
                 <TrialFloatingInput
@@ -348,6 +351,7 @@ export function TrialGetStartedForm({
                 variant="primary"
                 size="lg"
                 loading={submitting}
+                disabled={submitting || slugChecking || slugBlocked}
                 className="px-8 py-3 text-base font-bold"
               >
                 {t("step2.startNow")}

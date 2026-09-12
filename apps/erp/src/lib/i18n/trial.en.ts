@@ -33,6 +33,7 @@ export const trialEn = {
       name: "Please enter your name",
       companyName: "Please enter your company name",
       domainRequired: "A domain is required",
+      domainTooShort: "Domain must be at least 4 characters",
       domainTaken: "This domain is already taken",
       email: "Please double-check your email",
       phone: "A valid phone number is required",
