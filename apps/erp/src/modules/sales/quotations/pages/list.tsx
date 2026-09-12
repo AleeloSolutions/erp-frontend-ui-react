@@ -4,7 +4,7 @@
  * Only a draft can be edited or deleted; once sent it is a record.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import {
@@ -54,6 +54,8 @@ export default function QuotationsPage() {
   const [periodGroupingActive, setPeriodGroupingActive] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Quotation | null>(null);
   const [detailQuotation, setDetailQuotation] = useState<Quotation | null>(null);
+  /** Last successful unfiltered-or-filtered total — used to avoid period page bumps on empty. */
+  const knownTotalRef = useRef<number | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
   const statusRaw = filterValues.status;
@@ -70,8 +72,11 @@ export default function QuotationsPage() {
 
   const issueDateRanges = useMemo(() => encodeDateRangesQuery(dateTokens), [dateTokens]);
 
-  /** Period group-by needs enough rows from the filtered set to nest meaningfully. */
-  const listPageSize = periodGroupingActive ? Math.max(pageSize, 200) : pageSize;
+  /** Period group-by needs enough rows to nest; never bump when the catalog is empty. */
+  const listPageSize =
+    periodGroupingActive && (knownTotalRef.current ?? 0) > 0
+      ? Math.max(pageSize, 200)
+      : pageSize;
 
   const params = useMemo(
     () => ({
@@ -88,6 +93,9 @@ export default function QuotationsPage() {
   );
 
   const quotationsQuery = useQuotationsQuery(params);
+  if (quotationsQuery.isSuccess) {
+    knownTotalRef.current = quotationsQuery.data.meta.total;
+  }
   const deleteMutation = useDeleteQuotationMutation();
 
   const codes = session?.permissions;
@@ -245,7 +253,11 @@ export default function QuotationsPage() {
           periodGroupingOption("Order Date", "issue_date", { defaultExpanded: true }),
         ]}
         onGroupingChange={(columnIds) => {
-          const next = columnIds.some((id) => id.startsWith("__period:"));
+          const wantsPeriod = columnIds.some((id) => id.startsWith("__period:"));
+          const total =
+            quotationsQuery.data?.meta.total ?? knownTotalRef.current ?? 0;
+          // Empty catalog: keep grouping visual client-side, but do not refetch.
+          const next = wantsPeriod && total > 0;
           setPeriodGroupingActive((prev) => {
             if (prev !== next) setPage(1);
             return next;

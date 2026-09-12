@@ -79,6 +79,15 @@ type PanelFilterItem = SearchFilterItem & {
   extra?: ReactNode;
 };
 
+/** Grey out Filters / Group By when a server list is known-empty (nothing to slice). */
+function withPanelItemsDisabled(items: PanelFilterItem[]): PanelFilterItem[] {
+  return items.map((item) => ({
+    ...item,
+    disabled: true,
+    children: item.children ? withPanelItemsDisabled(item.children) : undefined,
+  }));
+}
+
 function readRowDateIso(row: Record<string, unknown>, field: string): string {
   const raw = row[field];
   if (raw == null) return "";
@@ -891,6 +900,24 @@ export function DataTable<TData, TValue = unknown>({
 
   const totalRows = isServerPagination ? pagination.total : filteredBySearch.length;
 
+  const hasActiveFilters = Object.values(filterValues).some((value) =>
+    Array.isArray(value) ? value.length > 0 : Boolean(value)
+  );
+  /**
+   * Server list already returned zero rows with no search/filters applied.
+   * Further Filters / Group By cannot invent rows — only waste round-trips
+   * (and with a missing endpoint, spam 404s). Keep the panel open to inspect
+   * options, but disable the items. Active filters stay enabled so they can
+   * be cleared when a filter set itself yields an empty page.
+   */
+  const catalogEmpty =
+    isServerPagination &&
+    !loading &&
+    totalRows === 0 &&
+    data.length === 0 &&
+    !hasActiveFilters &&
+    !search.trim();
+
   const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
 
   const orderedGrouping = useMemo(() => {
@@ -913,6 +940,7 @@ export function DataTable<TData, TValue = unknown>({
   }, [grouping]);
 
   function handleFilterChange(key: string, value: string | string[]) {
+    if (catalogEmpty) return;
     setFilterValues({
       ...filterValues,
       [key]: value,
@@ -1077,10 +1105,17 @@ export function DataTable<TData, TValue = unknown>({
     }
   });
 
+  const setGroupingSafe = (
+    next: string[] | ((prev: string[]) => string[])
+  ) => {
+    if (catalogEmpty) return;
+    setGrouping(next);
+  };
+
   const panelGroupItems: PanelFilterItem[] = buildGroupOptionItems(
     resolvedGroupingOptions,
     grouping,
-    setGrouping
+    setGroupingSafe
   );
 
   const showSearchFilter =
@@ -1139,8 +1174,16 @@ export function DataTable<TData, TValue = unknown>({
       readOnly={!searchable}
       placeholder={searchable ? (searchPlaceholder ?? "Search...") : "Search..."}
       chips={searchFilterChips}
-      filters={panelFilterItems as SearchFilterItem[]}
-      groupBy={panelGroupItems as SearchFilterItem[]}
+      filters={
+        (catalogEmpty
+          ? withPanelItemsDisabled(panelFilterItems)
+          : panelFilterItems) as SearchFilterItem[]
+      }
+      groupBy={
+        (catalogEmpty
+          ? withPanelItemsDisabled(panelGroupItems)
+          : panelGroupItems) as SearchFilterItem[]
+      }
     />
   ) : null;
 
