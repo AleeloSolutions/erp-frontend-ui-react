@@ -10,11 +10,12 @@
 
 import { notesManifest } from "./notes/manifest";
 import { salesManifest } from "./sales/manifest";
+import { inventoryManifest } from "./inventory/manifest";
 import type { ModuleManifest } from "./types";
 
 export type { ErpModule, ModuleManifest } from "./types";
 
-export const moduleRegistry: ModuleManifest[] = [salesManifest, notesManifest];
+export const moduleRegistry: ModuleManifest[] = [salesManifest, notesManifest, inventoryManifest];
 
 /** The entries of `modules` a tenant has switched on, in registry order. */
 export function enabledModules(
