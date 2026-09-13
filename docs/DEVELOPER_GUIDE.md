@@ -529,21 +529,21 @@ Today APIs use an in-memory store + `mockDelay()` (`apps/erp/src/lib/mock.ts`). 
 
 ## 9. Build a new module page (step by step)
 
-Example: **Products** list + create.
+Example: **Sales → Customers** list + create (entity folder layout).
 
 1. **Route**
-   - `apps/erp/src/modules/inventory/pages/ProductsPage.tsx`
-   - `apps/erp/src/modules/inventory/pages/ProductCreatePage.tsx`
-   - Register routes in `apps/erp/src/modules/inventory/routes.tsx`
-   - Mount the module in `apps/erp/src/routes.tsx` as `<Route path="/inventory/*" element={<InventoryRoutes />} />` (once)
+   - `apps/erp/src/modules/sales/customers/pages/list.tsx`
+   - `apps/erp/src/modules/sales/customers/pages/create.tsx`
+   - Register in `apps/erp/src/modules/sales/customers/routes.tsx` and mount from `modules/sales/routes.tsx`
+   - Host mounts the module in `apps/erp/src/routes.tsx` as `<Route path="/sales/*" …>` (once)
 
-2. **Nav** — update `apps/erp/src/app/navigation.ts` (`href` + submenu)
+2. **Nav** — module submenu in `modules/sales/manifest.ts` / `useSalesNavbar.ts`
 
-3. **Types / mock API** — `apps/erp/src/modules/inventory/api/products.ts`
+3. **Types / API** — `apps/erp/src/modules/sales/customers/api.ts`
 
-4. **Hooks** — `apps/erp/src/modules/inventory/api/useProducts.ts`
+4. **Hooks** — `apps/erp/src/modules/sales/customers/queries.ts`
 
-5. **Schema** — `apps/erp/src/modules/inventory/products/schema.ts`
+5. **Schema** — `apps/erp/src/modules/sales/customers/schema.ts`
 
 6. **List page** — copy an existing list page, rename types/hooks
 
@@ -552,6 +552,8 @@ Example: **Products** list + create.
 8. **Feedback** — toast on success/error; `ConfirmDialog` on delete; optional `Drawer` for detail
 
 Do **not** fork DataTable or FormShell for one module.
+
+Packaged modules (e.g. Inventory) live under `examples/<key>/` and arrive via zip → Promote, not as compiled-in `apps/erp/src/modules/<key>/` until the frontend PR merges.
 
 ---
 

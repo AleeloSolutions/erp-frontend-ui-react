@@ -1,2 +1,0 @@
-/** Inventory module components. */
-export {};
