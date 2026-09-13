@@ -1,6 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { Package } from "lucide-react";
 import { afterEach, describe, expect, it } from "vitest";
+import { moduleRegistry } from "./index";
 import type { ModuleManifest } from "./types";
 import {
   getModules,
@@ -9,6 +10,11 @@ import {
   useModules,
   whenRegistered,
 } from "./registry";
+
+
+function compiledKeys() {
+  return moduleRegistry.map((module) => module.key);
+}
 
 function manifest(overrides: Partial<ModuleManifest> = {}): ModuleManifest {
   return {
@@ -31,17 +37,17 @@ describe("module registry", () => {
   });
 
   it("starts with the compiled-in modules", () => {
-    expect(getModules().map((module) => module.key)).toEqual(["sales", "inv"]);
+    expect(getModules().map((module) => module.key)).toEqual(compiledKeys());
   });
 
   it("adds a runtime module and tells subscribers", () => {
     const { result } = renderHook(() => useModules());
-    expect(result.current.map((module) => module.key)).toEqual(["sales", "inv"]);
+    expect(result.current.map((module) => module.key)).toEqual(compiledKeys());
 
     act(() => {
       registerRuntimeModule(manifest());
     });
-    expect(result.current.map((module) => module.key)).toEqual(["sales", "inv", "pos"]);
+    expect(result.current.map((module) => module.key)).toEqual([...compiledKeys(), "pos"]);
   });
 
   it("replaces an earlier registration of the same key", () => {
