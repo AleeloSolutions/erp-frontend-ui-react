@@ -48,15 +48,15 @@ const SALES: ModuleEntry = {
   installed_at: "2026-09-08T10:00:00Z",
 };
 
-const POS: ModuleEntry = {
-  uuid: null,
+const POS_DISABLED: ModuleEntry = {
+  uuid: "m2",
   key: "pos",
   label: "Point of Sale",
   version: "1.0.0",
   nav_area: "sales",
   depends_on: ["sales"],
-  status: "available",
-  installed_at: null,
+  status: "disabled",
+  installed_at: "2026-09-08T11:00:00Z",
 };
 
 function renderPanel() {
@@ -73,15 +73,15 @@ describe("SettingsModulesPanel", () => {
     api.installModule.mockReset();
     api.disableModule.mockReset();
     api.invalidateAfterModuleChange.mockClear();
-    api.modules = [SALES, POS];
+    api.modules = [SALES, POS_DISABLED];
     api.permissions = ["settings.module.view", "settings.module.edit"];
   });
 
-  it("installs a module, then invalidates me and the matrix and reloads", async () => {
-    api.installModule.mockResolvedValue({ ...POS, status: "installed", uuid: "m2" });
+  it("re-enables a disabled module, then invalidates me and the matrix and reloads", async () => {
+    api.installModule.mockResolvedValue({ ...POS_DISABLED, status: "installed" });
     renderPanel();
 
-    fireEvent.click(screen.getByRole("button", { name: "Install" }));
+    fireEvent.click(screen.getByRole("button", { name: "Re-enable" }));
 
     await waitFor(() => expect(api.installModule).toHaveBeenCalledWith("pos"));
     await waitFor(() => expect(api.invalidateAfterModuleChange).toHaveBeenCalledTimes(1));
@@ -92,7 +92,6 @@ describe("SettingsModulesPanel", () => {
     api.disableModule.mockResolvedValue({ ...SALES, status: "disabled" });
     renderPanel();
 
-    // The card's button opens the confirmation; the dialog's confirms it.
     fireEvent.click(screen.getByRole("button", { name: "Disable" }));
     expect(api.disableModule).not.toHaveBeenCalled();
     const buttons = screen.getAllByRole("button", { name: "Disable" });
@@ -108,17 +107,23 @@ describe("SettingsModulesPanel", () => {
     renderPanel();
 
     expect(screen.getByRole("heading", { name: "Sales" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Install" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Re-enable" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Disable" })).toBeNull();
   });
 
-  it("will not install a module whose dependency is missing", () => {
-    api.modules = [{ ...SALES, status: "disabled" }, POS];
+  it("will not re-enable a module whose dependency is missing", () => {
+    api.modules = [{ ...SALES, status: "disabled" }, POS_DISABLED];
     renderPanel();
 
-    // POS needs sales, which is off: its button is disabled and says why.
-    const install = screen.getByRole("button", { name: "Install" }) as HTMLButtonElement;
-    expect(install.disabled).toBe(true);
-    expect(screen.getByText("Install Sales first")).toBeTruthy();
+    const reenable = screen.getByRole("button", {
+      name: "Re-enable",
+    }) as HTMLButtonElement;
+    expect(reenable.disabled).toBe(true);
+    expect(screen.getByText("Re-enable Sales first")).toBeTruthy();
+  });
+
+  it("never offers Install", () => {
+    renderPanel();
+    expect(screen.queryByRole("button", { name: "Install" })).toBeNull();
   });
 });

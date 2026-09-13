@@ -4,6 +4,9 @@
  * Upload a zip, Promote opens backend/frontend PRs, Mark deployed after
  * Coolify/Vercel are green, Manual Activate switches the module on for
  * every workspace. While status is `promoting` the list polls.
+ *
+ * Recovery: Replace zip on uploaded/failed; Cancel promote when stuck
+ * on promoting; Activate stays deployed on failure so Retry Activate works.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -51,9 +54,23 @@ export function uploadPackage(file: File) {
   return apiPost<ModulePackage>("/v1/platform/packages/", form, { rawBody: true });
 }
 
+/** Swap the zip on an uploaded or failed package (same key + version). */
+export function replacePackageZip(uuid: string, file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  return apiPost<ModulePackage>(`/v1/platform/packages/${uuid}/replace/`, form, {
+    rawBody: true,
+  });
+}
+
 /** Start promote-to-PR (alias path /install/). */
 export function promotePackage(uuid: string) {
   return apiPost<ModulePackage>(`/v1/platform/packages/${uuid}/promote/`);
+}
+
+/** Abort promoting and reset to uploaded. */
+export function cancelPromote(uuid: string) {
+  return apiPost<ModulePackage>(`/v1/platform/packages/${uuid}/cancel/`);
 }
 
 /** @deprecated use promotePackage */
@@ -71,6 +88,20 @@ export function activatePackage(uuid: string) {
 
 /** How often the list re-asks while a pipeline is running. */
 export const POLL_MS = 2_000;
+
+/** True when the promote log never left the spawn handoff. */
+export function isPromoteStuckQueued(row: ModulePackage): boolean {
+  if (row.status !== "promoting" && row.status !== "installing") return false;
+  const lines = row.install_log
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return true;
+  if (lines[0] !== "queued") return false;
+  return lines.every(
+    (line, index) => index === 0 || /^\[\d{2}:\d{2}:\d{2}\] worker pid /.test(line)
+  );
+}
 
 export function usePackages(pollMs = POLL_MS) {
   const [packages, setPackages] = useState<ModulePackage[]>([]);

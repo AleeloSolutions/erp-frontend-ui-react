@@ -7,12 +7,15 @@ import { MemoryRouter } from "react-router-dom";
 import { ToastProvider } from "@erp/ui";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ModulePackage } from "./packagesApi";
+import { isPromoteStuckQueued } from "./packagesApi";
 import ModulePackagesPage from "./ModulePackagesPage";
 
 const api = vi.hoisted(() => ({
   reload: vi.fn(),
   uploadPackage: vi.fn(),
+  replacePackageZip: vi.fn(),
   promotePackage: vi.fn(),
+  cancelPromote: vi.fn(),
   markPackageDeployed: vi.fn(),
   activatePackage: vi.fn(),
   packages: [] as ModulePackage[],
@@ -45,7 +48,9 @@ vi.mock("./packagesApi", async () => {
       };
     },
     uploadPackage: api.uploadPackage,
+    replacePackageZip: api.replacePackageZip,
     promotePackage: api.promotePackage,
+    cancelPromote: api.cancelPromote,
     installPackage: api.promotePackage,
     markPackageDeployed: api.markPackageDeployed,
     activatePackage: api.activatePackage,
@@ -99,11 +104,35 @@ function renderPage() {
   );
 }
 
+describe("isPromoteStuckQueued", () => {
+  it("treats queued (+ optional worker pid) as stuck", () => {
+    expect(
+      isPromoteStuckQueued({ ...UPLOADED, status: "promoting", install_log: "queued\n" })
+    ).toBe(true);
+    expect(
+      isPromoteStuckQueued({
+        ...UPLOADED,
+        status: "promoting",
+        install_log: "queued\n[10:00:01] worker pid 42\n",
+      })
+    ).toBe(true);
+    expect(
+      isPromoteStuckQueued({
+        ...UPLOADED,
+        status: "promoting",
+        install_log: "queued\n[10:00:02] promoting Point of Sale\n",
+      })
+    ).toBe(false);
+  });
+});
+
 describe("ModulePackagesPage", () => {
   beforeEach(() => {
     api.reload.mockClear();
     api.uploadPackage.mockReset();
+    api.replacePackageZip.mockReset();
     api.promotePackage.mockReset();
+    api.cancelPromote.mockReset();
     api.markPackageDeployed.mockReset();
     api.activatePackage.mockReset();
     api.listeners.clear();
@@ -147,5 +176,62 @@ describe("ModulePackagesPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Point of Sale" }));
     expect(screen.getByLabelText("Install log").textContent).toContain("promote failed");
+    expect(screen.getByText(/Replace zip/)).toBeTruthy();
+  });
+
+  it("offers cancel when promoting is stuck on queued", async () => {
+    api.cancelPromote.mockResolvedValue({ ...UPLOADED, status: "uploaded" });
+    api.setPackages([
+      {
+        ...UPLOADED,
+        status: "promoting",
+        install_log: "queued\n[10:00:00] worker pid 9\n",
+      },
+    ]);
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Row actions" }));
+    fireEvent.click(screen.getByText("Cancel stuck promote"));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel promote" }));
+
+    await waitFor(() => expect(api.cancelPromote).toHaveBeenCalledWith("pk1"));
+    expect(api.reload).toHaveBeenCalled();
+  });
+
+  it("offers Discard PRs when status is pr_open", async () => {
+    api.cancelPromote.mockResolvedValue({ ...UPLOADED, status: "uploaded" });
+    api.setPackages([
+      {
+        ...UPLOADED,
+        status: "pr_open",
+        backend_pr_url: "https://github.com/org/backend/pull/1",
+      },
+    ]);
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Row actions" }));
+    fireEvent.click(screen.getByText("Discard PRs"));
+    fireEvent.click(screen.getByRole("button", { name: "Discard PRs" }));
+
+    await waitFor(() => expect(api.cancelPromote).toHaveBeenCalledWith("pk1"));
+    expect(api.reload).toHaveBeenCalled();
+  });
+
+  it("replaces the zip via the hidden file input", async () => {
+    api.replacePackageZip.mockResolvedValue({ ...UPLOADED, checksum: "new" });
+    api.setPackages([{ ...UPLOADED, status: "failed", install_log: "failed" }]);
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Row actions" }));
+    fireEvent.click(screen.getByText("Replace zip"));
+
+    const input = screen.getByLabelText("Replace package zip") as HTMLInputElement;
+    const zip = new File([new Uint8Array([80, 75])], "pos-1.0.0.zip", {
+      type: "application/zip",
+    });
+    fireEvent.change(input, { target: { files: [zip] } });
+
+    await waitFor(() => expect(api.replacePackageZip).toHaveBeenCalledWith("pk1", zip));
+    expect(api.reload).toHaveBeenCalled();
   });
 });

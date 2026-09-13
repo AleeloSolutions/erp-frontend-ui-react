@@ -4,7 +4,7 @@ import { moduleRegistry } from "@/modules";
 import type { ModuleManifest } from "@/modules/types";
 import { NAV_AREAS, buildNavigation } from "./navigation";
 
-const OWNER_CODES = ["sales.customer.view", "inv.product.view", "settings.role.edit"];
+const OWNER_CODES = ["sales.customer.view", "inventory.item.view", "settings.role.edit"];
 
 const POS: ModuleManifest = {
   key: "pos",

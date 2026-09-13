@@ -11,7 +11,6 @@ import {
   whenRegistered,
 } from "./registry";
 
-
 function compiledKeys() {
   return moduleRegistry.map((module) => module.key);
 }
@@ -47,7 +46,10 @@ describe("module registry", () => {
     act(() => {
       registerRuntimeModule(manifest());
     });
-    expect(result.current.map((module) => module.key)).toEqual([...compiledKeys(), "pos"]);
+    expect(result.current.map((module) => module.key)).toEqual([
+      ...compiledKeys(),
+      "pos",
+    ]);
   });
 
   it("replaces an earlier registration of the same key", () => {

@@ -1,13 +1,12 @@
 /**
- * Settings → Modules: the installer.
+ * Settings → Modules: enable / disable only.
  *
- * One card per module this release ships, over `/api/v1/modules/`, with
- * the tenant's state on it. Installing seeds the module's defaults and
- * lights it up everywhere at once -- sidebar, routes, the permission
- * matrix -- because the session is refreshed the moment the call
- * succeeds. Disabling is a soft-off: the screens and permissions hide,
- * nothing is deleted, and re-enabling brings it back as it was. A module
- * that others depend on cannot be disabled first; the API says which.
+ * One card per module this tenant already has (installed or disabled),
+ * over `/api/v1/modules/`. First-time activation is platform-only
+ * (`/platform/modules` Activate, or signup for packages already
+ * activated). Disabling is a soft-off: screens and permissions hide,
+ * nothing is deleted; Re-enable brings it back. A module that others
+ * depend on cannot be disabled first; the API says which.
  *
  * Only someone holding `settings.module.edit` sees the buttons at all;
  * everyone with the view tick sees the state.
@@ -95,21 +94,18 @@ export function SettingsModulesPanel() {
     reload();
   }
 
-  async function install(module: ModuleEntry) {
+  async function reenable(module: ModuleEntry) {
     setBusyKey(module.key);
     try {
       await installModule(module.key);
       toast({
-        title:
-          module.status === "disabled"
-            ? `${module.label} re-enabled`
-            : `${module.label} installed`,
+        title: `${module.label} re-enabled`,
         description: "Its screens and permissions are available now.",
         variant: "success",
       });
       await settle();
     } catch (err) {
-      reportFailure(err, `Could not install ${module.label}`);
+      reportFailure(err, `Could not re-enable ${module.label}`);
     } finally {
       setBusyKey(null);
     }
@@ -214,20 +210,20 @@ export function SettingsModulesPanel() {
                           >
                             Disable
                           </Button>
-                        ) : (
+                        ) : module.status === "disabled" ? (
                           <Button
                             size="sm"
                             variant="primary"
                             loading={busy}
                             disabled={missing.length > 0}
-                            onClick={() => void install(module)}
+                            onClick={() => void reenable(module)}
                           >
-                            {module.status === "disabled" ? "Re-enable" : "Install"}
+                            Re-enable
                           </Button>
-                        )}
-                        {missing.length > 0 && module.status !== "installed" ? (
+                        ) : null}
+                        {missing.length > 0 && module.status === "disabled" ? (
                           <span className="text-[11px] text-erp-muted">
-                            Install {missing.map(labelOf).join(", ")} first
+                            Re-enable {missing.map(labelOf).join(", ")} first
                           </span>
                         ) : null}
                       </CardFooter>
