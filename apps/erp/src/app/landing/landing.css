@@ -156,15 +156,6 @@
   transform: rotate(-8deg);
 }
 
-.mark-inventory::before {
-  content: "";
-  position: absolute;
-  inset: 9px;
-  background: var(--primary);
-  clip-path: polygon(50% 0, 100% 25%, 100% 78%, 50% 100%, 0 75%, 0 25%);
-  transform: rotate(-8deg);
-}
-
 .mark-dashboard::before {
   content: "";
   position: absolute;

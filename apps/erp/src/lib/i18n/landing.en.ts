@@ -15,7 +15,7 @@ export const landingEn = {
     subtitle: "Built for clarity, speed, and growth.",
     startCta: "Open dashboard",
     exploreCta: "Explore modules",
-    noteLine: "Sales · Inventory · Reports",
+    noteLine: "Sales · Reports",
     noteStrong: "ready today",
   },
   showcase: {
@@ -23,7 +23,7 @@ export const landingEn = {
     toggleAria: "Toggle module grid visibility",
     viewAll: "Open dashboard",
     heading: "One platform, the modules you need.",
-    paragraph1a: "Start with sales, inventory, and reporting — add more as you grow.",
+    paragraph1a: "Start with sales and reporting — add more as you grow.",
     paragraph1b: "Every module shares the same tables, forms, and layout patterns.",
     paragraph2a: "Customers, quotations, invoices, products, and financial reports",
     paragraph2b: "all live in one consistent workspace your team can learn once.",

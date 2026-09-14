@@ -30,7 +30,6 @@ export const SETTINGS_CODES = {
   company: ["settings.client.edit"],
   documentLayout: ["settings.document_layout.edit"],
   sales: ["settings.sales.edit"],
-  inventory: ["inventory.settings.edit"],
   users: [
     ...anyScope("settings.user", "create"),
     ...anyScope("settings.user", "edit"),
@@ -52,7 +51,6 @@ export const SETTINGS_ACCESS_CODES: string[] = [
   ...SETTINGS_CODES.company,
   ...SETTINGS_CODES.documentLayout,
   ...SETTINGS_CODES.sales,
-  ...SETTINGS_CODES.inventory,
   ...SETTINGS_CODES.users,
   ...SETTINGS_CODES.roles,
   ...SETTINGS_CODES.modules,
@@ -62,7 +60,6 @@ export const SETTINGS_ACCESS_CODES: string[] = [
 export const NAV_REQUIREMENTS: Record<string, string[]> = {
   dashboard: [],
   sales: viewing("sales.customer", "sales.quotation", "sales.invoice", "sales.contract"),
-  inventory: viewing("inventory.item", "inventory.category", "inventory.movement"),
   notes: viewing("notes.note"),
   settings: SETTINGS_ACCESS_CODES,
 };
@@ -79,11 +76,6 @@ export const CHILD_NAV_REQUIREMENTS: Record<string, Record<string, string[]>> = 
     quotations: viewing("sales.quotation"),
     invoices: viewing("sales.invoice"),
     contracts: viewing("sales.contract"),
-  },
-  inventory: {
-    items: viewing("inventory.item"),
-    categories: viewing("inventory.category"),
-    movements: viewing("inventory.movement"),
   },
 };
 

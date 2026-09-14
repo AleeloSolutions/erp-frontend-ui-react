@@ -5,7 +5,6 @@
 ## Module / package
 
 - [ ] `packages/ui` (design system)
-- [ ] `apps/erp` inventory
 - [ ] `apps/erp` sales
 - [ ] `apps/erp` app wiring / routes
 

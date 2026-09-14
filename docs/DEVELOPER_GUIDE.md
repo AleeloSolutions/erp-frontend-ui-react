@@ -553,7 +553,7 @@ Example: **Sales → Customers** list + create (entity folder layout).
 
 Do **not** fork DataTable or FormShell for one module.
 
-Packaged modules (e.g. Inventory) live under `examples/<key>/` and arrive via zip → Promote, not as compiled-in `apps/erp/src/modules/<key>/` until the frontend PR merges.
+Packaged modules (e.g. POS) live under `examples/<key>/` and arrive via zip → Promote, not as compiled-in `apps/erp/src/modules/<key>/` until the frontend PR merges.
 
 ---
 
