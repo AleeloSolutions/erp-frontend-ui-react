@@ -780,6 +780,8 @@ export function DataTable<TData, TValue = unknown>({
     columnResizeDirection,
     autoResetPageIndex: false,
     manualPagination: isServerPagination,
+    // Server lists pass sorting to the API; do not re-sort the page client-side.
+    manualSorting: manualFiltering,
     pageCount: isServerPagination
       ? Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
       : undefined,

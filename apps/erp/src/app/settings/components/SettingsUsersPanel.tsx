@@ -73,7 +73,7 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
     [debouncedSearch, statusFilter, sorting, page, pageSize]
   );
 
-  const { users, total, loading, error, reload } = useTenantUsers(params);
+  const { users, total, loading, fetching, error, reload } = useTenantUsers(params);
   // The owner holds every code implicitly; a member needs the grant. The
   // Users row of the matrix has three ticks: invite, edit, deactivate.
   const held = me?.permissions ?? [];
@@ -291,6 +291,7 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
           },
         }}
         loading={loading}
+        fetching={fetching}
         error={error}
         getRowId={(row) => row.uuid}
         getRowActions={rowActions}

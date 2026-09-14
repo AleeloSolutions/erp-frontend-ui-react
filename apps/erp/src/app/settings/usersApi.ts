@@ -10,7 +10,7 @@
  * QueryProvider, and there the fetch simply never runs.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
 import { useRoles } from "./rolesApi";
@@ -150,29 +150,41 @@ export function useTenantUsers(params: TenantUserListParams) {
   // is already loading. Starting at `false` made callers render an empty
   // list as a real count.
   const [loading, setLoading] = useState(isAuthenticated);
+  const [fetching, setFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const hasLoadedRef = useRef(false);
 
   const query = useMemo(() => listQuery(params), [params]);
 
   useEffect(() => {
     if (!isAuthenticated()) return;
     let cancelled = false;
-    setLoading(true);
+    if (hasLoadedRef.current) {
+      setFetching(true);
+    } else {
+      setLoading(true);
+    }
     // apiGetPage keeps the envelope: `meta.total` is what drives paging.
     void apiGetPage<TenantUser>(`/v1/users/?${query}`)
       .then((payload) => {
         if (cancelled) return;
         setResult({ users: payload.data, total: payload.meta.total });
         setError(null);
+        hasLoadedRef.current = true;
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setResult({ users: [], total: 0 });
+        if (!hasLoadedRef.current) {
+          setResult({ users: [], total: 0 });
+        }
         setError(err instanceof Error ? err.message : "Could not load users.");
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setFetching(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -181,7 +193,7 @@ export function useTenantUsers(params: TenantUserListParams) {
 
   const reload = useCallback(() => setReloadToken((token) => token + 1), []);
 
-  return { ...result, loading, error, reload };
+  return { ...result, loading, fetching, error, reload };
 }
 
 /** One user by uuid; null while creating (no uuid) or before it loads. */

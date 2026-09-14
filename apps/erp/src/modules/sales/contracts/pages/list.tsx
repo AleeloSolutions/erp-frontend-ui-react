@@ -6,7 +6,7 @@
  * invoice or quotation.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import {
@@ -27,7 +27,7 @@ import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { useContractsQuery, useDeleteContractMutation } from "../queries";
 import type { Contract } from "../api";
 import { ApiError } from "@/lib/api-client";
-import { can } from "@/modules/sales/shared";
+import { can, listTableState } from "@/modules/sales/shared";
 import { CONTRACT_STATUS_LABELS, formatMoney } from "@/modules/sales/contracts/schema";
 
 function orderingOf(sorting: SortingState): string {
@@ -66,6 +66,7 @@ export default function ContractsPage() {
   );
 
   const contractsQuery = useContractsQuery(params);
+  const tableState = listTableState(contractsQuery);
   const deleteMutation = useDeleteContractMutation();
 
   const codes = session?.permissions;
@@ -137,24 +138,27 @@ export default function ContractsPage() {
     [navigate]
   );
 
-  function rowActions(contract: Contract): DataTableRowAction[] {
-    const actions: DataTableRowAction[] = [
-      {
-        key: "open",
-        label: canEdit ? "Edit" : "Open",
-        onClick: () => navigate(`/sales/contracts/${contract.uuid}/edit`),
-      },
-    ];
-    if (canDelete && contract.status === "draft") {
-      actions.push({
-        key: "delete",
-        label: "Delete",
-        danger: true,
-        onClick: () => setPendingDelete(contract),
-      });
-    }
-    return actions;
-  }
+  const rowActions = useCallback(
+    (contract: Contract): DataTableRowAction[] => {
+      const actions: DataTableRowAction[] = [
+        {
+          key: "open",
+          label: canEdit ? "Edit" : "Open",
+          onClick: () => navigate(`/sales/contracts/${contract.uuid}/edit`),
+        },
+      ];
+      if (canDelete && contract.status === "draft") {
+        actions.push({
+          key: "delete",
+          label: "Delete",
+          danger: true,
+          onClick: () => setPendingDelete(contract),
+        });
+      }
+      return actions;
+    },
+    [canDelete, canEdit, navigate]
+  );
 
   async function confirmDelete() {
     if (!pendingDelete) return;
@@ -198,7 +202,7 @@ export default function ContractsPage() {
           </ControlPanel>
         )}
         columns={columns}
-        data={contractsQuery.data?.data ?? []}
+        data={tableState.rows}
         searchable
         searchPlaceholder="Search contracts…"
         search={{
@@ -224,14 +228,15 @@ export default function ContractsPage() {
             setPage(1);
           },
         }}
-        loading={contractsQuery.isLoading || contractsQuery.isFetching}
-        error={contractsQuery.isError ? contractsQuery.error.message : null}
+        loading={tableState.loading}
+        fetching={tableState.fetching}
+        error={tableState.error}
         getRowId={(row) => row.uuid}
         getRowActions={rowActions}
         pagination={{
           page,
           pageSize,
-          total: contractsQuery.data?.meta.total ?? 0,
+          total: tableState.total,
           onPageChange: setPage,
           onPageSizeChange: (size) => {
             setPageSize(size);

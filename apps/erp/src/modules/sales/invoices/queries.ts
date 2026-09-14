@@ -7,6 +7,7 @@
  */
 
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -44,6 +45,7 @@ export function useInvoicesQuery(
   return useQuery({
     queryKey: invoiceKeys.list(params as Record<string, unknown>),
     queryFn: () => listInvoices(params),
+    placeholderData: keepPreviousData,
     ...options,
   });
 }

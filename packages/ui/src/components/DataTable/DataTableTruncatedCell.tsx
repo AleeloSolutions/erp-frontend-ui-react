@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "../../utils";
+import type { ReactNode } from "react";
 
 function getTooltipText(value: unknown): string | undefined {
   if (value == null) return undefined;
@@ -27,67 +27,22 @@ export interface DataTableTruncatedCellProps {
   className?: string;
 }
 
-function getMeasureTarget(node: HTMLElement): HTMLElement {
-  const interactive = node.querySelector("button, a");
-  if (interactive instanceof HTMLElement) return interactive;
-  const first = node.firstElementChild;
-  if (first instanceof HTMLElement) return first;
-  return node;
-}
-
-function isOverflowing(node: HTMLElement): boolean {
-  const target = getMeasureTarget(node);
-  if (target.scrollWidth > target.clientWidth + 1) return true;
-  if (target !== node && node.scrollWidth > node.clientWidth + 1) return true;
-  return false;
-}
-
-function resolveTooltipLabel(node: HTMLElement, value?: unknown): string | undefined {
-  const fromValue = getTooltipText(value);
-  if (fromValue) return fromValue;
-  const text = node.textContent?.replace(/\s+/g, " ").trim();
-  return text && text.length > 0 ? text : undefined;
-}
-
-/** Ellipsis wrapper; native title on any overflowed cell (all column types). */
+/**
+ * Ellipsis wrapper with a native title from the cell value.
+ *
+ * No ResizeObserver: measuring every cell on mount was the main post-load
+ * cost on every DataTable (dozens of observers + sync layout reads). CSS
+ * truncate still clips; the browser shows `title` on hover when set.
+ */
 export function DataTableTruncatedCell({
   children,
   value,
   className,
 }: DataTableTruncatedCellProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [title, setTitle] = useState<string | undefined>();
-
-  useLayoutEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-
-    function update() {
-      if (!isOverflowing(node!)) {
-        setTitle(undefined);
-        return;
-      }
-      setTitle(resolveTooltipLabel(node!, value));
-    }
-
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(node);
-    const target = getMeasureTarget(node);
-    if (target !== node) observer.observe(target);
-    return () => observer.disconnect();
-    // `children` intentionally excluded: it's fresh JSX on every parent render (e.g. every
-    // column-resize pointer-move touches every cell in the table) even when nothing this
-    // effect cares about changed, which was tearing down and recreating a ResizeObserver —
-    // plus forcing a synchronous layout read via isOverflowing() — for every cell on every
-    // such render. The ResizeObserver already re-checks on its own whenever the cell's
-    // rendered size actually changes; `value` is the only thing that should force a re-run.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  const title = getTooltipText(value);
 
   return (
     <div
-      ref={ref}
       title={title}
       className={cn(
         "min-w-0 max-w-full truncate whitespace-nowrap",
@@ -100,4 +55,4 @@ export function DataTableTruncatedCell({
   );
 }
 
-export { getTooltipText };
+DataTableTruncatedCell.displayName = "DataTableTruncatedCell";

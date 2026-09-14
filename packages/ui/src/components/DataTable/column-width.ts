@@ -5,7 +5,7 @@ import "../../types/table";
 const CHAR_WIDTH_PX = 7.2;
 const CELL_X_PADDING_PX = 24;
 const HEADER_EXTRA_PX = 28;
-const SAMPLE_ROWS = 30;
+const SAMPLE_ROWS = 8;
 
 /** Below this rendered width, cells switch to compact horizontal padding. */
 const COMPACT_PADDING_THRESHOLD_PX = 80;
@@ -122,7 +122,10 @@ export function estimateDataColumnSizing<TData>(
       return;
     }
 
-    if (column.size != null && !column.meta?.fill) {
+    // Explicit size wins — including fill columns. Fill still expands via
+    // normalizeSizingToWidth; content sampling here only burned main-thread
+    // time on every first paint with rows.
+    if (column.size != null) {
       sizing[id] = column.size;
       return;
     }

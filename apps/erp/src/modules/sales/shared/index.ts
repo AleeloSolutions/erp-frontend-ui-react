@@ -6,4 +6,5 @@
 export * from "./api";
 export * from "./queries";
 export * from "./permissions";
+export * from "./listTableState";
 export { DRAFT_ROW_CLASS_NAME, draftRowClassNameWhen } from "./draftRowClassName";

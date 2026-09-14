@@ -8,7 +8,7 @@
  * empty state does not promise there is nothing there.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import {
@@ -29,7 +29,7 @@ import { useCustomersQuery, useDeleteCustomerMutation } from "../queries";
 import type { Customer } from "../api";
 import { ApiError } from "@/lib/api-client";
 import { useSession } from "@/app/session";
-import { can } from "@/modules/sales/shared";
+import { can, listTableState } from "@/modules/sales/shared";
 
 /** DataTable sorting -> DRF `?ordering=`; `-` means descending. */
 function orderingOf(sorting: SortingState): string {
@@ -67,6 +67,7 @@ export default function CustomersPage() {
   );
 
   const customersQuery = useCustomersQuery(params);
+  const tableState = listTableState(customersQuery);
   const deleteMutation = useDeleteCustomerMutation();
 
   const codes = session?.permissions;
@@ -159,24 +160,27 @@ export default function CustomersPage() {
   );
 
   /** Only the actions this viewer may actually perform are offered. */
-  function rowActions(customer: Customer): DataTableRowAction[] {
-    const actions: DataTableRowAction[] = [
-      {
-        key: "open",
-        label: canEdit ? "Edit" : "Open",
-        onClick: () => navigate(`/sales/customers/${customer.uuid}/edit`),
-      },
-    ];
-    if (canDelete) {
-      actions.push({
-        key: "delete",
-        label: "Delete",
-        danger: true,
-        onClick: () => setPendingDelete(customer),
-      });
-    }
-    return actions;
-  }
+  const rowActions = useCallback(
+    (customer: Customer): DataTableRowAction[] => {
+      const actions: DataTableRowAction[] = [
+        {
+          key: "open",
+          label: canEdit ? "Edit" : "Open",
+          onClick: () => navigate(`/sales/customers/${customer.uuid}/edit`),
+        },
+      ];
+      if (canDelete) {
+        actions.push({
+          key: "delete",
+          label: "Delete",
+          danger: true,
+          onClick: () => setPendingDelete(customer),
+        });
+      }
+      return actions;
+    },
+    [canDelete, canEdit, navigate]
+  );
 
   async function confirmDelete() {
     if (!pendingDelete) return;
@@ -226,7 +230,7 @@ export default function CustomersPage() {
           </ControlPanel>
         )}
         columns={columns}
-        data={customersQuery.data?.data ?? []}
+        data={tableState.rows}
         searchable
         searchPlaceholder="Search customers…"
         search={{
@@ -252,14 +256,15 @@ export default function CustomersPage() {
             setPage(1);
           },
         }}
-        loading={customersQuery.isLoading || customersQuery.isFetching}
-        error={customersQuery.isError ? customersQuery.error.message : null}
+        loading={tableState.loading}
+        fetching={tableState.fetching}
+        error={tableState.error}
         getRowId={(row) => row.uuid}
         getRowActions={rowActions}
         pagination={{
           page,
           pageSize,
-          total: customersQuery.data?.meta.total ?? 0,
+          total: tableState.total,
           onPageChange: setPage,
           onPageSizeChange: (size) => {
             setPageSize(size);

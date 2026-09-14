@@ -3,6 +3,7 @@
  */
 
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -41,6 +42,7 @@ export function useQuotationsQuery(
   return useQuery({
     queryKey: quotationKeys.list(params as Record<string, unknown>),
     queryFn: () => listQuotations(params),
+    placeholderData: keepPreviousData,
     ...options,
   });
 }

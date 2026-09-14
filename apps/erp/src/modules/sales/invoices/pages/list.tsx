@@ -11,7 +11,7 @@
  * the row menu offers what that invoice's own state actually allows.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import {
@@ -34,7 +34,7 @@ import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { useDeleteInvoiceMutation, useInvoicesQuery } from "../queries";
 import type { Invoice } from "../api";
 import { ApiError } from "@/lib/api-client";
-import { DRAFT_ROW_CLASS_NAME, can } from "@/modules/sales/shared";
+import { DRAFT_ROW_CLASS_NAME, can, listTableState } from "@/modules/sales/shared";
 import {
   INVOICE_STATUS_LABELS,
   PAYMENT_STATE_LABELS,
@@ -80,6 +80,7 @@ export default function InvoicesPage() {
   );
 
   const invoicesQuery = useInvoicesQuery(params);
+  const tableState = listTableState(invoicesQuery);
   const deleteMutation = useDeleteInvoiceMutation();
 
   const codes = session?.permissions;
@@ -182,29 +183,32 @@ export default function InvoicesPage() {
   );
 
   /** A posted invoice can be neither edited nor deleted, so neither is offered. */
-  function rowActions(invoice: Invoice): DataTableRowAction[] {
-    const actions: DataTableRowAction[] = [
-      {
-        key: "open",
-        label: canEdit && invoice.status === "draft" ? "Edit" : "Open",
-        onClick: () => navigate(`/sales/invoices/${invoice.uuid}/edit`),
-      },
-      {
-        key: "print",
-        label: "Print",
-        onClick: () => navigate(`/sales/invoices/${invoice.uuid}/print`),
-      },
-    ];
-    if (canDelete && invoice.status === "draft") {
-      actions.push({
-        key: "delete",
-        label: "Delete",
-        danger: true,
-        onClick: () => setPendingDelete(invoice),
-      });
-    }
-    return actions;
-  }
+  const rowActions = useCallback(
+    (invoice: Invoice): DataTableRowAction[] => {
+      const actions: DataTableRowAction[] = [
+        {
+          key: "open",
+          label: canEdit && invoice.status === "draft" ? "Edit" : "Open",
+          onClick: () => navigate(`/sales/invoices/${invoice.uuid}/edit`),
+        },
+        {
+          key: "print",
+          label: "Print",
+          onClick: () => navigate(`/sales/invoices/${invoice.uuid}/print`),
+        },
+      ];
+      if (canDelete && invoice.status === "draft") {
+        actions.push({
+          key: "delete",
+          label: "Delete",
+          danger: true,
+          onClick: () => setPendingDelete(invoice),
+        });
+      }
+      return actions;
+    },
+    [canDelete, canEdit, navigate]
+  );
 
   async function confirmDelete() {
     if (!pendingDelete) return;
@@ -249,7 +253,7 @@ export default function InvoicesPage() {
           </ControlPanel>
         )}
         columns={columns}
-        data={invoicesQuery.data?.data ?? []}
+        data={tableState.rows}
         searchable
         searchPlaceholder="Search invoices…"
         search={{
@@ -275,8 +279,9 @@ export default function InvoicesPage() {
             setPage(1);
           },
         }}
-        loading={invoicesQuery.isLoading || invoicesQuery.isFetching}
-        error={invoicesQuery.isError ? invoicesQuery.error.message : null}
+        loading={tableState.loading}
+        fetching={tableState.fetching}
+        error={tableState.error}
         getRowId={(row) => row.uuid}
         getRowActions={rowActions}
         getRowClassName={(invoice) =>
@@ -285,7 +290,7 @@ export default function InvoicesPage() {
         pagination={{
           page,
           pageSize,
-          total: invoicesQuery.data?.meta.total ?? 0,
+          total: tableState.total,
           onPageChange: setPage,
           onPageSizeChange: (size) => {
             setPageSize(size);

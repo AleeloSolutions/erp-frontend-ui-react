@@ -4,7 +4,7 @@
  * Only a draft can be edited or deleted; once sent it is a record.
  */
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import {
@@ -29,7 +29,7 @@ import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { useDeleteQuotationMutation, useQuotationsQuery } from "../queries";
 import type { Quotation } from "../api";
 import { ApiError } from "@/lib/api-client";
-import { DRAFT_ROW_CLASS_NAME, can } from "@/modules/sales/shared";
+import { DRAFT_ROW_CLASS_NAME, can, listTableState } from "@/modules/sales/shared";
 import { QUOTATION_STATUS_LABELS, formatMoney } from "@/modules/sales/quotations/schema";
 
 function orderingOf(sorting: SortingState): string {
@@ -93,6 +93,7 @@ export default function QuotationsPage() {
   );
 
   const quotationsQuery = useQuotationsQuery(params);
+  const tableState = listTableState(quotationsQuery);
   if (quotationsQuery.isSuccess) {
     knownTotalRef.current = quotationsQuery.data.meta.total;
   }
@@ -173,24 +174,27 @@ export default function QuotationsPage() {
     []
   );
 
-  function rowActions(quotation: Quotation): DataTableRowAction[] {
-    const actions: DataTableRowAction[] = [
-      {
-        key: "open",
-        label: canEdit && quotation.status === "draft" ? "Edit" : "Open",
-        onClick: () => navigate(`/sales/quotations/${quotation.uuid}/edit`),
-      },
-    ];
-    if (canDelete && quotation.status === "draft") {
-      actions.push({
-        key: "delete",
-        label: "Delete",
-        danger: true,
-        onClick: () => setPendingDelete(quotation),
-      });
-    }
-    return actions;
-  }
+  const rowActions = useCallback(
+    (quotation: Quotation): DataTableRowAction[] => {
+      const actions: DataTableRowAction[] = [
+        {
+          key: "open",
+          label: canEdit && quotation.status === "draft" ? "Edit" : "Open",
+          onClick: () => navigate(`/sales/quotations/${quotation.uuid}/edit`),
+        },
+      ];
+      if (canDelete && quotation.status === "draft") {
+        actions.push({
+          key: "delete",
+          label: "Delete",
+          danger: true,
+          onClick: () => setPendingDelete(quotation),
+        });
+      }
+      return actions;
+    },
+    [canDelete, canEdit, navigate]
+  );
 
   async function confirmDelete() {
     if (!pendingDelete) return;
@@ -235,7 +239,7 @@ export default function QuotationsPage() {
           </ControlPanel>
         )}
         columns={columns}
-        data={quotationsQuery.data?.data ?? []}
+        data={tableState.rows}
         searchable
         searchPlaceholder="Search quotations…"
         search={{
@@ -254,8 +258,7 @@ export default function QuotationsPage() {
         ]}
         onGroupingChange={(columnIds) => {
           const wantsPeriod = columnIds.some((id) => id.startsWith("__period:"));
-          const total =
-            quotationsQuery.data?.meta.total ?? knownTotalRef.current ?? 0;
+          const total = tableState.total || knownTotalRef.current || 0;
           // Empty catalog: keep grouping visual client-side, but do not refetch.
           const next = wantsPeriod && total > 0;
           setPeriodGroupingActive((prev) => {
@@ -278,8 +281,9 @@ export default function QuotationsPage() {
             setPage(1);
           },
         }}
-        loading={quotationsQuery.isLoading || quotationsQuery.isFetching}
-        error={quotationsQuery.isError ? quotationsQuery.error.message : null}
+        loading={tableState.loading}
+        fetching={tableState.fetching}
+        error={tableState.error}
         getRowId={(row) => row.uuid}
         getRowActions={rowActions}
         getRowClassName={(quotation) =>
@@ -288,7 +292,7 @@ export default function QuotationsPage() {
         pagination={{
           page,
           pageSize: listPageSize,
-          total: quotationsQuery.data?.meta.total ?? 0,
+          total: tableState.total,
           onPageChange: setPage,
           onPageSizeChange: (size) => {
             setPageSize(size);
