@@ -52,9 +52,11 @@ export function todayIso(): string {
 
 /** `issue_date` plus the customer's agreed terms — the default due date. */
 export function dueDateFrom(issueDate: string, paymentTermsDays: number): string {
+  const days = Number(paymentTermsDays);
   const date = new Date(`${issueDate}T00:00:00`);
   if (Number.isNaN(date.getTime())) return issueDate;
-  date.setDate(date.getDate() + paymentTermsDays);
+  date.setDate(date.getDate() + (Number.isFinite(days) ? days : 0));
+  if (Number.isNaN(date.getTime())) return issueDate;
   return date.toISOString().slice(0, 10);
 }
 

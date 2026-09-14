@@ -33,9 +33,11 @@ export function todayIso(): string {
 }
 
 export function validUntilFrom(issueDate: string, defaultValidDays: number): string {
+  const days = Number(defaultValidDays);
   const date = new Date(`${issueDate}T00:00:00`);
   if (Number.isNaN(date.getTime())) return issueDate;
-  date.setDate(date.getDate() + defaultValidDays);
+  date.setDate(date.getDate() + (Number.isFinite(days) ? days : 30));
+  if (Number.isNaN(date.getTime())) return issueDate;
   return date.toISOString().slice(0, 10);
 }
 

@@ -124,7 +124,7 @@ export default function QuotationCreatePage() {
     [taxesQuery.data]
   );
   const defaultTax = taxes.find((tax) => tax.is_default) ?? null;
-  const defaultValidDays = settings?.default_valid_days ?? 30;
+  const defaultValidDays = settings?.default_quotation_valid_days ?? 30;
 
   const customerItems = useMemo<DropdownItem[]>(
     () => customers.map((customer) => ({ key: customer.uuid, label: customer.name })),
@@ -159,10 +159,10 @@ export default function QuotationCreatePage() {
     settingsSeeded.current = true;
     setValue(
       "valid_until",
-      validUntilFrom(watch("issue_date"), settings.default_valid_days)
+      validUntilFrom(watch("issue_date"), settings.default_quotation_valid_days ?? 30)
     );
-    if (settings.quotation_terms) {
-      setValue("terms", settings.quotation_terms);
+    if (settings.invoice_terms) {
+      setValue("terms", settings.invoice_terms);
     }
   }, [settings, setValue, watch]);
 

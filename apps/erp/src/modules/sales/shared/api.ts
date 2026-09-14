@@ -69,12 +69,11 @@ export interface SalesSettings {
   has_branch_in_number: boolean;
   number_padding: number;
   default_due_days: number;
-  default_valid_days: number;
+  default_quotation_valid_days: number;
   /** Tax uuid, or null when none is set. */
   default_tax: string | null;
   invoice_terms: string;
   invoice_footer: string;
-  quotation_terms: string;
   updated_at: string;
 }
 
@@ -84,11 +83,10 @@ export type SalesSettingsInput = Partial<{
   has_branch_in_number: boolean;
   number_padding: number;
   default_due_days: number;
-  default_valid_days: number;
+  default_quotation_valid_days: number;
   default_tax: string | null;
   invoice_terms: string;
   invoice_footer: string;
-  quotation_terms: string;
 }>;
 
 /** Shared so each entity builds identical list URLs. */

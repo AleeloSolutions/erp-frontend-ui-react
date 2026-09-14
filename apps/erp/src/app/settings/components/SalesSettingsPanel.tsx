@@ -64,11 +64,10 @@ function InvoiceDefaultsForm({
     has_branch_in_number: settings.has_branch_in_number,
     number_padding: String(settings.number_padding),
     default_due_days: String(settings.default_due_days),
-    default_valid_days: String(settings.default_valid_days),
+    default_quotation_valid_days: String(settings.default_quotation_valid_days),
     default_tax: settings.default_tax ?? "",
     invoice_terms: settings.invoice_terms,
     invoice_footer: settings.invoice_footer,
-    quotation_terms: settings.quotation_terms,
   });
 
   useEffect(() => {
@@ -78,11 +77,10 @@ function InvoiceDefaultsForm({
       has_branch_in_number: settings.has_branch_in_number,
       number_padding: String(settings.number_padding),
       default_due_days: String(settings.default_due_days),
-      default_valid_days: String(settings.default_valid_days),
+      default_quotation_valid_days: String(settings.default_quotation_valid_days),
       default_tax: settings.default_tax ?? "",
       invoice_terms: settings.invoice_terms,
       invoice_footer: settings.invoice_footer,
-      quotation_terms: settings.quotation_terms,
     });
   }, [settings]);
 
@@ -109,7 +107,7 @@ function InvoiceDefaultsForm({
       toast({ title: "Default due days must be zero or more" });
       return;
     }
-    const validDays = Number(values.default_valid_days);
+    const validDays = Number(values.default_quotation_valid_days);
     if (!Number.isFinite(validDays) || validDays < 0) {
       toast({ title: "Default valid days must be zero or more" });
       return;
@@ -121,11 +119,10 @@ function InvoiceDefaultsForm({
         has_branch_in_number: values.has_branch_in_number,
         number_padding: padding,
         default_due_days: dueDays,
-        default_valid_days: validDays,
+        default_quotation_valid_days: validDays,
         default_tax: values.default_tax || null,
         invoice_terms: values.invoice_terms,
         invoice_footer: values.invoice_footer,
-        quotation_terms: values.quotation_terms,
       });
       toast({ title: "Sales settings saved", variant: "success" });
     } catch (err) {
@@ -263,24 +260,11 @@ function InvoiceDefaultsForm({
               id="sales-default-valid-days"
               type="number"
               min={0}
-              value={values.default_valid_days}
+              value={values.default_quotation_valid_days}
               onChange={(event) =>
                 setValues((current) => ({
                   ...current,
-                  default_valid_days: event.target.value,
-                }))
-              }
-            />
-          </FormField>
-          <FormField label="Default terms" htmlFor="sales-quotation-terms" span={12}>
-            <FormTextarea
-              id="sales-quotation-terms"
-              rows={3}
-              value={values.quotation_terms}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  quotation_terms: event.target.value,
+                  default_quotation_valid_days: event.target.value,
                 }))
               }
             />

@@ -32,9 +32,11 @@ export function todayIso(): string {
 }
 
 export function plusDaysIso(days: number, from: string = todayIso()): string {
+  const n = Number(days);
   const date = new Date(`${from}T00:00:00`);
   if (Number.isNaN(date.getTime())) return from;
-  date.setDate(date.getDate() + days);
+  date.setDate(date.getDate() + (Number.isFinite(n) ? n : 0));
+  if (Number.isNaN(date.getTime())) return from;
   return date.toISOString().slice(0, 10);
 }
 
