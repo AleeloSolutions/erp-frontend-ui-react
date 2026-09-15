@@ -163,47 +163,30 @@ function buildFilterOptionItems(
   return options.map((option, optionIndex) => {
     const hasChildren = Boolean(option.children?.length);
     const isCustom = Boolean(option.customRange);
-    const customToken = selected.find(isCustomRangeValue);
-    const customRange = customToken ? parseCustomRange(customToken) : null;
-    const isChecked = isCustom ? Boolean(customToken) : selected.includes(option.value);
+    const isChecked = selected.includes(option.value);
 
     const expandOnly =
       !isCustom &&
       (option.selectable === false || (hasChildren && option.selectable !== true));
 
-    return {
-      id: `${filter.key}:${option.value}`,
-      label: option.label,
-      checked: expandOnly ? false : isChecked,
-      selectable: !expandOnly,
-      dividerBefore: dividerBeforeFirst && optionIndex === 0,
-      defaultExpanded: hasChildren || (isCustom && isChecked),
-      onSelect: expandOnly
-        ? undefined
-        : () => {
-            if (isCustom) {
-              if (isChecked) {
-                onChange(selected.filter((entry) => !isCustomRangeValue(entry)));
-                return;
-              }
-              const today = toISODate(new Date());
-              onChange([
-                ...selected.filter((entry) => !isCustomRangeValue(entry)),
-                encodeCustomRange(today, today),
-              ]);
-              return;
-            }
-            onChange(toggleToken(selected, option.value, !isChecked));
-          },
-      children: hasChildren
-        ? buildFilterOptionItems(filter, option.children!, selected, onChange, false)
-        : undefined,
-      extra:
-        isCustom && isChecked ? (
+    if (isCustom) {
+      const customToken = selected.find(isCustomRangeValue);
+      const customRange = customToken ? parseCustomRange(customToken) : null;
+      return {
+        id: `${filter.key}:${option.value}`,
+        label: option.label,
+        checked: Boolean(customToken),
+        active: Boolean(customToken),
+        selectable: false,
+        dividerBefore:
+          Boolean(option.dividerBefore) || (dividerBeforeFirst && optionIndex === 0),
+        defaultExpanded: true,
+        extra: (
           <CustomRangeFields
             from={customRange?.from ?? ""}
             to={customRange?.to ?? ""}
-            onChange={({ from, to }) => {
+            onChange={() => undefined}
+            onApply={({ from, to }) => {
               if (!from || !to) return;
               onChange([
                 ...selected.filter((entry) => !isCustomRangeValue(entry)),
@@ -211,7 +194,26 @@ function buildFilterOptionItems(
               ]);
             }}
           />
-        ) : undefined,
+        ),
+      };
+    }
+
+    return {
+      id: `${filter.key}:${option.value}`,
+      label: option.label,
+      checked: expandOnly ? false : isChecked,
+      selectable: !expandOnly,
+      dividerBefore:
+        Boolean(option.dividerBefore) || (dividerBeforeFirst && optionIndex === 0),
+      defaultExpanded: hasChildren,
+      onSelect: expandOnly
+        ? undefined
+        : () => {
+            onChange(toggleToken(selected, option.value, !isChecked));
+          },
+      children: hasChildren
+        ? buildFilterOptionItems(filter, option.children!, selected, onChange, false)
+        : undefined,
     };
   });
 }
@@ -342,6 +344,16 @@ export interface DataTableProps<TData, TValue = unknown> {
   /** Optional per-row `<tr>` classes (e.g. status text color on all cells). */
   getRowClassName?: (row: TData) => string | undefined;
   /**
+   * Extra content on each Group By header (beside the item count) — typically
+   * a money total for that portion. Reused by any screen that enables grouping.
+   */
+  renderGroupSummary?: (ctx: {
+    rows: TData[];
+    columnId: string;
+    groupValue: string;
+    depth: number;
+  }) => ReactNode;
+  /**
    * Keep column headers pinned while the page scrolls. Defaults to true.
    * Sticks under the Navbar, and under ControlPanel when `belowControlPanel`
    * is true (or when `renderToolbar` is used).
@@ -416,6 +428,7 @@ export function DataTable<TData, TValue = unknown>({
   filtering: controlledFiltering,
   className,
   getRowClassName,
+  renderGroupSummary,
   stickyHeader = true,
   belowControlPanel,
   renderToolbar,
@@ -964,10 +977,14 @@ export function DataTable<TData, TValue = unknown>({
 
   function handleFilterChange(key: string, value: string | string[]) {
     if (catalogEmpty) return;
-    setFilterValues({
-      ...filterValues,
-      [key]: value,
-    });
+    const empty = Array.isArray(value) ? value.length === 0 : !value;
+    const next = { ...filterValues };
+    if (empty) {
+      delete next[key];
+    } else {
+      next[key] = value;
+    }
+    setFilterValues(next);
     if (!isServerPagination) {
       setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
     }
@@ -1092,38 +1109,64 @@ export function DataTable<TData, TValue = unknown>({
           ? [raw]
           : [];
       const options = filter.options ?? [];
+      const exclusive = filter.type === "select" || filter.type === "date";
+
       if (options.some((option) => option.children?.length)) {
         panelFilterItems.push({
           id: filter.key,
           label: filter.label,
-          selectable: false,
+          checked: selected.length > 0,
+          selectable: true,
           defaultExpanded: true,
           dividerBefore: filterIndex > 0,
+          onSelect: () => handleFilterChange(filter.key, []),
           children: buildFilterOptionItems(
             filter,
             options,
             selected,
-            (next) => handleFilterChange(filter.key, next),
+            (next) =>
+              handleFilterChange(
+                filter.key,
+                exclusive && next.length > 1 ? [next[next.length - 1]!] : next
+              ),
             false
           ),
         });
         return;
       }
-      options.forEach((option, optionIndex) => {
-        const isChecked = selected.includes(option.value);
-        panelFilterItems.push({
-          id: `${filter.key}:${option.value}`,
-          label: option.label,
-          checked: isChecked,
-          dividerBefore: filterIndex > 0 && optionIndex === 0,
-          onSelect: () =>
-            handleFilterChange(
-              filter.key,
-              isChecked
-                ? selected.filter((entry) => entry !== option.value)
-                : [...selected, option.value]
-            ),
-        });
+
+      panelFilterItems.push({
+        id: filter.key,
+        label: filter.label,
+        checked: selected.length > 0,
+        selectable: true,
+        defaultExpanded: true,
+        dividerBefore: filterIndex > 0,
+        onSelect: () => handleFilterChange(filter.key, []),
+        children: options.map((option, optionIndex) => {
+          const isChecked = selected.includes(option.value);
+          return {
+            id: `${filter.key}:${option.value}`,
+            label: option.label,
+            checked: isChecked,
+            active: isChecked,
+            selectable: true,
+            dividerBefore: Boolean(option.dividerBefore) && optionIndex > 0,
+            onSelect: () => {
+              if (isChecked) {
+                handleFilterChange(
+                  filter.key,
+                  exclusive ? [] : selected.filter((entry) => entry !== option.value)
+                );
+                return;
+              }
+              handleFilterChange(
+                filter.key,
+                exclusive ? [option.value] : [...selected, option.value]
+              );
+            },
+          };
+        }),
       });
     }
   });
@@ -1319,6 +1362,7 @@ export function DataTable<TData, TValue = unknown>({
                   activeRowId={activeRowId}
                   onClearActiveRow={() => setActiveRowId(null)}
                   getRowClassName={getRowClassName}
+                  renderGroupSummary={renderGroupSummary}
                 />
               </table>
             </div>

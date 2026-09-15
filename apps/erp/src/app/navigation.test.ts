@@ -4,7 +4,7 @@ import { moduleRegistry } from "@/modules";
 import type { ModuleManifest } from "@/modules/types";
 import { NAV_AREAS, buildNavigation } from "./navigation";
 
-const OWNER_CODES = ["sales.customer.view", "sales.quotation.view", "settings.role.edit"];
+const OWNER_CODES = ["sales.customer.view", "sales.order.view", "settings.role.edit"];
 
 const POS: ModuleManifest = {
   key: "pos",
@@ -89,7 +89,7 @@ describe("buildNavigation", () => {
   it("hides Settings when no Settings tab would be usable", () => {
     expect(
       keys({
-        permissions: ["sales.customer.view", "sales.quotation.view"],
+        permissions: ["sales.customer.view", "sales.order.view"],
         enabled_modules: ["sales"],
         user_type: "member",
       })
@@ -140,6 +140,29 @@ describe("buildNavigation", () => {
     const sales = items.find((item) => item.key === "sales");
     expect(sales?.children?.map((c) => c.key)).toEqual(["customers"]);
     expect(sales?.href).toBe("/sales/customers");
+  });
+
+  it("prefers the Sales list as the module home when permitted", () => {
+    const items = buildNavigation(
+      {
+        permissions: [
+          "sales.customer.view",
+          "sales.order.view",
+          "sales.product.view",
+          "settings.client.edit",
+        ],
+        enabled_modules: ["sales"],
+        user_type: "member",
+      },
+      moduleRegistry
+    );
+    const sales = items.find((item) => item.key === "sales");
+    expect(sales?.children?.map((c) => c.key)).toEqual([
+      "customers",
+      "products",
+      "settings",
+    ]);
+    expect(sales?.href).toBe("/sales");
   });
 
   it("gives platform accounts the package screen", () => {

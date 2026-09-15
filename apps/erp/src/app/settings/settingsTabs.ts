@@ -7,7 +7,9 @@ export type SettingsTabKey =
   | "modules"
   | "document-layout"
   | "language"
-  | "sales";
+  | "sales"
+  | "sales-taxes"
+  | "sales-payments";
 
 /** The codes each tab needs. A tab nobody can act on is not offered. */
 export const SETTINGS_TAB_REQUIREMENTS: Record<SettingsTabKey, string[]> = {
@@ -18,8 +20,10 @@ export const SETTINGS_TAB_REQUIREMENTS: Record<SettingsTabKey, string[]> = {
   "document-layout": [...SETTINGS_CODES.documentLayout],
   // Locale lives on the company settings row (same API as Company Info).
   language: [...SETTINGS_CODES.company],
-  // Invoicing defaults — same write grant as Company Info (Sales settings API).
+  // Invoicing defaults / taxes / payment methods — same write grant as Company Info.
   sales: [...SETTINGS_CODES.sales],
+  "sales-taxes": [...SETTINGS_CODES.sales],
+  "sales-payments": [...SETTINGS_CODES.sales],
 };
 
 /** Flat list kept for callers/tests; Settings UI uses settingsTabsForModule. */

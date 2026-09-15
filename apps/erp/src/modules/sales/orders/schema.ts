@@ -1,15 +1,15 @@
 /**
- * The quotation editor's own shape, and the translation to and from the API.
+ * The order editor's own shape, and the translation to and from the API.
  *
  * Quantities and prices stay strings the whole way — decimals on the backend.
  */
 
 import { z } from "zod";
-import type { LineKind, QuotationLine, QuotationLineInput, QuotationStatus } from "./api";
+import type { LineKind, OrderLine, OrderLineInput, OrderStatus } from "./api";
 
-export const quotationFormSchema = z.object({
+export const orderFormSchema = z.object({
   customer: z.string().min(1, "Customer is required"),
-  issue_date: z.string().min(1, "Quotation date is required"),
+  issue_date: z.string().min(1, "Sale date is required"),
   valid_until: z.string().min(1, "Valid-until date is required"),
   discount_type: z.enum(["percentage", "fixed"]),
   discount_value: z.string(),
@@ -18,10 +18,10 @@ export const quotationFormSchema = z.object({
   terms: z.string(),
 });
 
-export type QuotationFormValues = z.infer<typeof quotationFormSchema>;
+export type OrderFormValues = z.infer<typeof orderFormSchema>;
 
 /** UI labels: sent reads as Pending, accepted as Approved. */
-export const QUOTATION_STATUS_LABELS: Record<QuotationStatus, string> = {
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   draft: "Draft",
   sent: "Pending",
   accepted: "Approved",
@@ -41,7 +41,7 @@ export function validUntilFrom(issueDate: string, defaultValidDays: number): str
   return date.toISOString().slice(0, 10);
 }
 
-export function emptyQuotationForm(): QuotationFormValues {
+export function emptyOrderForm(): OrderFormValues {
   return {
     customer: "",
     issue_date: todayIso(),
@@ -54,7 +54,7 @@ export function emptyQuotationForm(): QuotationFormValues {
   };
 }
 
-export interface QuotationLineFormValue {
+export interface OrderLineFormValue {
   id: string;
   kind: LineKind;
   description: string;
@@ -65,9 +65,7 @@ export interface QuotationLineFormValue {
 
 let nextLineId = 1;
 
-export function createEmptyQuotationLine(
-  tax: string | null = null
-): QuotationLineFormValue {
+export function createEmptyOrderLine(tax: string | null = null): OrderLineFormValue {
   return {
     id: `new-${nextLineId++}`,
     kind: "product",
@@ -78,15 +76,15 @@ export function createEmptyQuotationLine(
   };
 }
 
-export function createQuotationSectionLine(): QuotationLineFormValue {
-  return { ...createEmptyQuotationLine(), kind: "section" };
+export function createOrderSectionLine(): OrderLineFormValue {
+  return { ...createEmptyOrderLine(), kind: "section" };
 }
 
-export function createQuotationNoteLine(): QuotationLineFormValue {
-  return { ...createEmptyQuotationLine(), kind: "note" };
+export function createOrderNoteLine(): OrderLineFormValue {
+  return { ...createEmptyOrderLine(), kind: "note" };
 }
 
-export function toFormLines(lines: QuotationLine[]): QuotationLineFormValue[] {
+export function toFormLines(lines: OrderLine[]): OrderLineFormValue[] {
   return lines.map((line) => ({
     id: line.uuid,
     kind: line.kind,
@@ -97,7 +95,7 @@ export function toFormLines(lines: QuotationLine[]): QuotationLineFormValue[] {
   }));
 }
 
-export function toLineInputs(lines: QuotationLineFormValue[]): QuotationLineInput[] {
+export function toLineInputs(lines: OrderLineFormValue[]): OrderLineInput[] {
   return lines
     .filter((line) => line.description.trim().length > 0)
     .map((line) =>
@@ -119,21 +117,36 @@ export function toLineInputs(lines: QuotationLineFormValue[]): QuotationLineInpu
     );
 }
 
-export function hasChargeableLine(lines: QuotationLineFormValue[]): boolean {
+export function hasChargeableLine(lines: OrderLineFormValue[]): boolean {
   return lines.some(
     (line) => line.kind === "product" && line.description.trim().length > 0
   );
 }
 
-export function estimateLineAmount(line: QuotationLineFormValue): number {
+export function estimateLineAmount(line: OrderLineFormValue): number {
   if (line.kind !== "product") return 0;
   return (Number(line.quantity) || 0) * (Number(line.unit_price) || 0);
 }
 
-export function estimateUntaxedTotal(lines: QuotationLineFormValue[]): number {
+export function estimateUntaxedTotal(lines: OrderLineFormValue[]): number {
   return lines.reduce((sum, line) => sum + estimateLineAmount(line), 0);
 }
 
 export function formatMoney(amount: string, currency: string): string {
   return currency ? `${amount} ${currency}` : amount;
+}
+
+/** Sum money strings (2 dp) for a group portion; splits by currency when mixed. */
+export function sumMoneyByCurrency(
+  rows: { total_amount: string; currency: string }[]
+): string {
+  const byCurrency = new Map<string, number>();
+  for (const row of rows) {
+    const code = row.currency || "";
+    const next = (byCurrency.get(code) ?? 0) + (Number(row.total_amount) || 0);
+    byCurrency.set(code, next);
+  }
+  return [...byCurrency.entries()]
+    .map(([code, total]) => formatMoney(total.toFixed(2), code))
+    .join(" · ");
 }

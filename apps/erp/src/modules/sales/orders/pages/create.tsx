@@ -1,7 +1,7 @@
 /**
- * New quotation, against `/api/v1/sales/quotations/`.
+ * New order, against `/api/v1/sales/orders/`.
  *
- * A new quotation is always a draft: `POST` stores it, and only sending it
+ * A new order is always a draft: `POST` stores it, and only sending it
  * later allocates a number. Nothing here computes what will be charged —
  * the amounts beside the lines are the editor's own estimate, shown so the
  * page is not blank while the draft is typed, and they are replaced by the
@@ -15,6 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AppShell } from "@/app";
 import { useSession } from "@/app/session";
 import {
+  Button,
   ControlPanel,
   Dropdown,
   FormDatePicker,
@@ -30,6 +31,7 @@ import {
   FormTextarea,
   Input,
   LineItemsTable,
+  Modal,
   PageActions,
   Tabs,
   Textarea,
@@ -41,24 +43,25 @@ import {
   type StatusStep,
 } from "@erp/ui";
 import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
-import { useCustomersQuery } from "@/modules/sales/customers";
-import { useCreateQuotationMutation } from "../queries";
+import { useCreateCustomerMutation, useCustomersQuery } from "@/modules/sales/customers";
+import { useCreateProductMutation, useProductsQuery } from "@/modules/sales/products";
+import { useCreateOrderMutation } from "../queries";
 import { can, useSalesSettingsQuery, useTaxesQuery } from "@/modules/sales/shared";
 import {
-  createEmptyQuotationLine,
-  createQuotationNoteLine,
-  createQuotationSectionLine,
-  emptyQuotationForm,
+  createEmptyOrderLine,
+  createOrderNoteLine,
+  createOrderSectionLine,
+  emptyOrderForm,
   estimateLineAmount,
   estimateUntaxedTotal,
   formatMoney,
   hasChargeableLine,
-  quotationFormSchema,
+  orderFormSchema,
   toLineInputs,
   validUntilFrom,
-  type QuotationFormValues,
-  type QuotationLineFormValue,
-} from "@/modules/sales/quotations/schema";
+  type OrderFormValues,
+  type OrderLineFormValue,
+} from "@/modules/sales/orders/schema";
 import { ApiError } from "@/lib/api-client";
 
 /** Read-only until it is saved and sent — sending is its own action. */
@@ -68,14 +71,14 @@ const statusSteps: StatusStep[] = [
 ];
 
 const detailTabs = [
-  { key: "lines", label: "Quotation Lines" },
+  { key: "lines", label: "Sale Lines" },
   { key: "other", label: "Other Info" },
 ];
 
 /** Odoo behaviour: a section subtotals every product row below it, down to the next section. */
 function sectionEstimate(
-  sectionLine: QuotationLineFormValue,
-  allLines: QuotationLineFormValue[]
+  sectionLine: OrderLineFormValue,
+  allLines: OrderLineFormValue[]
 ) {
   const startIndex = allLines.findIndex((line) => line.id === sectionLine.id);
   let sum = 0;
@@ -87,24 +90,22 @@ function sectionEstimate(
   return sum;
 }
 
-export default function QuotationCreatePage() {
+export default function OrderCreatePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const session = useSession();
-  const navbar = useSalesNavbar("quotations");
-  const createMutation = useCreateQuotationMutation();
-  const canCreate = can(session?.permissions, "sales.quotation", "create");
+  const navbar = useSalesNavbar("orders");
+  const createMutation = useCreateOrderMutation();
+  const canCreate = can(session?.permissions, "sales.order", "create");
 
   useEffect(() => {
     if (session && !canCreate) {
-      navigate("/sales/quotations", { replace: true });
+      navigate("/sales", { replace: true });
     }
   }, [session, canCreate, navigate]);
 
   const [activeTab, setActiveTab] = useState("lines");
-  const [lines, setLines] = useState<QuotationLineFormValue[]>([
-    createEmptyQuotationLine(),
-  ]);
+  const [lines, setLines] = useState<OrderLineFormValue[]>([createEmptyOrderLine()]);
   const [linesError, setLinesError] = useState<string | null>(null);
 
   // One page of customers feeds the picker; the Dropdown filters what it
@@ -114,26 +115,98 @@ export default function QuotationCreatePage() {
     pageSize: 100,
     filters: { is_archived: "false" },
   });
+  const createCustomerMutation = useCreateCustomerMutation();
+  const productsQuery = useProductsQuery({
+    ordering: "name",
+    pageSize: 100,
+    filters: { is_archived: "false" },
+  });
+  const createProductMutation = useCreateProductMutation();
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
+  const [customerModalName, setCustomerModalName] = useState("");
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [productModalName, setProductModalName] = useState("");
+  const productLineTarget = useRef<string | null>(null);
   const taxesQuery = useTaxesQuery();
   const settingsQuery = useSalesSettingsQuery();
   const settings = settingsQuery.data;
 
   const customers = useMemo(() => customersQuery.data?.data ?? [], [customersQuery.data]);
+  const products = useMemo(() => productsQuery.data?.data ?? [], [productsQuery.data]);
   const taxes = useMemo(
     () => (taxesQuery.data?.data ?? []).filter((tax) => !tax.is_archived),
     [taxesQuery.data]
   );
   const defaultTax = taxes.find((tax) => tax.is_default) ?? null;
-  const defaultValidDays = settings?.default_quotation_valid_days ?? 30;
+  const defaultValidDays = settings?.default_order_valid_days ?? 30;
 
   const customerItems = useMemo<DropdownItem[]>(
     () => customers.map((customer) => ({ key: customer.uuid, label: customer.name })),
     [customers]
   );
+  const productItems = useMemo<DropdownItem[]>(
+    () => products.map((product) => ({ key: product.name, label: product.name })),
+    [products]
+  );
   const taxItems = useMemo<DropdownItem[]>(
     () => taxes.map((tax) => ({ key: tax.uuid, label: `${tax.name} (${tax.rate}%)` })),
     [taxes]
   );
+
+  async function ensureCustomer(nameOrUuid: string): Promise<string | null> {
+    const trimmed = nameOrUuid.trim();
+    if (!trimmed) return null;
+    const existing = customers.find(
+      (customer) =>
+        customer.uuid === trimmed || customer.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (existing) return existing.uuid;
+    try {
+      const created = await createCustomerMutation.mutateAsync({ name: trimmed });
+      toast({ title: "Customer created", variant: "success" });
+      await customersQuery.refetch();
+      return created.uuid;
+    } catch (err) {
+      toast({
+        title: "Could not create the customer",
+        description: err instanceof ApiError ? err.message : "Please try again.",
+        variant: "error",
+      });
+      return null;
+    }
+  }
+
+  async function applyProductToLine(
+    _lineId: string,
+    nameOrUuid: string,
+    onChange: (patch: Partial<OrderLineFormValue>) => void
+  ) {
+    const trimmed = nameOrUuid.trim();
+    if (!trimmed) return;
+    let product = products.find(
+      (row) => row.uuid === trimmed || row.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (!product) {
+      try {
+        product = await createProductMutation.mutateAsync({ name: trimmed });
+        toast({ title: "Product created", variant: "success" });
+        await productsQuery.refetch();
+      } catch (err) {
+        toast({
+          title: "Could not create the product",
+          description: err instanceof ApiError ? err.message : "Please try again.",
+          variant: "error",
+        });
+        onChange({ description: trimmed });
+        return;
+      }
+    }
+    onChange({
+      description: product.name,
+      unit_price: product.unit_price || "0.00",
+      tax: product.default_tax ?? defaultTax?.uuid ?? null,
+    });
+  }
 
   const {
     register,
@@ -142,9 +215,9 @@ export default function QuotationCreatePage() {
     setValue,
     setError,
     formState: { errors },
-  } = useForm<QuotationFormValues>({
-    resolver: zodResolver(quotationFormSchema),
-    defaultValues: emptyQuotationForm(),
+  } = useForm<OrderFormValues>({
+    resolver: zodResolver(orderFormSchema),
+    defaultValues: emptyOrderForm(),
   });
 
   const customerUuid = watch("customer");
@@ -159,7 +232,7 @@ export default function QuotationCreatePage() {
     settingsSeeded.current = true;
     setValue(
       "valid_until",
-      validUntilFrom(watch("issue_date"), settings.default_quotation_valid_days ?? 30)
+      validUntilFrom(watch("issue_date"), settings.default_order_valid_days ?? 30)
     );
     if (settings.invoice_terms) {
       setValue("terms", settings.invoice_terms);
@@ -181,23 +254,42 @@ export default function QuotationCreatePage() {
 
   const untaxedEstimate = estimateUntaxedTotal(lines);
 
-  const lineColumns: LineItemsColumn<QuotationLineFormValue>[] = [
+  const lineColumns: LineItemsColumn<OrderLineFormValue>[] = [
     {
       key: "description",
-      label: "Description",
+      label: "Product",
       size: 340,
       minSize: 200,
       maxSize: 560,
-      renderCell: (row, { onChange, onCommit }) => (
-        <Textarea
-          autoGrow
-          chrome="cell"
-          value={row.description}
-          placeholder="What is being quoted"
-          onChange={(event) => onChange({ description: event.target.value })}
-          onBlur={onCommit}
-        />
-      ),
+      renderCell: (row, { onChange, onCommit }) =>
+        row.kind === "product" ? (
+          <FormDropdown
+            id={`line-product-${row.id}`}
+            searchable
+            allowFreeText
+            chrome="cell"
+            placeholder="Search or type a product…"
+            value={row.description || null}
+            items={productItems}
+            onChange={(key) => {
+              if (!key) {
+                onChange({ description: "" });
+                onCommit();
+                return;
+              }
+              void applyProductToLine(row.id, key, onChange).then(onCommit);
+            }}
+          />
+        ) : (
+          <Textarea
+            autoGrow
+            chrome="cell"
+            value={row.description}
+            placeholder="Section or note"
+            onChange={(event) => onChange({ description: event.target.value })}
+            onBlur={onCommit}
+          />
+        ),
     },
     {
       key: "quantity",
@@ -273,9 +365,9 @@ export default function QuotationCreatePage() {
     },
   ];
 
-  function getQuotationSpecialRow(
-    row: QuotationLineFormValue,
-    { onChange, onCommit }: LineItemsRowHelpers<QuotationLineFormValue>
+  function getOrderSpecialRow(
+    row: OrderLineFormValue,
+    { onChange, onCommit }: LineItemsRowHelpers<OrderLineFormValue>
   ): LineItemsSpecialRow | undefined {
     if (row.kind === "section") {
       return {
@@ -314,7 +406,7 @@ export default function QuotationCreatePage() {
     return undefined;
   }
 
-  async function onSubmit(values: QuotationFormValues) {
+  async function onSubmit(values: OrderFormValues) {
     if (!hasChargeableLine(lines)) {
       setLinesError("Add at least one line with a description.");
       setActiveTab("lines");
@@ -323,29 +415,29 @@ export default function QuotationCreatePage() {
     setLinesError(null);
 
     try {
-      const quotation = await createMutation.mutateAsync({
+      const order = await createMutation.mutateAsync({
         ...values,
         lines: toLineInputs(lines),
       });
       toast({
-        title: "Draft quotation created",
+        title: "Draft sale created",
         description: "It gets its number when you send it.",
         variant: "success",
       });
       // Straight to the record: sending, and the server's real totals, live there.
-      navigate(`/sales/quotations/${quotation.uuid}/edit`);
+      navigate(`/sales/${order.uuid}/edit`);
     } catch (error) {
       // The API owns the rules the form cannot know — a customer over their
       // credit limit, a tax that no longer applies.
       if (error instanceof ApiError && error.fields) {
         for (const [field, messages] of Object.entries(error.fields)) {
-          if (field in quotationFormSchema.shape) {
-            setError(field as keyof QuotationFormValues, { message: messages[0] });
+          if (field in orderFormSchema.shape) {
+            setError(field as keyof OrderFormValues, { message: messages[0] });
           }
         }
       }
       toast({
-        title: "Could not create the quotation",
+        title: "Could not create the sale",
         description: error instanceof ApiError ? error.message : "Please try again.",
         variant: "error",
       });
@@ -361,7 +453,7 @@ export default function QuotationCreatePage() {
       <FormStickyHeader>
         <ControlPanel
           sticky={false}
-          pageActions={<PageActions breadcrumb="New Quotation" />}
+          pageActions={<PageActions breadcrumb="New Sale" />}
         />
 
         <FormStatusBar
@@ -381,7 +473,7 @@ export default function QuotationCreatePage() {
               label: "Discard",
               variant: "secondary",
               disabled: createMutation.isPending,
-              onClick: () => navigate("/sales/quotations"),
+              onClick: () => navigate("/sales"),
             },
           ]}
         />
@@ -389,7 +481,7 @@ export default function QuotationCreatePage() {
 
       <FormShell onSubmit={handleSubmit(onSubmit)}>
         <div>
-          <p className="m-0 text-[0.875rem] font-[500] text-erp-muted">Quotation</p>
+          <p className="m-0 text-[0.875rem] font-[500] text-erp-muted">Sale</p>
           <h1 className="m-0 mb-[0.2em] mt-[0.2em] text-[2.1rem] font-[500] leading-tight text-erp-text">
             Draft
           </h1>
@@ -397,36 +489,55 @@ export default function QuotationCreatePage() {
 
         <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
           <div>
-            <div className="grid grid-cols-[auto_1fr] items-center gap-x-2">
-              <label className="text-base font-[500]" htmlFor="quotation-customer">
+            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2">
+              <label className="text-base font-[500]" htmlFor="order-customer">
                 Customer<span className="text-erp-error"> *</span>
               </label>
               <div className="max-w-sm">
                 <FormDropdown
-                  id="quotation-customer"
+                  id="order-customer"
                   searchable
-                  placeholder="Search customer..."
+                  allowFreeText
+                  placeholder="Search or type a customer…"
                   error={Boolean(errors.customer)}
-                  disabled={customersQuery.isLoading}
+                  disabled={customersQuery.isLoading || createCustomerMutation.isPending}
                   value={customerUuid || null}
                   items={customerItems}
                   onChange={(key) => {
-                    setValue("customer", key ?? "", {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    });
-                    // Tenant default validity decides the expiry; the user can
-                    // still overrule it below.
-                    if (key) {
+                    void (async () => {
+                      if (!key) {
+                        setValue("customer", "", {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                        return;
+                      }
+                      const uuid = await ensureCustomer(key);
+                      if (!uuid) return;
+                      setValue("customer", uuid, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      });
                       setValue(
                         "valid_until",
                         validUntilFrom(watch("issue_date"), defaultValidDays),
                         { shouldDirty: true }
                       );
-                    }
+                    })();
                   }}
                 />
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setCustomerModalName("");
+                  setCustomerModalOpen(true);
+                }}
+              >
+                New
+              </Button>
             </div>
             {errors.customer ? (
               <p className="m-0 mt-1 text-[10px] text-erp-error">
@@ -436,19 +547,19 @@ export default function QuotationCreatePage() {
           </div>
 
           <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1.5">
-            <label className="font-semibold" htmlFor="quotation-date">
-              Quotation Date<span className="text-erp-error"> *</span>
+            <label className="font-semibold" htmlFor="order-date">
+              Sale date<span className="text-erp-error"> *</span>
             </label>
             <FormDatePicker
-              id="quotation-date"
+              id="order-date"
               error={Boolean(errors.issue_date)}
               {...register("issue_date")}
             />
-            <label className="font-[500] font-semibold" htmlFor="quotation-valid-until">
+            <label className="font-[500] font-semibold" htmlFor="order-valid-until">
               Valid until<span className="text-erp-error"> *</span>
             </label>
             <FormDatePicker
-              id="quotation-valid-until"
+              id="order-valid-until"
               error={Boolean(errors.valid_until)}
               {...register("valid_until")}
             />
@@ -459,32 +570,43 @@ export default function QuotationCreatePage() {
           items={detailTabs}
           activeKey={activeTab}
           onChange={setActiveTab}
-          aria-label="Quotation details"
+          aria-label="Sale details"
         />
 
         {activeTab === "lines" ? (
           <div>
-            <LineItemsTable<QuotationLineFormValue>
-              tableId="sales-quotation-create-lines"
+            <LineItemsTable<OrderLineFormValue>
+              tableId="sales-order-create-lines"
               columns={lineColumns}
               rows={lines}
               onRowsChange={setLines}
-              createEmptyRow={() => createEmptyQuotationLine(defaultTax?.uuid ?? null)}
-              getSpecialRow={getQuotationSpecialRow}
+              createEmptyRow={() => createEmptyOrderLine(defaultTax?.uuid ?? null)}
+              getSpecialRow={getOrderSpecialRow}
               secondaryFooterActions={[
                 {
                   key: "section",
                   label: "Add a section",
-                  onClick: () =>
-                    setLines((prev) => [...prev, createQuotationSectionLine()]),
+                  onClick: () => setLines((prev) => [...prev, createOrderSectionLine()]),
                 },
                 {
                   key: "note",
                   label: "Add a note",
-                  onClick: () => setLines((prev) => [...prev, createQuotationNoteLine()]),
+                  onClick: () => setLines((prev) => [...prev, createOrderNoteLine()]),
+                },
+                {
+                  key: "product",
+                  label: "New product",
+                  onClick: () => {
+                    const target =
+                      lines.find((line) => line.kind === "product" && !line.description)
+                        ?.id ?? null;
+                    productLineTarget.current = target;
+                    setProductModalName("");
+                    setProductModalOpen(true);
+                  },
                 },
               ]}
-              aria-label="Quotation lines"
+              aria-label="Sale lines"
             />
             {linesError ? (
               <p className="m-0 mt-1.5 px-2 text-[10px] text-erp-error">{linesError}</p>
@@ -510,17 +632,17 @@ export default function QuotationCreatePage() {
             <FormGrid columns={12}>
               <FormField
                 label="Customer reference"
-                htmlFor="quotation-customer-reference"
+                htmlFor="order-customer-reference"
                 span={6}
               >
                 <FormInput
-                  id="quotation-customer-reference"
+                  id="order-customer-reference"
                   {...register("customer_reference")}
                 />
               </FormField>
-              <FormField label="Discount type" htmlFor="quotation-discount-type" span={3}>
+              <FormField label="Discount type" htmlFor="order-discount-type" span={3}>
                 <FormSelect
-                  id="quotation-discount-type"
+                  id="order-discount-type"
                   options={[
                     { label: "Percentage", value: "percentage" },
                     { label: "Fixed amount", value: "fixed" },
@@ -530,27 +652,152 @@ export default function QuotationCreatePage() {
               </FormField>
               <FormField
                 label="Discount"
-                htmlFor="quotation-discount-value"
+                htmlFor="order-discount-value"
                 error={errors.discount_value?.message}
                 span={3}
               >
                 <FormInput
-                  id="quotation-discount-value"
+                  id="order-discount-value"
                   inputMode="decimal"
                   error={Boolean(errors.discount_value)}
                   {...register("discount_value")}
                 />
               </FormField>
-              <FormField label="Terms and conditions" htmlFor="quotation-terms" span={12}>
-                <FormTextarea id="quotation-terms" {...register("terms")} />
+              <FormField label="Terms and conditions" htmlFor="order-terms" span={12}>
+                <FormTextarea id="order-terms" {...register("terms")} />
               </FormField>
-              <FormField label="Notes" htmlFor="quotation-notes" span={12}>
-                <FormTextarea id="quotation-notes" {...register("notes")} />
+              <FormField label="Notes" htmlFor="order-notes" span={12}>
+                <FormTextarea id="order-notes" {...register("notes")} />
               </FormField>
             </FormGrid>
           </FormSection>
         )}
       </FormShell>
+
+      <Modal
+        open={customerModalOpen}
+        title="New customer"
+        onClose={() => setCustomerModalOpen(false)}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setCustomerModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              loading={createCustomerMutation.isPending}
+              onClick={() => {
+                void (async () => {
+                  const uuid = await ensureCustomer(customerModalName);
+                  if (!uuid) return;
+                  setValue("customer", uuid, { shouldValidate: true, shouldDirty: true });
+                  setCustomerModalOpen(false);
+                  setCustomerModalName("");
+                })();
+              }}
+            >
+              Create
+            </Button>
+          </div>
+        }
+      >
+        <p className="m-0 mb-3 text-[12px] text-erp-muted">
+          Name only — other fields stay empty.
+        </p>
+        <FormField label="Name" htmlFor="sale-customer-quick" required>
+          <FormInput
+            id="sale-customer-quick"
+            chrome="underline"
+            value={customerModalName}
+            autoFocus
+            onChange={(event) => setCustomerModalName(event.target.value)}
+          />
+        </FormField>
+      </Modal>
+
+      <Modal
+        open={productModalOpen}
+        title="New product"
+        onClose={() => setProductModalOpen(false)}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setProductModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              loading={createProductMutation.isPending}
+              onClick={() => {
+                void (async () => {
+                  const name = productModalName.trim();
+                  if (!name) {
+                    toast({ title: "Product name is required" });
+                    return;
+                  }
+                  const targetId = productLineTarget.current;
+                  const apply = (patch: Partial<OrderLineFormValue>) => {
+                    if (!targetId) return;
+                    setLines((prev) =>
+                      prev.map((line) =>
+                        line.id === targetId ? { ...line, ...patch } : line
+                      )
+                    );
+                  };
+                  if (targetId) {
+                    await applyProductToLine(targetId, name, apply);
+                  } else {
+                    try {
+                      await createProductMutation.mutateAsync({ name });
+                      toast({ title: "Product created", variant: "success" });
+                      await productsQuery.refetch();
+                    } catch (err) {
+                      toast({
+                        title: "Could not create the product",
+                        description:
+                          err instanceof ApiError ? err.message : "Please try again.",
+                        variant: "error",
+                      });
+                      return;
+                    }
+                  }
+                  setProductModalOpen(false);
+                  setProductModalName("");
+                  productLineTarget.current = null;
+                })();
+              }}
+            >
+              Create
+            </Button>
+          </div>
+        }
+      >
+        <p className="m-0 mb-3 text-[12px] text-erp-muted">
+          Name only — other fields stay empty.
+        </p>
+        <FormField label="Name" htmlFor="sale-product-quick" required>
+          <FormInput
+            id="sale-product-quick"
+            chrome="underline"
+            value={productModalName}
+            autoFocus
+            onChange={(event) => setProductModalName(event.target.value)}
+          />
+        </FormField>
+      </Modal>
     </AppShell>
   );
 }

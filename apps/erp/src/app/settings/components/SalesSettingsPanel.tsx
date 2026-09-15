@@ -1,3 +1,10 @@
+/**
+ * Settings → Sales panels.
+ *
+ * Same shell as General: white bordered card + FormShell / FormSection.
+ * Split across Sales module tabs (Invoice Defaults, Taxes, Payment Methods).
+ */
+
 import { useEffect, useState } from "react";
 import {
   Button,
@@ -48,6 +55,30 @@ function toastError(
   });
 }
 
+function useSalesCanEdit() {
+  const session = useSession();
+  const codes = session?.permissions;
+  return codes == null || codes.includes("settings.client.edit");
+}
+
+function SalesPanelShell({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="overflow-hidden rounded-sm border border-erp-border-soft bg-white"
+      role="tabpanel"
+      aria-label={label}
+    >
+      {children}
+    </div>
+  );
+}
+
 function InvoiceDefaultsForm({
   settings,
   canEdit,
@@ -60,11 +91,11 @@ function InvoiceDefaultsForm({
   const saveMutation = useUpdateSalesSettingsMutation();
   const [values, setValues] = useState({
     invoice_prefix: settings.invoice_prefix,
-    quotation_prefix: settings.quotation_prefix,
+    order_prefix: settings.order_prefix,
     has_branch_in_number: settings.has_branch_in_number,
     number_padding: String(settings.number_padding),
     default_due_days: String(settings.default_due_days),
-    default_quotation_valid_days: String(settings.default_quotation_valid_days),
+    default_order_valid_days: String(settings.default_order_valid_days),
     default_tax: settings.default_tax ?? "",
     invoice_terms: settings.invoice_terms,
     invoice_footer: settings.invoice_footer,
@@ -73,11 +104,11 @@ function InvoiceDefaultsForm({
   useEffect(() => {
     setValues({
       invoice_prefix: settings.invoice_prefix,
-      quotation_prefix: settings.quotation_prefix,
+      order_prefix: settings.order_prefix,
       has_branch_in_number: settings.has_branch_in_number,
       number_padding: String(settings.number_padding),
       default_due_days: String(settings.default_due_days),
-      default_quotation_valid_days: String(settings.default_quotation_valid_days),
+      default_order_valid_days: String(settings.default_order_valid_days),
       default_tax: settings.default_tax ?? "",
       invoice_terms: settings.invoice_terms,
       invoice_footer: settings.invoice_footer,
@@ -107,7 +138,7 @@ function InvoiceDefaultsForm({
       toast({ title: "Default due days must be zero or more" });
       return;
     }
-    const validDays = Number(values.default_quotation_valid_days);
+    const validDays = Number(values.default_order_valid_days);
     if (!Number.isFinite(validDays) || validDays < 0) {
       toast({ title: "Default valid days must be zero or more" });
       return;
@@ -115,11 +146,11 @@ function InvoiceDefaultsForm({
     try {
       await saveMutation.mutateAsync({
         invoice_prefix: values.invoice_prefix.trim() || "INV",
-        quotation_prefix: values.quotation_prefix.trim() || "QT",
+        order_prefix: values.order_prefix.trim() || "QT",
         has_branch_in_number: values.has_branch_in_number,
         number_padding: padding,
         default_due_days: dueDays,
-        default_quotation_valid_days: validDays,
+        default_order_valid_days: validDays,
         default_tax: values.default_tax || null,
         invoice_terms: values.invoice_terms,
         invoice_footer: values.invoice_footer,
@@ -234,18 +265,18 @@ function InvoiceDefaultsForm({
         </FormGrid>
       </FormSection>
       <FormSection
-        title="Quotation defaults"
-        description="Numbering, the validity window, and text that new quotations start with."
+        title="Sales defaults"
+        description="Numbering, the validity window, and text that new sales start with."
       >
         <FormGrid>
-          <FormField label="Quotation prefix" htmlFor="sales-quotation-prefix" span={4}>
+          <FormField label="Sales prefix" htmlFor="sales-order-prefix" span={4}>
             <FormInput
-              id="sales-quotation-prefix"
-              value={values.quotation_prefix}
+              id="sales-order-prefix"
+              value={values.order_prefix}
               onChange={(event) =>
                 setValues((current) => ({
                   ...current,
-                  quotation_prefix: event.target.value,
+                  order_prefix: event.target.value,
                 }))
               }
               maxLength={10}
@@ -260,11 +291,11 @@ function InvoiceDefaultsForm({
               id="sales-default-valid-days"
               type="number"
               min={0}
-              value={values.default_quotation_valid_days}
+              value={values.default_order_valid_days}
               onChange={(event) =>
                 setValues((current) => ({
                   ...current,
-                  default_quotation_valid_days: event.target.value,
+                  default_order_valid_days: event.target.value,
                 }))
               }
             />
@@ -342,7 +373,7 @@ function TaxesSection({ canEdit }: { canEdit: boolean }) {
   }
 
   return (
-    <FormSection title="Taxes" description="Rates offered on invoices and quotations.">
+    <FormSection title="Taxes" description="Rates offered on sales documents.">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[28rem] border-collapse text-sm">
           <thead>
@@ -608,49 +639,52 @@ function PaymentMethodsSection({ canEdit }: { canEdit: boolean }) {
   );
 }
 
-/** Settings → Sales: invoicing defaults, taxes, and payment methods. */
-export function SalesSettingsPanel() {
-  const session = useSession();
-  // Null/undefined codes = still loading or Storybook: offer controls; API still refuses.
-  const codes = session?.permissions;
-  const canEdit = codes == null || codes.includes("settings.client.edit");
+/** Settings → Sales → Invoice Defaults. */
+export function SalesInvoiceDefaultsPanel() {
+  const canEdit = useSalesCanEdit();
   const settingsQuery = useSalesSettingsQuery();
 
   if (settingsQuery.isLoading) {
     return (
-      <div
-        className="overflow-hidden rounded-sm border border-erp-border-soft bg-white p-6 text-sm text-erp-muted"
-        role="tabpanel"
-        aria-label="Sales settings"
-      >
-        Loading sales settings…
-      </div>
+      <SalesPanelShell label="Invoice Defaults">
+        <div className="p-6 text-sm text-erp-muted">Loading sales settings…</div>
+      </SalesPanelShell>
     );
   }
 
   if (settingsQuery.isError || !settingsQuery.data) {
     return (
-      <div
-        className="overflow-hidden rounded-sm border border-erp-border-soft bg-white p-6 text-sm text-erp-muted"
-        role="tabpanel"
-        aria-label="Sales settings"
-      >
-        Could not load sales settings. Enable the Sales module and try again.
-      </div>
+      <SalesPanelShell label="Invoice Defaults">
+        <div className="p-6 text-sm text-erp-muted">
+          Could not load sales settings. Enable the Sales module and try again.
+        </div>
+      </SalesPanelShell>
     );
   }
 
   return (
-    <div className="space-y-4" role="tabpanel" aria-label="Sales settings">
-      <div className="overflow-hidden rounded-sm border border-erp-border-soft bg-white">
-        <InvoiceDefaultsForm settings={settingsQuery.data} canEdit={canEdit} />
-      </div>
-      <div className="overflow-hidden rounded-sm border border-erp-border-soft bg-white">
-        <TaxesSection canEdit={canEdit} />
-      </div>
-      <div className="overflow-hidden rounded-sm border border-erp-border-soft bg-white">
-        <PaymentMethodsSection canEdit={canEdit} />
-      </div>
-    </div>
+    <SalesPanelShell label="Invoice Defaults">
+      <InvoiceDefaultsForm settings={settingsQuery.data} canEdit={canEdit} />
+    </SalesPanelShell>
+  );
+}
+
+/** Settings → Sales → Taxes. */
+export function SalesTaxesPanel() {
+  const canEdit = useSalesCanEdit();
+  return (
+    <SalesPanelShell label="Taxes">
+      <TaxesSection canEdit={canEdit} />
+    </SalesPanelShell>
+  );
+}
+
+/** Settings → Sales → Payment Methods. */
+export function SalesPaymentMethodsPanel() {
+  const canEdit = useSalesCanEdit();
+  return (
+    <SalesPanelShell label="Payment Methods">
+      <PaymentMethodsSection canEdit={canEdit} />
+    </SalesPanelShell>
   );
 }

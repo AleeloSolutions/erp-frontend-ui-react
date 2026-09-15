@@ -60,7 +60,8 @@ export const SETTINGS_ACCESS_CODES: string[] = [
 /** Nav key -> the codes that make it worth showing. Empty = always shown. */
 export const NAV_REQUIREMENTS: Record<string, string[]> = {
   dashboard: [],
-  sales: viewing("sales.customer", "sales.quotation", "sales.invoice", "sales.contract"),
+  // Invoices/contracts remain in the permission catalogue but are hidden from nav.
+  sales: viewing("sales.customer", "sales.order", "sales.product"),
   notes: viewing("notes.note"),
   settings: SETTINGS_ACCESS_CODES,
 };
@@ -70,13 +71,15 @@ export const NAV_REQUIREMENTS: Record<string, string[]> = {
  *
  * Holding any sales view code opens the Sales module; each child still needs
  * its own resource, or the list API returns 403 and the UI looks broken.
+ * Invoice/contract children are omitted on purpose (UI disabled).
  */
 export const CHILD_NAV_REQUIREMENTS: Record<string, Record<string, string[]>> = {
   sales: {
     customers: viewing("sales.customer"),
-    quotations: viewing("sales.quotation"),
-    invoices: viewing("sales.invoice"),
-    contracts: viewing("sales.contract"),
+    orders: viewing("sales.order"),
+    products: viewing("sales.product"),
+    // Settings submenu opens Settings → Sales → Invoice Defaults (no sales.* code).
+    settings: [...SETTINGS_CODES.sales],
   },
 };
 

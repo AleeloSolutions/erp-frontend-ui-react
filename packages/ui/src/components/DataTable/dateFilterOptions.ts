@@ -6,15 +6,26 @@ import {
   type PeriodGrain,
 } from "../../utils/datePresets";
 
-/** Default Odoo Create Date tree: months, quarters, years (with year separator). */
+/** Default Odoo Create Date tree: months, quarters, years, then Custom From–To. */
 export function defaultDatePresetOptions(
   now: Date = new Date()
 ): DataTableFilterOption[] {
-  return buildOdooDateFilterOptions(now).map((option) => ({
+  const presets = buildOdooDateFilterOptions(now).map((option) => ({
     label: option.label,
     value: option.value,
     dividerBefore: option.dividerBefore,
   }));
+
+  return [
+    ...presets,
+    {
+      label: "Custom",
+      value: "__custom__",
+      customRange: true,
+      selectable: false,
+      dividerBefore: true,
+    },
+  ];
 }
 
 /**

@@ -1,5 +1,5 @@
 /**
- * Sales → Quotations, against `/api/v1/sales/quotations/`.
+ * Sales → Orders, against `/api/v1/sales/orders/`.
  *
  * Only a draft can be edited or deleted; once sent it is a record.
  */
@@ -26,11 +26,15 @@ import {
 import { AppShell } from "@/app";
 import { useSession } from "@/app/session";
 import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
-import { useDeleteQuotationMutation, useQuotationsQuery } from "../queries";
-import type { Quotation } from "../api";
+import { useDeleteOrderMutation, useOrdersQuery } from "../queries";
+import type { Order } from "../api";
 import { ApiError } from "@/lib/api-client";
 import { DRAFT_ROW_CLASS_NAME, can, listTableState } from "@/modules/sales/shared";
-import { QUOTATION_STATUS_LABELS, formatMoney } from "@/modules/sales/quotations/schema";
+import {
+  ORDER_STATUS_LABELS,
+  formatMoney,
+  sumMoneyByCurrency,
+} from "@/modules/sales/orders/schema";
 
 function orderingOf(sorting: SortingState): string {
   const [first] = sorting;
@@ -38,10 +42,10 @@ function orderingOf(sorting: SortingState): string {
   return first.desc ? `-${first.id}` : first.id;
 }
 
-export default function QuotationsPage() {
+export default function OrdersPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const navbar = useSalesNavbar("quotations");
+  const navbar = useSalesNavbar("orders");
   const session = useSession();
 
   const [search, setSearch] = useState("");
@@ -52,15 +56,15 @@ export default function QuotationsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [periodGroupingActive, setPeriodGroupingActive] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<Quotation | null>(null);
-  const [detailQuotation, setDetailQuotation] = useState<Quotation | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Order | null>(null);
+  const [detailOrder, setDetailOrder] = useState<Order | null>(null);
   /** Last successful unfiltered-or-filtered total — used to avoid period page bumps on empty. */
   const knownTotalRef = useRef<number | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
   const statusRaw = filterValues.status;
   const statusFilter = Array.isArray(statusRaw)
-    ? String(statusRaw[0] ?? "")
+    ? statusRaw.filter(Boolean).join(",")
     : String(statusRaw ?? "");
 
   const dateTokens = useMemo(() => {
@@ -92,24 +96,24 @@ export default function QuotationsPage() {
     [debouncedSearch, sorting, page, listPageSize, statusFilter, issueDateRanges]
   );
 
-  const quotationsQuery = useQuotationsQuery(params);
-  const tableState = listTableState(quotationsQuery);
-  if (quotationsQuery.isSuccess) {
-    knownTotalRef.current = quotationsQuery.data.meta.total;
+  const ordersQuery = useOrdersQuery(params);
+  const tableState = listTableState(ordersQuery);
+  if (ordersQuery.isSuccess) {
+    knownTotalRef.current = ordersQuery.data.meta.total;
   }
-  const deleteMutation = useDeleteQuotationMutation();
+  const deleteMutation = useDeleteOrderMutation();
 
   const codes = session?.permissions;
-  const canCreate = can(codes, "sales.quotation", "create");
-  const canEdit = can(codes, "sales.quotation", "edit");
-  const canDelete = can(codes, "sales.quotation", "delete");
+  const canCreate = can(codes, "sales.order", "create");
+  const canEdit = can(codes, "sales.order", "edit");
+  const canDelete = can(codes, "sales.order", "delete");
 
   const filters = useMemo<DataTableFilter[]>(
     () => [
       {
         key: "status",
         label: "Status",
-        type: "select",
+        type: "multi-select",
         placeholder: "All statuses",
         options: [
           { label: "Draft", value: "draft" },
@@ -128,18 +132,18 @@ export default function QuotationsPage() {
     []
   );
 
-  const columns = useMemo<ColumnDef<Quotation>[]>(
+  const columns = useMemo<ColumnDef<Order>[]>(
     () => [
       {
         accessorKey: "number",
-        header: "Quotation",
+        header: "Sale",
         meta: { fill: true },
         size: 160,
         cell: ({ row }) => (
           <button
             type="button"
             className="border-0 bg-transparent p-0 text-left text-erp-brand-third hover:underline"
-            onClick={() => setDetailQuotation(row.original)}
+            onClick={() => setDetailOrder(row.original)}
           >
             {row.original.number || "Draft"}
           </button>
@@ -147,6 +151,7 @@ export default function QuotationsPage() {
       },
       {
         id: "customer",
+        accessorFn: (row) => row.customer.name,
         header: "Customer",
         enableSorting: false,
         size: 200,
@@ -156,11 +161,12 @@ export default function QuotationsPage() {
       { accessorKey: "valid_until", header: "Valid until", size: 120 },
       {
         id: "status",
+        accessorFn: (row) => ORDER_STATUS_LABELS[row.status],
         header: "Status",
         enableSorting: false,
         size: 110,
         cell: ({ row }) => (
-          <StatusBadge status={QUOTATION_STATUS_LABELS[row.original.status]} />
+          <StatusBadge status={ORDER_STATUS_LABELS[row.original.status]} />
         ),
       },
       {
@@ -175,20 +181,20 @@ export default function QuotationsPage() {
   );
 
   const rowActions = useCallback(
-    (quotation: Quotation): DataTableRowAction[] => {
+    (order: Order): DataTableRowAction[] => {
       const actions: DataTableRowAction[] = [
         {
           key: "open",
-          label: canEdit && quotation.status === "draft" ? "Edit" : "Open",
-          onClick: () => navigate(`/sales/quotations/${quotation.uuid}/edit`),
+          label: canEdit && order.status === "draft" ? "Edit" : "Open",
+          onClick: () => navigate(`/sales/${order.uuid}/edit`),
         },
       ];
-      if (canDelete && quotation.status === "draft") {
+      if (canDelete && order.status === "draft") {
         actions.push({
           key: "delete",
           label: "Delete",
           danger: true,
-          onClick: () => setPendingDelete(quotation),
+          onClick: () => setPendingDelete(order),
         });
       }
       return actions;
@@ -200,12 +206,12 @@ export default function QuotationsPage() {
     if (!pendingDelete) return;
     try {
       await deleteMutation.mutateAsync(pendingDelete.uuid);
-      toast({ title: "Quotation deleted", variant: "success" });
+      toast({ title: "Sale deleted", variant: "success" });
       setPendingDelete(null);
-      setDetailQuotation(null);
+      setDetailOrder(null);
     } catch (error) {
       toast({
-        title: "Could not delete the quotation",
+        title: "Could not delete the sale",
         description: error instanceof ApiError ? error.message : "Please try again.",
         variant: "error",
       });
@@ -215,7 +221,7 @@ export default function QuotationsPage() {
   return (
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
       <DataTable
-        tableId="sales-quotations"
+        tableId="sales-orders"
         renderToolbar={({ searchFilter, pagination }) => (
           <ControlPanel
             pageActions={
@@ -224,10 +230,10 @@ export default function QuotationsPage() {
                   buttons={[
                     {
                       key: "new",
-                      children: "New",
+                      children: "New Sale",
                       variant: "primary",
                       size: "sm",
-                      onClick: () => navigate("/sales/quotations/new"),
+                      onClick: () => navigate("/sales/new"),
                     },
                   ]}
                 />
@@ -241,7 +247,7 @@ export default function QuotationsPage() {
         columns={columns}
         data={tableState.rows}
         searchable
-        searchPlaceholder="Search quotations…"
+        searchPlaceholder="Search sales…"
         search={{
           value: search,
           onChange: (value) => {
@@ -254,7 +260,7 @@ export default function QuotationsPage() {
         groupingOptions={[
           { label: "Status", value: "status" },
           { label: "Customer", value: "customer" },
-          periodGroupingOption("Order Date", "issue_date", { defaultExpanded: true }),
+          periodGroupingOption("Sale Date", "issue_date", { defaultExpanded: true }),
         ]}
         onGroupingChange={(columnIds) => {
           const wantsPeriod = columnIds.some((id) => id.startsWith("__period:"));
@@ -286,9 +292,10 @@ export default function QuotationsPage() {
         error={tableState.error}
         getRowId={(row) => row.uuid}
         getRowActions={rowActions}
-        getRowClassName={(quotation) =>
-          quotation.status === "draft" ? DRAFT_ROW_CLASS_NAME : undefined
+        getRowClassName={(order) =>
+          order.status === "draft" ? DRAFT_ROW_CLASS_NAME : undefined
         }
+        renderGroupSummary={({ rows }) => sumMoneyByCurrency(rows)}
         pagination={{
           page,
           pageSize: listPageSize,
@@ -299,13 +306,13 @@ export default function QuotationsPage() {
             setPage(1);
           },
         }}
-        emptyMessage="No quotations match this search."
+        emptyMessage="No sales match this search."
       />
 
       <ConfirmDialog
         open={pendingDelete !== null}
         title="Delete this draft?"
-        description="It was never sent, so removing it leaves no gap in the numbering. A sent quotation is cancelled instead, never deleted."
+        description="It was never sent, so removing it leaves no gap in the numbering. A sent sale is cancelled instead, never deleted."
         confirmLabel="Delete"
         variant="danger"
         loading={deleteMutation.isPending}
@@ -314,61 +321,55 @@ export default function QuotationsPage() {
       />
 
       <Drawer
-        open={Boolean(detailQuotation)}
-        onClose={() => setDetailQuotation(null)}
-        title={detailQuotation?.number || "Draft quotation"}
-        description={detailQuotation?.customer.name}
+        open={Boolean(detailOrder)}
+        onClose={() => setDetailOrder(null)}
+        title={detailOrder?.number || "Draft sale"}
+        description={detailOrder?.customer.name}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setDetailQuotation(null)}>
+            <Button variant="secondary" onClick={() => setDetailOrder(null)}>
               Close
             </Button>
-            {detailQuotation ? (
+            {detailOrder ? (
               <Button
                 variant="secondary"
-                onClick={() => navigate(`/sales/quotations/${detailQuotation.uuid}/edit`)}
+                onClick={() => navigate(`/sales/${detailOrder.uuid}/edit`)}
               >
-                {canEdit && detailQuotation.status === "draft" ? "Edit" : "Open"}
+                {canEdit && detailOrder.status === "draft" ? "Edit" : "Open"}
               </Button>
             ) : null}
-            {detailQuotation && canDelete && detailQuotation.status === "draft" ? (
-              <Button variant="danger" onClick={() => setPendingDelete(detailQuotation)}>
+            {detailOrder && canDelete && detailOrder.status === "draft" ? (
+              <Button variant="danger" onClick={() => setPendingDelete(detailOrder)}>
                 Delete
               </Button>
             ) : null}
           </>
         }
       >
-        {detailQuotation ? (
+        {detailOrder ? (
           <dl className="m-0 grid gap-2 text-[12px]">
             <div>
               <dt className="text-erp-subtle">Customer</dt>
-              <dd className="m-0 font-bold text-erp-text">
-                {detailQuotation.customer.name}
-              </dd>
+              <dd className="m-0 font-bold text-erp-text">{detailOrder.customer.name}</dd>
             </div>
             <div>
               <dt className="text-erp-subtle">Date</dt>
-              <dd className="m-0 font-bold text-erp-text">
-                {detailQuotation.issue_date}
-              </dd>
+              <dd className="m-0 font-bold text-erp-text">{detailOrder.issue_date}</dd>
             </div>
             <div>
               <dt className="text-erp-subtle">Valid until</dt>
-              <dd className="m-0 font-bold text-erp-text">
-                {detailQuotation.valid_until}
-              </dd>
+              <dd className="m-0 font-bold text-erp-text">{detailOrder.valid_until}</dd>
             </div>
             <div>
               <dt className="text-erp-subtle">Status</dt>
               <dd className="m-0 mt-1">
-                <StatusBadge status={QUOTATION_STATUS_LABELS[detailQuotation.status]} />
+                <StatusBadge status={ORDER_STATUS_LABELS[detailOrder.status]} />
               </dd>
             </div>
             <div>
               <dt className="text-erp-subtle">Total</dt>
               <dd className="m-0 font-bold text-erp-text">
-                {formatMoney(detailQuotation.total_amount, detailQuotation.currency)}
+                {formatMoney(detailOrder.total_amount, detailOrder.currency)}
               </dd>
             </div>
           </dl>

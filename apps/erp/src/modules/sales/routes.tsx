@@ -1,30 +1,20 @@
-import { Navigate, Route, Routes } from "react-router-dom";
-import { useSession } from "@/app/session";
+import { Routes } from "react-router-dom";
 import { customerRoutes } from "./customers/routes";
-import { quotationRoutes } from "./quotations/routes";
-import { invoiceRoutes } from "./invoices/routes";
-import { contractRoutes } from "./contracts/routes";
-import { firstSalesHref } from "./useSalesNavbar";
-
-function SalesIndexRedirect() {
-  const session = useSession();
-  return <Navigate to={firstSalesHref(session?.permissions ?? null)} replace />;
-}
+import { orderRoutes } from "./orders/routes";
+import { productRoutes } from "./products/routes";
 
 /**
  * Sales module routes — mounted at `/sales/*`.
  *
- * Each entity owns its own subtree, so adding one (sales orders next) is a
- * new folder and one line here rather than an edit spread across the module.
+ * Index `/sales` is the Sales list. Customers and products are siblings.
+ * Invoices and contracts remain in the repo but are not mounted.
  */
 export function SalesRoutes() {
   return (
     <Routes>
-      <Route index element={<SalesIndexRedirect />} />
+      {orderRoutes}
       {customerRoutes}
-      {quotationRoutes}
-      {invoiceRoutes}
-      {contractRoutes}
+      {productRoutes}
     </Routes>
   );
 }

@@ -3,7 +3,7 @@
  * x three table styles) plus the customizer that edits its settings.
  *
  * Named for the document in general, not the invoice in particular —
- * quotations and contracts render through the same layouts.
+ * orders and contracts render through the same layouts.
  *
  * `print/` is deliberately not re-exported wholesale: those are fixed
  * reproductions of an external design, not part of the themeable engine.

@@ -7,8 +7,8 @@ export type LandingApp = {
 /** Live module entry points — only routes that exist in the app today. */
 export const LANDING_APPS: LandingApp[] = [
   { kind: "crm", labelKey: "apps.customers", to: "/sales/customers" },
-  { kind: "documents", labelKey: "apps.quotations", to: "/sales/quotations" },
-  { kind: "accounting", labelKey: "apps.invoices", to: "/sales/invoices" },
+  { kind: "documents", labelKey: "apps.orders", to: "/sales" },
+  { kind: "accounting", labelKey: "apps.products", to: "/sales/products" },
   { kind: "dashboard", labelKey: "apps.dashboard", to: "/dashboard" },
 ];
 

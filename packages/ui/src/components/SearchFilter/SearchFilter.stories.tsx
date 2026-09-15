@@ -13,7 +13,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Odoo-style search view: facet chips (filter = or, group = >) plus a caret-attached Filters / Group By / Favorites panel.",
+          "Odoo-style search view: facet chips (filter = or, group = >) plus a caret-attached Filters / Group By panel.",
       },
     },
   },
@@ -258,68 +258,6 @@ export const GroupByPanel: Story = {
       description: {
         story:
           "Group By column only — pick one dimension; chip reflects the active grouping.",
-      },
-    },
-  },
-};
-
-/** Favorites column (saved searches — persistence is app-owned). */
-export const WithFavorites: Story = {
-  render: function FavoritesStory() {
-    const [value, setValue] = useState("");
-    const [open, setOpen] = useState(true);
-    const [activeFavorite, setActiveFavorite] = useState("active-customers");
-
-    return (
-      <div className="min-h-[28rem] pb-8">
-        <ListSearchStrip>
-          <SearchFilter
-            value={value}
-            onChange={setValue}
-            panelOpen={open}
-            onPanelOpenChange={setOpen}
-            chips={
-              activeFavorite
-                ? [
-                    {
-                      id: "fav",
-                      label: "Active customers (HQ)",
-                      values: ["Active customers (HQ)"],
-                      kind: "filter",
-                      onRemove: () => setActiveFavorite(""),
-                    },
-                  ]
-                : []
-            }
-            favorites={[
-              {
-                id: "active-customers",
-                label: "Active customers (HQ)",
-                active: activeFavorite === "active-customers",
-                onSelect: () => setActiveFavorite("active-customers"),
-              },
-              {
-                id: "overdue",
-                label: "Overdue balances",
-                active: activeFavorite === "overdue",
-                onSelect: () => setActiveFavorite("overdue"),
-              },
-              {
-                id: "save-current",
-                label: "Save current search",
-                disabled: true,
-              },
-            ]}
-          />
-        </ListSearchStrip>
-      </div>
-    );
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "Favorites column only. “Save current search” is a disabled stub until the app wires persistence.",
       },
     },
   },
@@ -600,10 +538,10 @@ export const OdooDateFiltersAndGroupBy: Story = {
                 : []),
             ]}
             filters={[
-              { id: "mine", label: "My Quotations", onSelect: () => undefined },
+              { id: "mine", label: "My Sales", onSelect: () => undefined },
               {
-                id: "quotations",
-                label: "Quotations",
+                id: "orders",
+                label: "Sales",
                 dividerBefore: true,
                 onSelect: () => undefined,
               },

@@ -8,16 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import {
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Filter,
-  Layers,
-  Search,
-  Star,
-  X,
-} from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Filter, Layers, Search, X } from "lucide-react";
 import { cn } from "../../utils";
 import { useUiTranslation } from "../../i18n";
 
@@ -68,7 +59,6 @@ export interface SearchFilterProps {
   chips?: SearchFilterChip[];
   filters?: SearchFilterItem[];
   groupBy?: SearchFilterItem[];
-  favorites?: SearchFilterItem[];
   panelOpen?: boolean;
   defaultPanelOpen?: boolean;
   onPanelOpenChange?: (open: boolean) => void;
@@ -76,7 +66,7 @@ export interface SearchFilterProps {
   columnsSlot?: ReactNode;
   /** Compact pager (or other control) at the end of the search row. */
   endSlot?: ReactNode;
-  /** When false, hides the Filters / Group By / Favorites panel toggle. Default true. */
+  /** When false, hides the Filters / Group By panel toggle. Default true. */
   showPanel?: boolean;
   disabled?: boolean;
   readOnly?: boolean;
@@ -131,18 +121,21 @@ function PanelItemRow({ item, depth }: { item: SearchFilterItem; depth: number }
             hasChildren ? "pe-0" : "pe-2"
           )}
         >
-          <span
-            className="relative me-1.5 grid h-4 w-3.5 shrink-0 place-items-center"
-            aria-hidden
-          >
-            {checked ? (
-              <Check className="h-2.5 w-2.5 text-erp-primary" strokeWidth={3} />
-            ) : null}
-          </span>
+          {selectable || hasChildren || !item.extra ? (
+            <span
+              className="relative me-1.5 grid h-4 w-3.5 shrink-0 place-items-center"
+              aria-hidden
+            >
+              {checked ? (
+                <Check className="h-2.5 w-2.5 text-erp-primary" strokeWidth={3} />
+              ) : null}
+            </span>
+          ) : null}
           <span
             className={cn(
               "min-w-0 flex-1 truncate",
-              depth === 0 && hasChildren && "font-medium"
+              depth === 0 && hasChildren && "font-medium",
+              item.extra && !hasChildren && !selectable && "font-medium"
             )}
           >
             {item.label}
@@ -170,7 +163,7 @@ function PanelItemRow({ item, depth }: { item: SearchFilterItem; depth: number }
       </div>
       {expanded && item.extra ? (
         <div
-          className="pb-1.5 pt-0.5 ps-8"
+          className={cn("pb-1.5 pt-0.5", selectable || hasChildren ? "ps-8" : "ps-2")}
           onMouseDown={(event) => event.stopPropagation()}
         >
           {item.extra}
@@ -206,12 +199,11 @@ function PanelColumn({
   return (
     <div
       className={cn(
-        "w-52 shrink-0 px-2",
-        showEndBorder &&
-          "max-lg:mb-2 max-lg:border-b max-lg:border-erp-table-border max-lg:pb-2 lg:border-e lg:border-erp-table-border"
+        "flex min-w-0 flex-1 flex-col px-2",
+        showEndBorder && "border-e border-erp-table-border"
       )}
     >
-      <div className="mb-1.5 flex items-center gap-1.5 px-2 text-[13px] font-medium text-erp-text">
+      <div className="mb-1.5 flex shrink-0 items-center gap-1.5 px-2 text-[13px] font-medium text-erp-text">
         {icon}
         <h5 className="m-0 inline text-[13px] font-medium">{title}</h5>
       </div>
@@ -307,7 +299,6 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
       chips = [],
       filters = [],
       groupBy = [],
-      favorites,
       panelOpen: controlledOpen,
       defaultPanelOpen = false,
       onPanelOpenChange,
@@ -327,7 +318,11 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
     const menuRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultPanelOpen);
-    const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
+    const [panelPos, setPanelPos] = useState<{
+      top: number;
+      left: number;
+      width: number;
+    } | null>(null);
     const isControlled = controlledOpen !== undefined;
     const open = showPanel && (isControlled ? controlledOpen : uncontrolledOpen);
     const searchPlaceholder = placeholder ?? t("searchFilter.search");
@@ -344,28 +339,23 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
       else if (ref) ref.current = node;
     }
 
-    const favoriteItems =
-      favorites ??
-      ([
-        {
-          id: "save-current",
-          label: t("searchFilter.saveCurrentSearch"),
-          disabled: true,
-        },
-      ] satisfies SearchFilterItem[]);
+    function syncPanelToShell() {
+      const shell = shellRef.current;
+      if (!shell) return;
+      const rect = shell.getBoundingClientRect();
+      setPanelPos({
+        top: rect.bottom + 6,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
 
     useLayoutEffect(() => {
       if (!open || !showPanel) {
         setPanelPos(null);
         return;
       }
-      const shell = shellRef.current;
-      if (!shell) return;
-      const rect = shell.getBoundingClientRect();
-      setPanelPos({
-        top: rect.bottom + 6,
-        left: rect.left + rect.width / 2,
-      });
+      syncPanelToShell();
     }, [open, showPanel, chips.length, value]);
 
     useEffect(() => {
@@ -374,6 +364,12 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
       function onPointerDown(event: MouseEvent) {
         const target = event.target as Node;
         if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
+          return;
+        }
+        if (
+          target instanceof Element &&
+          target.closest("[data-erp-datepicker-popover]")
+        ) {
           return;
         }
         if (!isControlled) setUncontrolledOpen(false);
@@ -388,13 +384,7 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
       }
 
       function onReposition() {
-        const shell = shellRef.current;
-        if (!shell) return;
-        const rect = shell.getBoundingClientRect();
-        setPanelPos({
-          top: rect.bottom + 6,
-          left: rect.left + rect.width / 2,
-        });
+        syncPanelToShell();
       }
 
       document.addEventListener("mousedown", onPointerDown);
@@ -419,15 +409,18 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
               role="menu"
               aria-label={t("searchFilter.filters")}
               className={cn(
-                "fixed z-[1070] flex w-max flex-row flex-nowrap overflow-auto py-2.5",
+                "fixed z-[1070] flex w-[26rem] max-h-[min(50vh,18rem)]",
+                "flex-row flex-nowrap items-start overflow-y-auto overscroll-contain py-2.5",
                 "rounded border border-erp-table-border bg-erp-table-bg text-[12px] text-erp-text",
-                "shadow-[0_0.3rem_1rem_rgba(0,0,0,0.1)]"
+                "shadow-[0_0.3rem_1rem_rgba(0,0,0,0.1)]",
+                "[scrollbar-width:thin]",
+                "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full",
+                "[&::-webkit-scrollbar-thumb]:bg-erp-muted/40 [&::-webkit-scrollbar-track]:bg-transparent"
               )}
               style={{
                 top: panelPos.top,
                 left: panelPos.left,
-                transform: "translateX(-50%)",
-                maxHeight: "min(50vh, 24rem)",
+                width: panelPos.width,
               }}
             >
               <PanelColumn
@@ -442,13 +435,6 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
                 icon={<Layers className="h-3.5 w-3.5 text-erp-teal" aria-hidden />}
                 items={groupBy}
                 emptyLabel={t("searchFilter.noGroupings")}
-                showEndBorder
-              />
-              <PanelColumn
-                title={t("searchFilter.favorites")}
-                icon={<Star className="h-3.5 w-3.5 text-erp-favourite" aria-hidden />}
-                items={favoriteItems}
-                emptyLabel={t("searchFilter.noFavorites")}
               />
             </div>,
             document.body
@@ -461,12 +447,12 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
         className={cn(
           "relative w-full min-w-0",
           hasSideSlots &&
-            "grid grid-cols-[minmax(0,1fr)_minmax(0,28rem)_minmax(0,1fr)] items-center gap-3",
+            "grid grid-cols-[minmax(0,1fr)_minmax(26rem,26rem)_minmax(0,1fr)] items-center gap-3",
           className
         )}
       >
         {hasSideSlots ? <div /> : null}
-        <div ref={shellRef} className="relative w-full min-w-0 max-w-md mx-auto">
+        <div ref={shellRef} className="relative mx-auto w-[26rem] shrink-0">
           <div className="flex w-full max-w-full items-stretch">
             <div
               className={cn(

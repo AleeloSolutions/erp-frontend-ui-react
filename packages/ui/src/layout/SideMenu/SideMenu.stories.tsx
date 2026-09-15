@@ -41,5 +41,5 @@ export const NoActiveItem: Story = {
 };
 
 export const LongerList: Story = {
-  args: { label: "Sales", items: demoSubmenu, activeKey: "quotations" },
+  args: { label: "Sales", items: demoSubmenu, activeKey: "orders" },
 };

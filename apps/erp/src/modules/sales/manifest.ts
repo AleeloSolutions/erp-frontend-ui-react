@@ -2,11 +2,14 @@ import { lazy } from "react";
 import { ShoppingCart } from "lucide-react";
 import type { ModuleManifest } from "../types";
 
+/**
+ * Visible Sales tabs. Invoices and contracts stay in the codebase/API but
+ * are hidden from the product UI until we turn them back on.
+ */
 export const salesSubmenu = [
   { key: "customers", label: "Customers", href: "/sales/customers" },
-  { key: "quotations", label: "Quotations", href: "/sales/quotations" },
-  { key: "invoices", label: "Invoices", href: "/sales/invoices" },
-  { key: "contracts", label: "Contracts", href: "/sales/contracts" },
+  { key: "products", label: "Products", href: "/sales/products" },
+  { key: "settings", label: "Settings", href: "/settings#sales" },
 ];
 
 export const salesNavbar = {
@@ -21,19 +24,19 @@ export const salesManifest: ModuleManifest = {
   id: "sales",
   label: "Sales",
   version: "0.1.0",
-  description: "Customers, quotations, invoices, and contracts.",
+  description: "Customers, sales (orders), and products.",
   icon: ShoppingCart,
   path: "/sales",
   nav: {
     key: "sales",
     label: "Sales",
     icon: ShoppingCart,
-    href: "/sales/customers",
+    // Module home — the brand in the Sales navbar, not a submenu tab.
+    href: "/sales",
     children: [
       { key: "customers", label: "Customers", href: "/sales/customers" },
-      { key: "quotations", label: "Quotations", href: "/sales/quotations" },
-      { key: "invoices", label: "Invoices", href: "/sales/invoices" },
-      { key: "contracts", label: "Contracts", href: "/sales/contracts" },
+      { key: "products", label: "Products", href: "/sales/products" },
+      { key: "settings", label: "Settings", href: "/settings#sales" },
     ],
   },
   submenu: salesSubmenu,

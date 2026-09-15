@@ -17,7 +17,12 @@ import {
 } from "./access";
 import type { Session } from "./session";
 
-/** Drop children the account cannot view; point href at the first survivor. */
+/** Drop children the account cannot view; point href at the first survivor.
+
+ * When `item.href` is the module home (not one of the child tabs — e.g. Sales
+ * → `/sales`), keep it if the home resource is still viewable; otherwise fall
+ * back to the first remaining child.
+ */
 function withFilteredChildren(
   item: NavigationItem,
   codes: string[] | null
@@ -28,12 +33,19 @@ function withFilteredChildren(
     holdsAny(codes, childReqs[child.key] ?? [])
   );
   if (children.length === 0) return { ...item, children };
+
+  const hrefWasChild = item.children.some((child) => child.href === item.href);
   const hrefStillValid = children.some((child) => child.href === item.href);
-  return {
-    ...item,
-    children,
-    href: hrefStillValid ? item.href : (children[0].href ?? item.href),
-  };
+
+  let href = item.href;
+  if (hrefWasChild) {
+    if (!hrefStillValid) href = children[0].href ?? item.href;
+  } else if (item.key === "sales" && !holdsAny(codes, childReqs.orders ?? [])) {
+    // Sales brand/home is the orders list — only keep `/sales` when permitted.
+    href = children[0].href ?? item.href;
+  }
+
+  return { ...item, children, href };
 }
 
 /**
