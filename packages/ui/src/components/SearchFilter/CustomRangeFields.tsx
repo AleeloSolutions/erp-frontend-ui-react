@@ -60,7 +60,7 @@ export function CustomRangeFields({
       />
       <Button
         type="button"
-        variant="primary"
+        variant="secondary"
         size="sm"
         className="w-full"
         disabled={!canApply}
