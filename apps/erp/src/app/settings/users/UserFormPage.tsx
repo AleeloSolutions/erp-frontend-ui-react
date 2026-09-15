@@ -30,6 +30,7 @@ import {
   type StatusStep,
 } from "@erp/ui";
 import { AppShell, useNavbarDefaults } from "@/app";
+import { useSession } from "@/app/session";
 import { ApiError } from "@/lib/api-client";
 import { settingsNavbar } from "../settingsModules";
 import {
@@ -42,13 +43,12 @@ import {
 import { useBranches } from "../branchesApi";
 import {
   USER_CODES,
-  inviteUser,
   isConfirmed,
-  updateUser,
-  uploadAvatar,
-  useCurrentUser,
+  useInviteUserMutation,
   useTenantRoles,
   useTenantUser,
+  useUpdateUserMutation,
+  useUploadAvatarMutation,
   type TenantUser,
 } from "../usersApi";
 import { PermissionMatrixGrid } from "../roles/PermissionMatrix";
@@ -123,7 +123,10 @@ export default function UserFormPage() {
   const roles = useTenantRoles();
   const { branches } = useBranches();
   const matrix = usePermissionMatrix();
-  const me = useCurrentUser();
+  const me = useSession();
+  const inviteMutation = useInviteUserMutation();
+  const updateMutation = useUpdateUserMutation();
+  const uploadAvatarMutation = useUploadAvatarMutation();
 
   const [values, setValues] = useState<FormState>(EMPTY);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
@@ -211,7 +214,7 @@ export default function UserFormPage() {
     setFieldErrors({});
     try {
       if (creating) {
-        const created = await inviteUser({
+        const created = await inviteMutation.mutateAsync({
           email: values.email,
           ...splitName(values.name),
           phone_number: values.phone_number,
@@ -219,24 +222,29 @@ export default function UserFormPage() {
           branch: values.branch,
           extra_permissions: values.extra_permissions,
         });
-        if (pendingAvatar) await uploadAvatar(created.uuid, pendingAvatar);
+        if (pendingAvatar) {
+          await uploadAvatarMutation.mutateAsync({ uuid: created.uuid, file: pendingAvatar });
+        }
         toast({
           title: "Invite sent",
           description: `${created.email} can now set a password.`,
           variant: "success",
         });
       } else {
-        await updateUser(uuid!, {
-          // Only when it is both editable and actually different: an
-          // unchanged address must not look like a re-invite.
-          ...(!confirmed && values.email !== user?.email ? { email: values.email } : {}),
-          ...splitName(values.name),
-          phone_number: values.phone_number,
-          branch: values.branch,
-          // The owner holds everything implicitly; there is nothing to set.
-          ...(isOwner
-            ? {}
-            : { role: values.role, extra_permissions: values.extra_permissions }),
+        await updateMutation.mutateAsync({
+          uuid: uuid!,
+          input: {
+            // Only when it is both editable and actually different: an
+            // unchanged address must not look like a re-invite.
+            ...(!confirmed && values.email !== user?.email ? { email: values.email } : {}),
+            ...splitName(values.name),
+            phone_number: values.phone_number,
+            branch: values.branch,
+            // The owner holds everything implicitly; there is nothing to set.
+            ...(isOwner
+              ? {}
+              : { role: values.role, extra_permissions: values.extra_permissions }),
+          },
         });
         toast({ title: "User saved", variant: "success" });
       }
