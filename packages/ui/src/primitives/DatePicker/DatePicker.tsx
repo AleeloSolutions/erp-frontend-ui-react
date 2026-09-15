@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useId,
   useLayoutEffect,
@@ -410,11 +411,14 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     const isOpenControlled = openProp !== undefined;
     const open = isOpenControlled ? openProp : uncontrolledOpen;
 
-    function setOpen(next: boolean | ((prev: boolean) => boolean)) {
-      const resolved = typeof next === "function" ? next(open) : next;
-      if (!isOpenControlled) setUncontrolledOpen(resolved);
-      onOpenChange?.(resolved);
-    }
+    const setOpen = useCallback(
+      (next: boolean | ((prev: boolean) => boolean)) => {
+        const resolved = typeof next === "function" ? next(open) : next;
+        if (!isOpenControlled) setUncontrolledOpen(resolved);
+        onOpenChange?.(resolved);
+      },
+      [open, isOpenControlled, onOpenChange]
+    );
     const [view, setView] = useState<CalendarView>("days");
     const [monthCursor, setMonthCursor] = useState(
       () => selected ?? startOfDay(new Date())
@@ -477,7 +481,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         document.removeEventListener("mousedown", onPointerDown);
         document.removeEventListener("keydown", onKeyDown);
       };
-    }, [open]);
+    }, [open, setOpen]);
 
     function assignRefs(node: HTMLInputElement | null) {
       hiddenRef.current = node;

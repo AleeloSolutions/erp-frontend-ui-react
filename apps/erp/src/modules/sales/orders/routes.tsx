@@ -1,14 +1,10 @@
-import { Navigate, Outlet, Route, useParams } from "react-router-dom";
+import { Navigate, Outlet, Route } from "react-router-dom";
 import { RequirePermission } from "@/app/auth/RequirePermission";
 import { CHILD_NAV_REQUIREMENTS } from "@/app/access";
 import OrdersPage from "./pages/list";
 import OrderCreatePage from "./pages/create";
 import OrderEditPage from "./pages/edit";
-
-function OrdersLegacyEditRedirect() {
-  const { uuid } = useParams<{ uuid: string }>();
-  return <Navigate to={uuid ? `/sales/${uuid}/edit` : "/sales"} replace />;
-}
+import { OrdersLegacyEditRedirect } from "./OrdersLegacyEditRedirect";
 
 /**
  * Sales list at `/sales` (module home). Create/edit live beside it.
