@@ -7,19 +7,19 @@
 
 import { useState } from "react";
 import { Button, FormField, FormInput, Modal, useToast } from "@erp/ui";
+import type { Session } from "@/app/session";
 import { ApiError } from "@/lib/api-client";
 import {
   createPasswordResetLink,
   sendPasswordReset,
   setUserPassword,
-  type CurrentUser,
   type TenantUser,
 } from "../usersApi";
 
 export interface SecurityTabProps {
   /** null while the account is still being created. */
   user: TenantUser | null;
-  me: CurrentUser | null;
+  me: Session | null;
   canManage: boolean;
 }
 

@@ -23,6 +23,7 @@
 
 import { useMemo } from "react";
 import { Checkbox, FormDropdown, cn } from "@erp/ui";
+import { isAuthenticated } from "@/lib/auth";
 import {
   NO_ACCESS,
   cellCodes,
@@ -77,7 +78,9 @@ export function PermissionMatrixGrid({
   if (!matrix) {
     return (
       <p className={cn("m-0 text-[12px] text-erp-muted", className)}>
-        Sign in to a workspace to see the permissions.
+        {isAuthenticated()
+          ? "Loading permissions…"
+          : "Sign in to a workspace to see the permissions."}
       </p>
     );
   }

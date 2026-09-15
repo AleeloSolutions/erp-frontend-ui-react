@@ -4,14 +4,17 @@
  * A branch is a shop, office or warehouse of the workspace. Every tenant
  * has one from signup and exactly one default; a user works at one branch,
  * and a branch-scoped permission rung resolves through it.
- *
- * Plain state + effect rather than React Query, matching the rest of
- * Settings (it renders in Storybook stories without a QueryProvider).
  */
 
-import { useCallback, useEffect, useState } from "react";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from "@tanstack/react-query";
 import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
+import { settingsKeys } from "./queryKeys";
 
 /** A branch as it appears on a user row or a document. */
 export interface BranchSummary {
@@ -50,6 +53,14 @@ export const BRANCH_CODES = {
   delete: "settings.branch.delete",
 } as const;
 
+export function listBranches() {
+  return apiGetPage<Branch>("/v1/branches/?page_size=100&ordering=name");
+}
+
+export function getBranch(uuid: string) {
+  return apiGet<Branch>(`/v1/branches/${uuid}/`);
+}
+
 export function createBranch(input: BranchInput) {
   return apiPost<Branch>("/v1/branches/", input);
 }
@@ -62,67 +73,83 @@ export function deleteBranch(uuid: string) {
   return apiDelete<void>(`/v1/branches/${uuid}/`);
 }
 
+export function useBranchesQuery(
+  options?: Omit<
+    UseQueryOptions<Branch[], Error, Branch[], ReturnType<typeof settingsKeys.branches.list>>,
+    "queryKey" | "queryFn"
+  >
+) {
+  return useQuery({
+    queryKey: settingsKeys.branches.list(),
+    queryFn: async () => (await listBranches()).data,
+    enabled: isAuthenticated(),
+    ...options,
+  });
+}
+
 /** Every branch of this tenant. A workspace has a handful, never pages. */
 export function useBranches() {
-  const [branches, setBranches] = useState<Branch[]>([]);
-  // Authenticated means the effect below WILL fetch, so the first paint
-  // is already loading. Starting at `false` made callers render an empty
-  // list as a real count.
-  const [loading, setLoading] = useState(isAuthenticated);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
+  const query = useBranchesQuery();
+  return {
+    branches: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+    reload: () => void query.refetch(),
+  };
+}
 
-  useEffect(() => {
-    if (!isAuthenticated()) return;
-    let cancelled = false;
-    setLoading(true);
-    void apiGetPage<Branch>("/v1/branches/?page_size=100&ordering=name")
-      .then((payload) => {
-        if (cancelled) return;
-        setBranches(payload.data);
-        setError(null);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setBranches([]);
-        setError(err instanceof Error ? err.message : "Could not load branches.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadToken]);
-
-  const reload = useCallback(() => setReloadToken((token) => token + 1), []);
-
-  return { branches, loading, error, reload };
+export function useBranchQuery(
+  uuid: string | undefined,
+  options?: Omit<
+    UseQueryOptions<Branch, Error, Branch, ReturnType<typeof settingsKeys.branches.detail>>,
+    "queryKey" | "queryFn" | "enabled"
+  >
+) {
+  return useQuery({
+    queryKey: settingsKeys.branches.detail(uuid ?? ""),
+    queryFn: () => getBranch(uuid!),
+    enabled: Boolean(uuid) && isAuthenticated(),
+    ...options,
+  });
 }
 
 /** One branch by uuid; null while creating (no uuid) or before it loads. */
 export function useBranch(uuid: string | undefined) {
-  const [branch, setBranch] = useState<Branch | null>(null);
-  const [loading, setLoading] = useState(Boolean(uuid));
+  const query = useBranchQuery(uuid);
+  return {
+    branch: query.data ?? null,
+    loading: query.isLoading,
+  };
+}
 
-  useEffect(() => {
-    if (!uuid || !isAuthenticated()) return;
-    let cancelled = false;
-    setLoading(true);
-    void apiGet<Branch>(`/v1/branches/${uuid}/`)
-      .then((data) => {
-        if (!cancelled) setBranch(data);
-      })
-      .catch(() => {
-        // Gone, or another tenant's: the form stays on its defaults.
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [uuid]);
+export function useCreateBranchMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createBranch,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: settingsKeys.branches.all });
+    },
+  });
+}
 
-  return { branch, loading };
+export function useUpdateBranchMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ uuid, input }: { uuid: string; input: BranchInput }) =>
+      updateBranch(uuid, input),
+    onSuccess: (branch) => {
+      void queryClient.invalidateQueries({ queryKey: settingsKeys.branches.all });
+      queryClient.setQueryData(settingsKeys.branches.detail(branch.uuid), branch);
+    },
+  });
+}
+
+export function useDeleteBranchMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteBranch,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: settingsKeys.branches.all });
+    },
+  });
 }

@@ -2,19 +2,20 @@
  * Settings → Users → Roles, against `/api/v1/roles/` and
  * `/api/v1/permissions/matrix/`.
  *
- * A role is a name plus the permission codes it grants. The codes are
- * `<module>.<resource>.<verb>[_<scope>]` — one row per resource, one column
- * per verb, and each cell a rung of the scope ladder: all branches, this
- * branch, or own records. The matrix endpoint says which cells and rungs
- * exist; nothing here is invented client-side.
- *
- * Plain state + effect rather than React Query, matching the rest of
- * Settings (it renders in Storybook stories without a QueryProvider).
+ * Types, API functions, permission helpers, and React Query hooks.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from "@tanstack/react-query";
 import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
+import { PERMISSION_MATRIX_QUERY_KEY, settingsKeys } from "./queryKeys";
+
+export { PERMISSION_MATRIX_QUERY_KEY } from "./queryKeys";
 
 /** A verb column, or a rung of the scope ladder. */
 export interface PermissionLabel {
@@ -55,10 +56,6 @@ export interface PermissionMatrix {
 /** The cell scope meaning "nothing granted". Not a code. */
 export const NO_ACCESS = "none";
 
-/** Where a React Query copy of the matrix would live. The installer
- * invalidates it after a module changes, so any such subscriber refetches. */
-export const PERMISSION_MATRIX_QUERY_KEY = ["permissions", "matrix"] as const;
-
 export interface Role {
   uuid: string;
   name: string;
@@ -83,6 +80,18 @@ export const ROLE_CODES = {
   delete: "settings.role.delete",
 } as const;
 
+export function listRoles() {
+  return apiGetPage<Role>("/v1/roles/?page_size=100&ordering=name");
+}
+
+export function getRole(uuid: string) {
+  return apiGet<Role>(`/v1/roles/${uuid}/`);
+}
+
+export function getPermissionMatrix() {
+  return apiGet<PermissionMatrix>("/v1/permissions/matrix/");
+}
+
 export function createRole(input: RoleInput) {
   return apiPost<Role>("/v1/roles/", input);
 }
@@ -95,96 +104,127 @@ export function deleteRole(uuid: string) {
   return apiDelete<void>(`/v1/roles/${uuid}/`);
 }
 
-/** The matrix: null until it arrives (or without a tenant context). */
+/** Permission matrix — changes rarely (module install/disable). */
+export function usePermissionMatrixQuery(
+  options?: Omit<UseQueryOptions<PermissionMatrix, Error>, "queryKey" | "queryFn">
+) {
+  return useQuery({
+    queryKey: PERMISSION_MATRIX_QUERY_KEY,
+    queryFn: getPermissionMatrix,
+    enabled: isAuthenticated(),
+    staleTime: 5 * 60_000,
+    ...options,
+  });
+}
+
+/** Back-compat alias: returns data or null (not the full query result). */
 export function usePermissionMatrix() {
-  const [matrix, setMatrix] = useState<PermissionMatrix | null>(null);
-
-  useEffect(() => {
-    if (!isAuthenticated()) return;
-    let cancelled = false;
-    void apiGet<PermissionMatrix>("/v1/permissions/matrix/")
-      .then((data) => {
-        if (!cancelled) setMatrix(data);
-      })
-      .catch(() => {
-        // No tenant context: the grid renders empty rather than guessing.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return matrix;
+  return usePermissionMatrixQuery().data ?? null;
 }
 
 /** Every role of this tenant (a tenant has a handful, never pages of them). */
+export function useRolesQuery(
+  options?: Omit<
+    UseQueryOptions<Role[], Error, Role[], ReturnType<typeof settingsKeys.roles.list>>,
+    "queryKey" | "queryFn"
+  >
+) {
+  return useQuery({
+    queryKey: settingsKeys.roles.list(),
+    queryFn: async () => (await listRoles()).data,
+    enabled: isAuthenticated(),
+    ...options,
+  });
+}
+
+/** Back-compat shape used by list panels and overview tiles. */
 export function useRoles() {
-  const [roles, setRoles] = useState<Role[]>([]);
-  // Authenticated means the effect below WILL fetch, so the first paint
-  // is already loading. Starting at `false` made callers render an empty
-  // list as a real count.
-  const [loading, setLoading] = useState(isAuthenticated);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
-
-  useEffect(() => {
-    if (!isAuthenticated()) return;
-    let cancelled = false;
-    setLoading(true);
-    void apiGetPage<Role>("/v1/roles/?page_size=100&ordering=name")
-      .then((payload) => {
-        if (cancelled) return;
-        setRoles(payload.data);
-        setError(null);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setRoles([]);
-        setError(err instanceof Error ? err.message : "Could not load roles.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadToken]);
-
-  const reload = useCallback(() => setReloadToken((token) => token + 1), []);
-
-  return { roles, loading, error, reload };
+  const query = useRolesQuery();
+  return {
+    roles: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+    reload: () => void query.refetch(),
+  };
 }
 
 /** One role by uuid; null while creating (no uuid) or before it loads. */
+export function useRoleQuery(
+  uuid: string | undefined,
+  options?: Omit<
+    UseQueryOptions<Role, Error, Role, ReturnType<typeof settingsKeys.roles.detail>>,
+    "queryKey" | "queryFn" | "enabled"
+  >
+) {
+  return useQuery({
+    queryKey: settingsKeys.roles.detail(uuid ?? ""),
+    queryFn: () => getRole(uuid!),
+    enabled: Boolean(uuid) && isAuthenticated(),
+    ...options,
+  });
+}
+
 export function useRole(uuid: string | undefined) {
-  const [role, setRole] = useState<Role | null>(null);
-  const [loading, setLoading] = useState(Boolean(uuid));
+  const query = useRoleQuery(uuid);
+  return {
+    role: query.data ?? null,
+    loading: query.isLoading,
+  };
+}
 
-  useEffect(() => {
-    if (!uuid || !isAuthenticated()) return;
-    let cancelled = false;
-    setLoading(true);
-    void apiGet<Role>(`/v1/roles/${uuid}/`)
-      .then((data) => {
-        if (!cancelled) setRole(data);
-      })
-      .catch(() => {
-        // Gone, or another tenant's: the form stays on its defaults.
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [uuid]);
+export function useCreateRoleMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createRole,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: settingsKeys.roles.all });
+    },
+  });
+}
 
-  return { role, loading };
+export function useUpdateRoleMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ uuid, input }: { uuid: string; input: Partial<RoleInput> }) =>
+      updateRole(uuid, input),
+    onSuccess: (role) => {
+      void queryClient.invalidateQueries({ queryKey: settingsKeys.roles.all });
+      queryClient.setQueryData(settingsKeys.roles.detail(role.uuid), role);
+    },
+  });
+}
+
+export function useDeleteRoleMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteRole,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: settingsKeys.roles.all });
+    },
+  });
 }
 
 /** The widest rung of `cell` present in `codes`, or "none". */
 export function scopeOf(cell: PermissionCell, codes: ReadonlySet<string>): string {
   return cell.options.find((option) => codes.has(option.code))?.scope ?? NO_ACCESS;
+}
+
+/**
+ * How many matrix cells are granted — one verb with any scope counts as
+ * one, however many ladder codes sit under it. Matches the role form
+ * summary ("N permissions granted"), not `permissions.length`.
+ */
+export function countGrantedCells(
+  matrix: PermissionMatrix | null,
+  codes: Iterable<string>
+): number {
+  const held = codes instanceof Set ? codes : new Set(codes);
+  if (!matrix) return held.size;
+  return matrix.resources.reduce(
+    (count, resource) =>
+      count + resource.cells.filter((cell) => scopeOf(cell, held) !== NO_ACCESS).length,
+    0
+  );
 }
 
 /**

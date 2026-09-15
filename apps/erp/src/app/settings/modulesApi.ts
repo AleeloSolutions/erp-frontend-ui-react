@@ -7,18 +7,20 @@
  * matrix rows and navigation; disabling is a soft-off that keeps every
  * row. Module identity is the catalogue `key`, not a uuid -- a module
  * that was never installed has no row yet.
- *
- * Plain state + effect rather than React Query, matching the rest of
- * Settings (it renders in Storybook stories without a QueryProvider).
  */
 
-import { useCallback, useEffect, useState } from "react";
-import type { QueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+  type UseQueryOptions,
+} from "@tanstack/react-query";
 import { apiGet, apiPost } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
 import { ME_QUERY_KEY } from "@/app/auth/useMe";
 import { refreshSession } from "@/app/session";
-import { PERMISSION_MATRIX_QUERY_KEY } from "./rolesApi";
+import { PERMISSION_MATRIX_QUERY_KEY, settingsKeys } from "./queryKeys";
 
 export type ModuleStatus = "available" | "installed" | "disabled";
 
@@ -43,6 +45,10 @@ export const MODULE_CODES = {
   edit: "settings.module.edit",
 } as const;
 
+export function listModules() {
+  return apiGet<ModuleEntry[]>("/v1/modules/");
+}
+
 export function installModule(key: string) {
   return apiPost<ModuleEntry>(`/v1/modules/${encodeURIComponent(key)}/install/`);
 }
@@ -54,52 +60,59 @@ export function disableModule(key: string) {
 /**
  * What an install or a disable changes elsewhere in the app: the session
  * (sidebar, route guards, what the panels may offer) and the React Query
- * copies of `me` and the permission matrix, so the next screen to mount
- * reads the new state rather than a cached one. The plain-state matrix
- * hook (`usePermissionMatrix`) refetches on every mount and needs nothing.
+ * copies of `me`, the permission matrix, and the modules list.
  */
 export async function invalidateAfterModuleChange(queryClient?: QueryClient | null) {
   await Promise.all([
     refreshSession(),
     queryClient?.invalidateQueries({ queryKey: ME_QUERY_KEY }),
     queryClient?.invalidateQueries({ queryKey: PERMISSION_MATRIX_QUERY_KEY }),
+    queryClient?.invalidateQueries({ queryKey: settingsKeys.modules.all }),
   ]);
+}
+
+export function useModulesQuery(
+  options?: Omit<
+    UseQueryOptions<ModuleEntry[], Error, ModuleEntry[], ReturnType<typeof settingsKeys.modules.list>>,
+    "queryKey" | "queryFn"
+  >
+) {
+  return useQuery({
+    queryKey: settingsKeys.modules.list(),
+    queryFn: listModules,
+    enabled: isAuthenticated(),
+    ...options,
+  });
 }
 
 /** The catalogue with this tenant's state. A release ships a handful of
  * modules, never pages of them. */
 export function useModules() {
-  const [modules, setModules] = useState<ModuleEntry[]>([]);
-  // Authenticated means the effect below WILL fetch, so the first paint
-  // is already loading.
-  const [loading, setLoading] = useState(isAuthenticated);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
+  const query = useModulesQuery();
+  return {
+    modules: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+    reload: () => void query.refetch(),
+  };
+}
 
-  useEffect(() => {
-    if (!isAuthenticated()) return;
-    let cancelled = false;
-    setLoading(true);
-    void apiGet<ModuleEntry[]>("/v1/modules/")
-      .then((data) => {
-        if (cancelled) return;
-        setModules(data);
-        setError(null);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setModules([]);
-        setError(err instanceof Error ? err.message : "Could not load modules.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadToken]);
+export function useInstallModuleMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: installModule,
+    onSuccess: async () => {
+      await invalidateAfterModuleChange(queryClient);
+    },
+  });
+}
 
-  const reload = useCallback(() => setReloadToken((token) => token + 1), []);
-
-  return { modules, loading, error, reload };
+export function useDisableModuleMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: disableModule,
+    onSuccess: async () => {
+      await invalidateAfterModuleChange(queryClient);
+    },
+  });
 }

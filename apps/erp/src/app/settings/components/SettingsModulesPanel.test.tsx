@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ToastProvider } from "@erp/ui";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ModuleEntry } from "../modulesApi";
@@ -29,11 +29,14 @@ vi.mock("../modulesApi", async () => {
   };
 });
 
-vi.mock("../usersApi", () => ({
-  useCurrentUser: () => ({
+vi.mock("@/app/session", () => ({
+  useSession: () => ({
     uuid: "u1",
     user_type: "owner",
     permissions: api.permissions,
+    enabled_modules: ["sales"],
+    module_bundles: [],
+    client: { name: "Demo", slug: "demo" },
   }),
 }));
 
@@ -77,7 +80,7 @@ describe("SettingsModulesPanel", () => {
     api.permissions = ["settings.module.view", "settings.module.edit"];
   });
 
-  it("re-enables a disabled module, then invalidates me and the matrix and reloads", async () => {
+  it("re-enables a disabled module, then invalidates me and the matrix", async () => {
     api.installModule.mockResolvedValue({ ...POS_DISABLED, status: "installed" });
     renderPanel();
 
@@ -85,10 +88,9 @@ describe("SettingsModulesPanel", () => {
 
     await waitFor(() => expect(api.installModule).toHaveBeenCalledWith("pos"));
     await waitFor(() => expect(api.invalidateAfterModuleChange).toHaveBeenCalledTimes(1));
-    expect(api.reload).toHaveBeenCalledTimes(1);
   });
 
-  it("asks before disabling, then invalidates and reloads", async () => {
+  it("asks before disabling, then invalidates", async () => {
     api.disableModule.mockResolvedValue({ ...SALES, status: "disabled" });
     renderPanel();
 
@@ -99,7 +101,6 @@ describe("SettingsModulesPanel", () => {
 
     await waitFor(() => expect(api.disableModule).toHaveBeenCalledWith("sales"));
     await waitFor(() => expect(api.invalidateAfterModuleChange).toHaveBeenCalledTimes(1));
-    expect(api.reload).toHaveBeenCalledTimes(1);
   });
 
   it("offers no buttons without the edit tick", () => {
@@ -115,7 +116,8 @@ describe("SettingsModulesPanel", () => {
     api.modules = [{ ...SALES, status: "disabled" }, POS_DISABLED];
     renderPanel();
 
-    const reenable = screen.getByRole("button", {
+    const posCard = document.querySelector('[data-module="pos"]')!;
+    const reenable = within(posCard as HTMLElement).getByRole("button", {
       name: "Re-enable",
     }) as HTMLButtonElement;
     expect(reenable.disabled).toBe(true);

@@ -22,7 +22,12 @@ import {
 import { AppShell, useNavbarDefaults } from "@/app";
 import { ApiError } from "@/lib/api-client";
 import { settingsNavbar } from "../settingsModules";
-import { createBranch, updateBranch, useBranch, type BranchInput } from "../branchesApi";
+import {
+  useBranch,
+  useCreateBranchMutation,
+  useUpdateBranchMutation,
+  type BranchInput,
+} from "../branchesApi";
 
 const STATUS_STEPS: StatusStep[] = [
   { key: "active", label: "Active" },
@@ -52,6 +57,8 @@ export default function BranchFormPage() {
   });
 
   const { branch, loading } = useBranch(uuid);
+  const createMutation = useCreateBranchMutation();
+  const updateMutation = useUpdateBranchMutation();
   const [values, setValues] = useState<BranchInput>(EMPTY);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [saving, setSaving] = useState(false);
@@ -84,14 +91,14 @@ export default function BranchFormPage() {
     setFieldErrors({});
     try {
       if (creating) {
-        const created = await createBranch(values);
+        const created = await createMutation.mutateAsync(values);
         toast({
           title: "Branch created",
           description: `${created.name} can now be assigned to users.`,
           variant: "success",
         });
       } else {
-        await updateBranch(uuid!, values);
+        await updateMutation.mutateAsync({ uuid: uuid!, input: values });
         toast({ title: "Branch saved", variant: "success" });
       }
       navigate("/settings");

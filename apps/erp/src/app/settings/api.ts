@@ -1,17 +1,14 @@
 /**
- * Settings → Company Info against the Django backend.
+ * Settings → Company Info and Document Layout against the Django backend.
  *
  * Company identity is split across two endpoints: the tenant row
  * (`/clients/me/` — the name) and its settings (`/client-config/` —
- * address, tax number, contact details). This hook presents them as one
- * `CompanyInfo` and saves back to both.
- *
- * Deliberately plain state + effect (no React Query): Settings renders
- * inside Storybook stories where no QueryProvider exists; there the
- * fetch simply never runs and the demo defaults stay.
+ * address, tax number, contact details). Document layout is its own row
+ * but the customizer edits company address alongside the preview.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   formatAddress,
   type AddressParts,
@@ -26,6 +23,7 @@ import { apiGet, apiPatch } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
 import { useSession } from "@/app/session";
 import { defaultCompanyInfo, type CompanyInfo } from "./settingsCompany";
+import { settingsKeys } from "./queryKeys";
 
 interface ClientDetail {
   uuid: string;
@@ -54,67 +52,95 @@ interface ClientSettingsDto {
   primary_interest: string;
 }
 
+function addressParts(dto: Partial<CompanyIdentityDto>): AddressParts {
+  return {
+    addressLine1: dto.address_line1 ?? "",
+    addressLine2: dto.address_line2 ?? "",
+    city: dto.city ?? "",
+    state: dto.state ?? "",
+    postalCode: dto.postal_code ?? "",
+  };
+}
+
+function addressColumns(parts: Partial<AddressParts>) {
+  return {
+    address_line1: parts.addressLine1 ?? "",
+    address_line2: parts.addressLine2 ?? "",
+    city: parts.city ?? "",
+    state: parts.state ?? "",
+    postal_code: parts.postalCode ?? "",
+  };
+}
+
+async function fetchCompanyInfo(): Promise<CompanyInfo> {
+  const [client, config] = await Promise.all([
+    apiGet<ClientDetail>("/v1/clients/me/"),
+    apiGet<ClientSettingsDto>("/v1/client-config/"),
+  ]);
+  return {
+    name: client.name,
+    slug: client.slug,
+    status: client.status,
+    trialEndsAt: client.trial_ends_at,
+    ...addressParts(config),
+    taxNumber: config.tax_number ?? "",
+    email: config.contact_email ?? "",
+    phone: config.contact_phone ?? "",
+    language: config.language,
+    country: config.country,
+    timezone: config.timezone,
+    currency: config.currency,
+    teamSize: config.team_size,
+    primaryInterest: config.primary_interest,
+  };
+}
+
+async function saveCompanyInfo(values: CompanyInfo): Promise<CompanyInfo> {
+  await Promise.all([
+    apiPatch("/v1/clients/me/", { name: values.name }),
+    apiPatch("/v1/client-config/", {
+      ...addressColumns(values),
+      tax_number: values.taxNumber,
+      contact_email: values.email,
+      contact_phone: values.phone,
+      language: values.language,
+      country: values.country,
+      timezone: values.timezone,
+      currency: values.currency,
+      team_size: values.teamSize,
+      primary_interest: values.primaryInterest,
+    }),
+  ]);
+  return values;
+}
+
 export function useCompanyInfo() {
-  const [info, setInfo] = useState<CompanyInfo>(defaultCompanyInfo);
-  const [loaded, setLoaded] = useState(false);
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    queryKey: settingsKeys.company.detail(),
+    queryFn: fetchCompanyInfo,
+    enabled: isAuthenticated(),
+  });
 
-  useEffect(() => {
-    if (!isAuthenticated()) return;
-    let cancelled = false;
-    void Promise.all([
-      apiGet<ClientDetail>("/v1/clients/me/"),
-      apiGet<ClientSettingsDto>("/v1/client-config/"),
-    ])
-      .then(([client, config]) => {
-        if (cancelled) return;
-        setInfo({
-          name: client.name,
-          slug: client.slug,
-          status: client.status,
-          trialEndsAt: client.trial_ends_at,
-          ...addressParts(config),
-          taxNumber: config.tax_number ?? "",
-          email: config.contact_email ?? "",
-          phone: config.contact_phone ?? "",
-          language: config.language,
-          country: config.country,
-          timezone: config.timezone,
-          currency: config.currency,
-          teamSize: config.team_size,
-          primaryInterest: config.primary_interest,
-        });
-        setLoaded(true);
-      })
-      .catch(() => {
-        // Not on a tenant subdomain (or offline): keep the demo defaults.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const mutation = useMutation({
+    mutationFn: saveCompanyInfo,
+    onSuccess: (values) => {
+      queryClient.setQueryData(settingsKeys.company.detail(), values);
+    },
+  });
 
-  // slug/status/trial_ends_at are deliberately absent: the backend rejects
-  // changes to them from this screen.
-  const save = useCallback(async (values: CompanyInfo) => {
-    await Promise.all([
-      apiPatch("/v1/clients/me/", { name: values.name }),
-      apiPatch("/v1/client-config/", {
-        ...addressColumns(values),
-        tax_number: values.taxNumber,
-        contact_email: values.email,
-        contact_phone: values.phone,
-        language: values.language,
-        country: values.country,
-        timezone: values.timezone,
-        currency: values.currency,
-        team_size: values.teamSize,
-        primary_interest: values.primaryInterest,
-      }),
-    ]);
-    setInfo(values);
-  }, []);
+  const save = useCallback(
+    async (values: CompanyInfo) => {
+      await mutation.mutateAsync(values);
+    },
+    [mutation]
+  );
 
-  return { info, loaded, save };
+  return {
+    info: query.data ?? defaultCompanyInfo,
+    loaded: query.isSuccess,
+    save,
+  };
 }
 
 /**
@@ -142,26 +168,6 @@ type CompanyIdentityDto = Pick<
   ClientSettingsDto,
   "address_line1" | "address_line2" | "city" | "state" | "postal_code" | "tax_number"
 >;
-
-function addressParts(dto: Partial<CompanyIdentityDto>): AddressParts {
-  return {
-    addressLine1: dto.address_line1 ?? "",
-    addressLine2: dto.address_line2 ?? "",
-    city: dto.city ?? "",
-    state: dto.state ?? "",
-    postalCode: dto.postal_code ?? "",
-  };
-}
-
-function addressColumns(parts: Partial<AddressParts>) {
-  return {
-    address_line1: parts.addressLine1 ?? "",
-    address_line2: parts.addressLine2 ?? "",
-    city: parts.city ?? "",
-    state: parts.state ?? "",
-    postal_code: parts.postalCode ?? "",
-  };
-}
 
 /** A stored key the renderer doesn't know would blow up the preview
  * (`documentLayouts[key].component` on undefined), so fall back instead of
@@ -199,6 +205,14 @@ function toInvoiceSettings(
   };
 }
 
+async function fetchDocumentLayout(): Promise<DocumentSettings> {
+  const [dto, identity] = await Promise.all([
+    apiGet<DocumentLayoutDto>("/v1/document-layout/"),
+    apiGet<CompanyIdentityDto>("/v1/client-config/"),
+  ]);
+  return toInvoiceSettings(dto, identity);
+}
+
 /** The picker hands us a `blob:` URL for a freshly chosen file; turn it
  * back into something uploadable. Anything else is already-stored and
  * must not be re-sent. */
@@ -210,31 +224,16 @@ async function blobFromObjectUrl(url: string): Promise<{ blob: Blob; filename: s
 
 export function useDocumentLayout() {
   const session = useSession();
-  const [settings, setSettings] = useState<DocumentSettings>(defaultDocumentSettings);
-  const [loaded, setLoaded] = useState(false);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!isAuthenticated()) return;
-    let cancelled = false;
-    void Promise.all([
-      apiGet<DocumentLayoutDto>("/v1/document-layout/"),
-      apiGet<CompanyIdentityDto>("/v1/client-config/"),
-    ])
-      .then(([dto, identity]) => {
-        if (cancelled) return;
-        setSettings(toInvoiceSettings(dto, identity));
-        setLoaded(true);
-      })
-      .catch(() => {
-        // Not on a tenant subdomain (or offline): keep the demo defaults.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const query = useQuery({
+    queryKey: settingsKeys.documentLayout.detail(),
+    queryFn: fetchDocumentLayout,
+    enabled: isAuthenticated(),
+  });
 
-  const save = useCallback(
-    async (next: DocumentSettings) => {
+  const mutation = useMutation({
+    mutationFn: async (next: DocumentSettings) => {
       const layoutFields: Record<string, string> = {
         layout: next.layout,
         table_style: next.tableStyle,
@@ -257,8 +256,6 @@ export function useDocumentLayout() {
 
       let savedLayout: DocumentLayoutDto;
       if (next.logoUrl?.startsWith("blob:")) {
-        // A newly picked file: multipart, so the logo lands in storage and
-        // comes back as a URL that survives a reload.
         const { blob, filename } = await blobFromObjectUrl(next.logoUrl);
         const form = new FormData();
         for (const [key, value] of Object.entries(layoutFields)) form.append(key, value);
@@ -273,14 +270,13 @@ export function useDocumentLayout() {
         );
       }
 
-      // Address / tax on the customizer live on client-config; only touch
-      // them when Company settings is granted — layout-only users must not 403.
       let savedIdentity: CompanyIdentityDto | null = null;
       if (canEditCompany) {
         savedIdentity = await apiPatch<CompanyIdentityDto>(
           "/v1/client-config/",
           identityFields
         );
+        void queryClient.invalidateQueries({ queryKey: settingsKeys.company.all });
       } else {
         try {
           savedIdentity = await apiGet<CompanyIdentityDto>("/v1/client-config/");
@@ -288,18 +284,28 @@ export function useDocumentLayout() {
           savedIdentity = null;
         }
       }
-      setSettings(
-        toInvoiceSettings(
-          savedLayout,
-          savedIdentity ?? {
-            ...addressColumns(next),
-            tax_number: next.taxId ?? "",
-          }
-        )
+
+      return toInvoiceSettings(
+        savedLayout,
+        savedIdentity ?? {
+          ...addressColumns(next),
+          tax_number: next.taxId ?? "",
+        }
       );
     },
-    [session?.permissions]
+    onSuccess: (settings) => {
+      queryClient.setQueryData(settingsKeys.documentLayout.detail(), settings);
+    },
+  });
+
+  const save = useCallback(
+    async (next: DocumentSettings) => mutation.mutateAsync(next),
+    [mutation]
   );
 
-  return { settings, loaded, save };
+  return {
+    settings: query.data ?? defaultDocumentSettings,
+    loaded: query.isSuccess,
+    save,
+  };
 }

@@ -18,16 +18,25 @@ import {
   useToast,
   type DataTableRowAction,
 } from "@erp/ui";
+import { useSession } from "@/app/session";
 import { ApiError } from "@/lib/api-client";
 import { SettingsDetailBack } from "./SettingsDetailBack";
-import { ROLE_CODES, deleteRole, useRoles, type Role } from "../rolesApi";
-import { useCurrentUser } from "../usersApi";
+import {
+  ROLE_CODES,
+  countGrantedCells,
+  useDeleteRoleMutation,
+  usePermissionMatrix,
+  useRoles,
+  type Role,
+} from "../rolesApi";
 
 export function SettingsRolesPanel({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const me = useCurrentUser();
-  const { roles, loading, error, reload } = useRoles();
+  const me = useSession();
+  const { roles, loading, error } = useRoles();
+  const deleteMutation = useDeleteRoleMutation();
+  const matrix = usePermissionMatrix();
   const [pendingDelete, setPendingDelete] = useState<Role | null>(null);
 
   // The owner holds every code implicitly; a member needs the grant.
@@ -62,9 +71,9 @@ export function SettingsRolesPanel({ onBack }: { onBack: () => void }) {
         id: "permissions",
         header: "Permissions",
         size: 120,
-        accessorFn: (role) => role.permissions.length,
+        accessorFn: (role) => countGrantedCells(matrix, role.permissions),
         cell: ({ row }) => {
-          const count = row.original.permissions.length;
+          const count = countGrantedCells(matrix, row.original.permissions);
           return count === 0 ? "None" : `${count} granted`;
         },
       },
@@ -80,7 +89,7 @@ export function SettingsRolesPanel({ onBack }: { onBack: () => void }) {
         cell: ({ getValue }) => <StatusBadge status={getValue() ? "System" : "Custom"} />,
       },
     ],
-    [canEdit, navigate]
+    [canEdit, matrix, navigate]
   );
 
   /** Only the actions this viewer may actually perform are offered. */
@@ -108,14 +117,13 @@ export function SettingsRolesPanel({ onBack }: { onBack: () => void }) {
 
   async function remove(role: Role) {
     try {
-      await deleteRole(role.uuid);
+      await deleteMutation.mutateAsync(role.uuid);
       toast({
         title: "Role deleted",
         description: `${role.name} is gone; anyone who held it now holds no role.`,
         variant: "success",
       });
       setPendingDelete(null);
-      reload();
     } catch (err) {
       toast({
         title: "Could not delete the role",

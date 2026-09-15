@@ -19,22 +19,24 @@ import {
   useToast,
   type DataTableRowAction,
 } from "@erp/ui";
+import { useSession } from "@/app/session";
 import { ApiError } from "@/lib/api-client";
 import { SettingsDetailBack } from "./SettingsDetailBack";
 import {
   BRANCH_CODES,
-  deleteBranch,
-  updateBranch,
   useBranches,
+  useDeleteBranchMutation,
+  useUpdateBranchMutation,
   type Branch,
 } from "../branchesApi";
-import { useCurrentUser } from "../usersApi";
 
 export function SettingsBranchesPanel({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const me = useCurrentUser();
-  const { branches, loading, error, reload } = useBranches();
+  const me = useSession();
+  const { branches, loading, error } = useBranches();
+  const updateMutation = useUpdateBranchMutation();
+  const deleteMutation = useDeleteBranchMutation();
   const [pendingDelete, setPendingDelete] = useState<Branch | null>(null);
 
   const held = me?.permissions ?? [];
@@ -138,13 +140,12 @@ export function SettingsBranchesPanel({ onBack }: { onBack: () => void }) {
 
   async function promote(branch: Branch) {
     try {
-      await updateBranch(branch.uuid, { is_default: true });
+      await updateMutation.mutateAsync({ uuid: branch.uuid, input: { is_default: true } });
       toast({
         title: "Default branch changed",
         description: `${branch.name} is now the default.`,
         variant: "success",
       });
-      reload();
     } catch (err) {
       reportFailure(err, "Could not change the default branch");
     }
@@ -152,12 +153,14 @@ export function SettingsBranchesPanel({ onBack }: { onBack: () => void }) {
 
   async function setArchived(branch: Branch, isArchived: boolean) {
     try {
-      await updateBranch(branch.uuid, { is_archived: isArchived });
+      await updateMutation.mutateAsync({
+        uuid: branch.uuid,
+        input: { is_archived: isArchived },
+      });
       toast({
         title: isArchived ? "Branch archived" : "Branch restored",
         variant: "success",
       });
-      reload();
     } catch (err) {
       reportFailure(err, "Could not update the branch");
     }
@@ -165,10 +168,9 @@ export function SettingsBranchesPanel({ onBack }: { onBack: () => void }) {
 
   async function remove(branch: Branch) {
     try {
-      await deleteBranch(branch.uuid);
+      await deleteMutation.mutateAsync(branch.uuid);
       toast({ title: "Branch deleted", variant: "success" });
       setPendingDelete(null);
-      reload();
     } catch (err) {
       reportFailure(err, "Could not delete the branch");
     }

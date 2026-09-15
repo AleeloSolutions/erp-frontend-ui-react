@@ -4,17 +4,20 @@
  * The list is paginated, searched, sorted and filtered **server-side**: the
  * table asks for one page at a time and never holds the whole tenant in
  * memory. Records are addressed by `uuid` — the API exposes no `id`.
- *
- * Plain state + effect rather than React Query, matching the rest of this
- * module: Settings renders inside Storybook stories that have no
- * QueryProvider, and there the fetch simply never runs.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from "@tanstack/react-query";
 import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
 import { isAuthenticated } from "@/lib/auth";
-import { useRoles } from "./rolesApi";
 import type { BranchSummary } from "./branchesApi";
+import { settingsKeys } from "./queryKeys";
+import { useRoles } from "./rolesApi";
 
 /** A role as it appears on a user row. */
 export interface TenantRole {
@@ -93,7 +96,17 @@ export type UpdateUserInput = Partial<InviteUserInput> & {
   is_active?: boolean;
 };
 
-function listQuery(params: TenantUserListParams): string {
+function listQuery(params: TenantUserListParams): Record<string, unknown> {
+  return {
+    search: params.search,
+    isActive: params.isActive,
+    ordering: params.ordering,
+    page: params.page,
+    pageSize: params.pageSize,
+  };
+}
+
+function listUsersUrl(params: TenantUserListParams): string {
   const query = new URLSearchParams({
     page: String(params.page),
     page_size: String(params.pageSize),
@@ -101,7 +114,18 @@ function listQuery(params: TenantUserListParams): string {
   });
   if (params.search) query.set("search", params.search);
   if (params.isActive) query.set("is_active", params.isActive);
-  return query.toString();
+  return `/v1/users/?${query.toString()}`;
+}
+
+export async function listTenantUsers(
+  params: TenantUserListParams
+): Promise<TenantUserListResult> {
+  const payload = await apiGetPage<TenantUser>(listUsersUrl(params));
+  return { users: payload.data, total: payload.meta.total };
+}
+
+export function getTenantUser(uuid: string) {
+  return apiGet<TenantUser>(`/v1/users/${uuid}/`);
 }
 
 export function inviteUser(input: InviteUserInput) {
@@ -140,90 +164,116 @@ export function createPasswordResetLink(uuid: string) {
   return apiPost<{ link: string }>(`/v1/users/${uuid}/password-reset-link/`);
 }
 
+export function useTenantUsersQuery(
+  params: TenantUserListParams,
+  options?: Omit<
+    UseQueryOptions<
+      TenantUserListResult,
+      Error,
+      TenantUserListResult,
+      ReturnType<typeof settingsKeys.users.list>
+    >,
+    "queryKey" | "queryFn"
+  >
+) {
+  const keyParams = listQuery(params);
+  return useQuery({
+    queryKey: settingsKeys.users.list(keyParams),
+    queryFn: () => listTenantUsers(params),
+    enabled: isAuthenticated(),
+    placeholderData: keepPreviousData,
+    ...options,
+  });
+}
+
 /**
  * One page of tenant users, refetched whenever the table's parameters
  * change. `reload` re-runs the current page after a write.
  */
 export function useTenantUsers(params: TenantUserListParams) {
-  const [result, setResult] = useState<TenantUserListResult>({ users: [], total: 0 });
-  // Authenticated means the effect below WILL fetch, so the first paint
-  // is already loading. Starting at `false` made callers render an empty
-  // list as a real count.
-  const [loading, setLoading] = useState(isAuthenticated);
-  const [fetching, setFetching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
-  const hasLoadedRef = useRef(false);
+  const query = useTenantUsersQuery(params);
+  return {
+    users: query.data?.users ?? [],
+    total: query.data?.total ?? 0,
+    loading: query.isLoading,
+    fetching: query.isFetching && !query.isLoading,
+    error: query.error?.message ?? null,
+    reload: () => void query.refetch(),
+  };
+}
 
-  const query = useMemo(() => listQuery(params), [params]);
-
-  useEffect(() => {
-    if (!isAuthenticated()) return;
-    let cancelled = false;
-    if (hasLoadedRef.current) {
-      setFetching(true);
-    } else {
-      setLoading(true);
-    }
-    // apiGetPage keeps the envelope: `meta.total` is what drives paging.
-    void apiGetPage<TenantUser>(`/v1/users/?${query}`)
-      .then((payload) => {
-        if (cancelled) return;
-        setResult({ users: payload.data, total: payload.meta.total });
-        setError(null);
-        hasLoadedRef.current = true;
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        if (!hasLoadedRef.current) {
-          setResult({ users: [], total: 0 });
-        }
-        setError(err instanceof Error ? err.message : "Could not load users.");
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-          setFetching(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [query, reloadToken]);
-
-  const reload = useCallback(() => setReloadToken((token) => token + 1), []);
-
-  return { ...result, loading, fetching, error, reload };
+export function useTenantUserQuery(
+  uuid: string | undefined,
+  options?: Omit<
+    UseQueryOptions<
+      TenantUser,
+      Error,
+      TenantUser,
+      ReturnType<typeof settingsKeys.users.detail>
+    >,
+    "queryKey" | "queryFn" | "enabled"
+  >
+) {
+  return useQuery({
+    queryKey: settingsKeys.users.detail(uuid ?? ""),
+    queryFn: () => getTenantUser(uuid!),
+    enabled: Boolean(uuid) && isAuthenticated(),
+    ...options,
+  });
 }
 
 /** One user by uuid; null while creating (no uuid) or before it loads. */
 export function useTenantUser(uuid: string | undefined) {
-  const [user, setUser] = useState<TenantUser | null>(null);
-  const [loading, setLoading] = useState(Boolean(uuid));
-  const [reloadToken, setReloadToken] = useState(0);
+  const query = useTenantUserQuery(uuid);
+  return {
+    user: query.data ?? null,
+    loading: query.isLoading,
+    reload: () => void query.refetch(),
+  };
+}
 
-  useEffect(() => {
-    if (!uuid || !isAuthenticated()) return;
-    let cancelled = false;
-    setLoading(true);
-    void apiGet<TenantUser>(`/v1/users/${uuid}/`)
-      .then((data) => {
-        if (!cancelled) setUser(data);
-      })
-      .catch(() => {
-        // Gone, or another tenant's: the form stays on its defaults.
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [uuid, reloadToken]);
+export function useInviteUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: inviteUser,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: settingsKeys.users.all });
+    },
+  });
+}
 
-  const reload = useCallback(() => setReloadToken((token) => token + 1), []);
+export function useUpdateUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ uuid, input }: { uuid: string; input: UpdateUserInput }) =>
+      updateUser(uuid, input),
+    onSuccess: (user) => {
+      void queryClient.invalidateQueries({ queryKey: settingsKeys.users.all });
+      queryClient.setQueryData(settingsKeys.users.detail(user.uuid), user);
+    },
+  });
+}
 
-  return { user, loading, reload };
+export function useUploadAvatarMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ uuid, file }: { uuid: string; file: File }) => uploadAvatar(uuid, file),
+    onSuccess: (user) => {
+      void queryClient.invalidateQueries({ queryKey: settingsKeys.users.all });
+      queryClient.setQueryData(settingsKeys.users.detail(user.uuid), user);
+    },
+  });
+}
+
+export function useDeleteAvatarMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAvatar,
+    onSuccess: (user) => {
+      void queryClient.invalidateQueries({ queryKey: settingsKeys.users.all });
+      queryClient.setQueryData(settingsKeys.users.detail(user.uuid), user);
+    },
+  });
 }
 
 /** True once the invite has been taken up: the address is verified, or
@@ -234,40 +284,6 @@ export function useTenantUser(uuid: string | undefined) {
  */
 export function isConfirmed(user: TenantUser | null): boolean {
   return Boolean(user && !user.invite_pending);
-}
-
-/** Who is looking, and what they may do.
- *
- * Deliberately not `useMe` (React Query): this module renders in Storybook
- * stories that have no QueryProvider, where `useQuery` throws outright.
- * Here an unauthenticated render simply resolves to null and the screen
- * offers no management controls.
- */
-export interface CurrentUser {
-  uuid: string;
-  user_type: TenantUser["user_type"];
-  permissions: string[];
-}
-
-export function useCurrentUser() {
-  const [me, setMe] = useState<CurrentUser | null>(null);
-
-  useEffect(() => {
-    if (!isAuthenticated()) return;
-    let cancelled = false;
-    void apiGet<CurrentUser>("/v1/users/me/")
-      .then((data) => {
-        if (!cancelled) setMe(data);
-      })
-      .catch(() => {
-        // Signed out or no tenant: the screen stays read-only.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return me;
 }
 
 /** Every role of this tenant — what the invite/edit form offers. */

@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { cn, useToast } from "@erp/ui";
 import { ApiError } from "@/lib/api-client";
-import { deleteAvatar, uploadAvatar } from "../usersApi";
+import { useDeleteAvatarMutation, useUploadAvatarMutation } from "../usersApi";
 
 /** Mirrors AVATAR_EXTENSIONS / AVATAR_MAX_BYTES on the server, so an
  * impossible file is refused here rather than after a round trip. */
@@ -42,6 +42,8 @@ export function AvatarField({
   onChanged,
 }: AvatarFieldProps) {
   const { toast } = useToast();
+  const uploadMutation = useUploadAvatarMutation();
+  const deleteMutation = useDeleteAvatarMutation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -77,7 +79,7 @@ export function AvatarField({
     }
     setBusy(true);
     try {
-      await uploadAvatar(userUuid, file);
+      await uploadMutation.mutateAsync({ uuid: userUuid, file });
       onPendingFileChange(null);
       onChanged();
       toast({ title: "Picture updated", variant: "success" });
@@ -100,7 +102,7 @@ export function AvatarField({
     if (!userUuid || !src) return;
     setBusy(true);
     try {
-      await deleteAvatar(userUuid);
+      await deleteMutation.mutateAsync(userUuid);
       onChanged();
       toast({ title: "Picture removed", variant: "success" });
     } catch (error) {

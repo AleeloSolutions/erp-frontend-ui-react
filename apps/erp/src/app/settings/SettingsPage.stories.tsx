@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { ToastProvider } from "@erp/ui";
+import { QueryProvider } from "@/app/QueryProvider";
 import SettingsPage from "./SettingsPage";
 
 const meta = {
@@ -11,15 +12,17 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <ToastProvider>
-        <MemoryRouter initialEntries={["/settings"]}>
-          <div className="!m-0 !min-h-0 !bg-transparent !p-0">
-            <Routes>
-              <Route path="/settings" element={<Story />} />
-            </Routes>
-          </div>
-        </MemoryRouter>
-      </ToastProvider>
+      <QueryProvider>
+        <ToastProvider>
+          <MemoryRouter initialEntries={["/settings"]}>
+            <div className="!m-0 !min-h-0 !bg-transparent !p-0">
+              <Routes>
+                <Route path="/settings" element={<Story />} />
+              </Routes>
+            </div>
+          </MemoryRouter>
+        </ToastProvider>
+      </QueryProvider>
     ),
   ],
 } satisfies Meta<typeof SettingsPage>;

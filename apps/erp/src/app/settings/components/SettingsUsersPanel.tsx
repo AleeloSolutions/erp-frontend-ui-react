@@ -23,13 +23,13 @@ import {
   type DataTableFilterValues,
   type DataTableRowAction,
 } from "@erp/ui";
+import { useSession } from "@/app/session";
 import { ApiError } from "@/lib/api-client";
 import { SettingsDetailBack } from "./SettingsDetailBack";
 import {
   USER_CODES,
-  updateUser,
-  useCurrentUser,
   useTenantUsers,
+  useUpdateUserMutation,
   type TenantUser,
 } from "../usersApi";
 
@@ -48,7 +48,8 @@ function formatDate(value: string): string {
 export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const me = useCurrentUser();
+  const me = useSession();
+  const updateMutation = useUpdateUserMutation();
 
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState<DataTableFilterValues>({});
@@ -73,7 +74,7 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
     [debouncedSearch, statusFilter, sorting, page, pageSize]
   );
 
-  const { users, total, loading, fetching, error, reload } = useTenantUsers(params);
+  const { users, total, loading, fetching, error } = useTenantUsers(params);
   // The owner holds every code implicitly; a member needs the grant. The
   // Users row of the matrix has three ticks: invite, edit, deactivate.
   const held = me?.permissions ?? [];
@@ -222,14 +223,13 @@ export function SettingsUsersPanel({ onBack }: { onBack: () => void }) {
 
   async function setActive(user: TenantUser, isActive: boolean) {
     try {
-      await updateUser(user.uuid, { is_active: isActive });
+      await updateMutation.mutateAsync({ uuid: user.uuid, input: { is_active: isActive } });
       toast({
         title: isActive ? "User activated" : "User deactivated",
         description: `${user.full_name || user.email} can ${isActive ? "sign in again" : "no longer sign in"}.`,
         variant: "success",
       });
       setPendingDeactivation(null);
-      reload();
     } catch (error) {
       reportFailure(error, "Could not update the user");
     }

@@ -27,6 +27,7 @@ import {
   StatusBadge,
   useToast,
 } from "@erp/ui";
+import { useSession } from "@/app/session";
 import { ApiError } from "@/lib/api-client";
 import {
   MODULE_CODES,
@@ -36,7 +37,6 @@ import {
   useModules,
   type ModuleEntry,
 } from "../modulesApi";
-import { useCurrentUser } from "../usersApi";
 
 /** How the three states read on a card. */
 const STATUS_BADGE: Record<ModuleEntry["status"], { status: string; label: string }> = {
@@ -59,11 +59,9 @@ function formatDate(value: string | null): string {
 
 export function SettingsModulesPanel() {
   const { toast } = useToast();
-  const me = useCurrentUser();
-  // undefined outside a QueryProvider (Storybook): then only the session
-  // and the plain-state hooks are refreshed, which is everything they use.
+  const me = useSession();
   const queryClient = useContext(QueryClientContext) ?? null;
-  const { modules, loading, error, reload } = useModules();
+  const { modules, loading, error } = useModules();
   const [pendingDisable, setPendingDisable] = useState<ModuleEntry | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
@@ -87,11 +85,10 @@ export function SettingsModulesPanel() {
     });
   }
 
-  /** What every successful change does: the list, the session (sidebar,
-   * route guards), and the cached copies of `me` and the matrix. */
+  /** What every successful change does: the session (sidebar, route guards)
+   * and the cached copies of `me`, the matrix, and the modules list. */
   async function settle() {
     await invalidateAfterModuleChange(queryClient);
-    reload();
   }
 
   async function reenable(module: ModuleEntry) {

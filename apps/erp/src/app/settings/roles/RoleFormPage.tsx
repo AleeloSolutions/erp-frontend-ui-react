@@ -22,19 +22,18 @@ import {
   type StatusStep,
 } from "@erp/ui";
 import { AppShell, useNavbarDefaults } from "@/app";
+import { useSession } from "@/app/session";
 import { ApiError } from "@/lib/api-client";
 import { settingsNavbar } from "../settingsModules";
 import {
-  NO_ACCESS,
   ROLE_CODES,
-  createRole,
-  deleteRole,
-  scopeOf,
-  updateRole,
+  countGrantedCells,
+  useCreateRoleMutation,
+  useDeleteRoleMutation,
   usePermissionMatrix,
   useRole,
+  useUpdateRoleMutation,
 } from "../rolesApi";
-import { useCurrentUser } from "../usersApi";
 import { PermissionMatrixGrid } from "./PermissionMatrix";
 
 const KIND_STEPS: StatusStep[] = [
@@ -53,7 +52,10 @@ export default function RoleFormPage() {
 
   const { role, loading } = useRole(uuid);
   const matrix = usePermissionMatrix();
-  const me = useCurrentUser();
+  const me = useSession();
+  const createMutation = useCreateRoleMutation();
+  const updateMutation = useUpdateRoleMutation();
+  const deleteMutation = useDeleteRoleMutation();
 
   const [name, setName] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -82,15 +84,10 @@ export default function RoleFormPage() {
 
   // Cells granted, not codes: one dropdown set to "this branch" is one
   // permission to an administrator, however many rungs it stores.
-  const grantCount = useMemo(() => {
-    if (!matrix) return selected.size;
-    return matrix.resources.reduce(
-      (count, resource) =>
-        count +
-        resource.cells.filter((cell) => scopeOf(cell, selected) !== NO_ACCESS).length,
-      0
-    );
-  }, [matrix, selected]);
+  const grantCount = useMemo(
+    () => countGrantedCells(matrix, selected),
+    [matrix, selected]
+  );
 
   async function handleSave() {
     setSaving(true);
@@ -98,14 +95,14 @@ export default function RoleFormPage() {
     const input = { name: name.trim(), permissions: [...selected].sort() };
     try {
       if (creating) {
-        const created = await createRole(input);
+        const created = await createMutation.mutateAsync(input);
         toast({
           title: "Role created",
           description: `${created.name} can now be given to users.`,
           variant: "success",
         });
       } else {
-        await updateRole(uuid!, input);
+        await updateMutation.mutateAsync({ uuid: uuid!, input });
         toast({ title: "Role saved", variant: "success" });
       }
       navigate("/settings");
@@ -125,7 +122,7 @@ export default function RoleFormPage() {
     if (!uuid) return;
     setSaving(true);
     try {
-      await deleteRole(uuid);
+      await deleteMutation.mutateAsync(uuid);
       toast({
         title: "Role deleted",
         description: "Anyone who held it now holds no role.",
