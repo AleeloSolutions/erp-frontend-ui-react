@@ -15,12 +15,14 @@ export const SETTINGS_MODULE_LABELS: Record<SettingsModuleKey, string> = {
 /** Sub-tabs offered inside each Settings module. */
 export const SETTINGS_MODULE_TABS: Record<SettingsModuleKey, SettingsTabKey[]> = {
   general: ["company", "users", "document-layout", "language", "modules"],
-  sales: ["sales"],
+  sales: ["sales", "sales-taxes", "sales-payments"],
 };
 
 const STUB_TAB_LABELS: Partial<Record<SettingsTabKey, string>> = {
   language: "Language",
-  sales: "Sales settings",
+  sales: "Invoice Defaults",
+  "sales-taxes": "Taxes",
+  "sales-payments": "Payment Methods",
 };
 
 const GENERAL_TAB_LABELS: Partial<Record<SettingsTabKey, string>> = {

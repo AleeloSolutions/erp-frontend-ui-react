@@ -21,7 +21,11 @@ import { SettingsSection } from "./SettingsSection";
 import { LanguageSettingsForm } from "./LanguageSettingsForm";
 import { AboutSettingsSection } from "./AboutSettingsPanel";
 import { IntegrationsSettingsSection } from "./IntegrationsSettingsPanel";
-import { SalesSettingsPanel } from "./SalesSettingsPanel";
+import {
+  SalesInvoiceDefaultsPanel,
+  SalesPaymentMethodsPanel,
+  SalesTaxesPanel,
+} from "./SalesSettingsPanel";
 import { SettingsUsersPanel } from "./SettingsUsersPanel";
 
 export interface SettingsTabPanelProps {
@@ -316,11 +320,19 @@ export function SettingsTabPanel({
   }
 
   if (activeTab === "sales") {
-    return <SalesSettingsPanel />;
+    return <SalesInvoiceDefaultsPanel />;
+  }
+
+  if (activeTab === "sales-taxes") {
+    return <SalesTaxesPanel />;
+  }
+
+  if (activeTab === "sales-payments") {
+    return <SalesPaymentMethodsPanel />;
   }
 
   const overviews: Record<
-    Exclude<SettingsTabKey, "language" | "sales">,
+    Exclude<SettingsTabKey, "language" | "sales" | "sales-taxes" | "sales-payments">,
     () => ReactElement
   > = {
     users: () => <SettingsUsersOverview onOpenDetail={onOpenDetail} />,

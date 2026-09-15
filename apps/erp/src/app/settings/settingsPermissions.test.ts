@@ -20,6 +20,8 @@ describe("Settings least privilege", () => {
     ]);
     expect(settingsTabsForModule("sales", codes).map((tab) => tab.key)).toEqual([
       "sales",
+      "sales-taxes",
+      "sales-payments",
     ]);
   });
 
@@ -40,6 +42,8 @@ describe("Settings least privilege", () => {
     ]);
     expect(settingsTabsForModule("sales", codes).map((tab) => tab.key)).toEqual([
       "sales",
+      "sales-taxes",
+      "sales-payments",
     ]);
     expect(settingsSubmenuFor(() => undefined, codes).map((item) => item.key)).toEqual([
       "general",

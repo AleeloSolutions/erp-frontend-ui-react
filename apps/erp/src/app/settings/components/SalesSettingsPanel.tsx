@@ -1,3 +1,10 @@
+/**
+ * Settings → Sales panels.
+ *
+ * Same shell as General: white bordered card + FormShell / FormSection.
+ * Split across Sales module tabs (Invoice Defaults, Taxes, Payment Methods).
+ */
+
 import { useEffect, useState } from "react";
 import {
   Button,
@@ -46,6 +53,30 @@ function toastError(
     title,
     description: err instanceof ApiError ? err.message : "Please try again in a moment.",
   });
+}
+
+function useSalesCanEdit() {
+  const session = useSession();
+  const codes = session?.permissions;
+  return codes == null || codes.includes("settings.client.edit");
+}
+
+function SalesPanelShell({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="overflow-hidden rounded-sm border border-erp-border-soft bg-white"
+      role="tabpanel"
+      aria-label={label}
+    >
+      {children}
+    </div>
+  );
 }
 
 function InvoiceDefaultsForm({
@@ -608,49 +639,52 @@ function PaymentMethodsSection({ canEdit }: { canEdit: boolean }) {
   );
 }
 
-/** Settings → Sales: invoicing defaults, taxes, and payment methods. */
-export function SalesSettingsPanel() {
-  const session = useSession();
-  // Null/undefined codes = still loading or Storybook: offer controls; API still refuses.
-  const codes = session?.permissions;
-  const canEdit = codes == null || codes.includes("settings.client.edit");
+/** Settings → Sales → Invoice Defaults. */
+export function SalesInvoiceDefaultsPanel() {
+  const canEdit = useSalesCanEdit();
   const settingsQuery = useSalesSettingsQuery();
 
   if (settingsQuery.isLoading) {
     return (
-      <div
-        className="overflow-hidden rounded-sm border border-erp-border-soft bg-white p-6 text-sm text-erp-muted"
-        role="tabpanel"
-        aria-label="Sales settings"
-      >
-        Loading sales settings…
-      </div>
+      <SalesPanelShell label="Invoice Defaults">
+        <div className="p-6 text-sm text-erp-muted">Loading sales settings…</div>
+      </SalesPanelShell>
     );
   }
 
   if (settingsQuery.isError || !settingsQuery.data) {
     return (
-      <div
-        className="overflow-hidden rounded-sm border border-erp-border-soft bg-white p-6 text-sm text-erp-muted"
-        role="tabpanel"
-        aria-label="Sales settings"
-      >
-        Could not load sales settings. Enable the Sales module and try again.
-      </div>
+      <SalesPanelShell label="Invoice Defaults">
+        <div className="p-6 text-sm text-erp-muted">
+          Could not load sales settings. Enable the Sales module and try again.
+        </div>
+      </SalesPanelShell>
     );
   }
 
   return (
-    <div className="space-y-4" role="tabpanel" aria-label="Sales settings">
-      <div className="overflow-hidden rounded-sm border border-erp-border-soft bg-white">
-        <InvoiceDefaultsForm settings={settingsQuery.data} canEdit={canEdit} />
-      </div>
-      <div className="overflow-hidden rounded-sm border border-erp-border-soft bg-white">
-        <TaxesSection canEdit={canEdit} />
-      </div>
-      <div className="overflow-hidden rounded-sm border border-erp-border-soft bg-white">
-        <PaymentMethodsSection canEdit={canEdit} />
-      </div>
-    </div>
+    <SalesPanelShell label="Invoice Defaults">
+      <InvoiceDefaultsForm settings={settingsQuery.data} canEdit={canEdit} />
+    </SalesPanelShell>
+  );
+}
+
+/** Settings → Sales → Taxes. */
+export function SalesTaxesPanel() {
+  const canEdit = useSalesCanEdit();
+  return (
+    <SalesPanelShell label="Taxes">
+      <TaxesSection canEdit={canEdit} />
+    </SalesPanelShell>
+  );
+}
+
+/** Settings → Sales → Payment Methods. */
+export function SalesPaymentMethodsPanel() {
+  const canEdit = useSalesCanEdit();
+  return (
+    <SalesPanelShell label="Payment Methods">
+      <PaymentMethodsSection canEdit={canEdit} />
+    </SalesPanelShell>
   );
 }
