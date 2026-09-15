@@ -7,17 +7,20 @@ import {
 import { settingsTabsFor } from "./settingsTabs";
 
 describe("Settings least privilege", () => {
-  it("company + document layout only: General tabs, no Sales module", () => {
+  it("company + document layout: General tabs plus Sales", () => {
     const codes = ["settings.client.edit", "settings.document_layout.edit"];
     expect(settingsSubmenuFor(() => undefined, codes).map((item) => item.key)).toEqual([
       "general",
+      "sales",
     ]);
     expect(settingsTabsForModule("general", codes).map((tab) => tab.key)).toEqual([
       "company",
       "document-layout",
       "language",
     ]);
-    expect(settingsTabsForModule("sales", codes)).toEqual([]);
+    expect(settingsTabsForModule("sales", codes).map((tab) => tab.key)).toEqual([
+      "sales",
+    ]);
   });
 
   it("document layout alone: Document Layout tab only", () => {
@@ -29,22 +32,17 @@ describe("Settings least privilege", () => {
     ]);
   });
 
-  it("company alone: Company + Language, no Document Layout or Sales", () => {
+  it("company alone: Company + Language, and Sales", () => {
     const codes = ["settings.client.edit"];
     expect(settingsTabsForModule("general", codes).map((tab) => tab.key)).toEqual([
       "company",
       "language",
     ]);
-    expect(settingsTabsForModule("sales", codes)).toEqual([]);
-  });
-
-  it("sales settings alone: Sales module only", () => {
-    const codes = ["settings.sales.edit"];
-    expect(settingsSubmenuFor(() => undefined, codes).map((item) => item.key)).toEqual([
+    expect(settingsTabsForModule("sales", codes).map((tab) => tab.key)).toEqual([
       "sales",
     ]);
-    expect(defaultSettingsModule(codes)).toBe("sales");
-    expect(settingsTabsForModule("sales", codes).map((tab) => tab.key)).toEqual([
+    expect(settingsSubmenuFor(() => undefined, codes).map((item) => item.key)).toEqual([
+      "general",
       "sales",
     ]);
   });

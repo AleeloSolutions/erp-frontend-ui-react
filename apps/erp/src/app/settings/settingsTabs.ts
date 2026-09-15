@@ -2,7 +2,12 @@ import type { TabItem } from "@erp/ui";
 import { SETTINGS_CODES, holdsAny } from "@/app/access";
 
 export type SettingsTabKey =
-  "users" | "company" | "modules" | "document-layout" | "language" | "sales";
+  | "users"
+  | "company"
+  | "modules"
+  | "document-layout"
+  | "language"
+  | "sales";
 
 /** The codes each tab needs. A tab nobody can act on is not offered. */
 export const SETTINGS_TAB_REQUIREMENTS: Record<SettingsTabKey, string[]> = {
@@ -13,7 +18,7 @@ export const SETTINGS_TAB_REQUIREMENTS: Record<SettingsTabKey, string[]> = {
   "document-layout": [...SETTINGS_CODES.documentLayout],
   // Locale lives on the company settings row (same API as Company Info).
   language: [...SETTINGS_CODES.company],
-  // Invoicing defaults — dedicated tick, not Company profile.
+  // Invoicing defaults — same write grant as Company Info (Sales settings API).
   sales: [...SETTINGS_CODES.sales],
 };
 

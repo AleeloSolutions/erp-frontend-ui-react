@@ -29,7 +29,8 @@ function anyScope(resource: string, verb: string): string[] {
 export const SETTINGS_CODES = {
   company: ["settings.client.edit"],
   documentLayout: ["settings.document_layout.edit"],
-  sales: ["settings.sales.edit"],
+  // Same code the Sales settings API checks (there is no settings.sales.edit).
+  sales: ["settings.client.edit"],
   users: [
     ...anyScope("settings.user", "create"),
     ...anyScope("settings.user", "edit"),

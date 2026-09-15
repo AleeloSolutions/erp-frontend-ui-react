@@ -19,6 +19,8 @@ import { SettingsModulesPanel } from "./SettingsModulesPanel";
 import { SettingsRolesPanel } from "./SettingsRolesPanel";
 import { SettingsSection } from "./SettingsSection";
 import { LanguageSettingsForm } from "./LanguageSettingsForm";
+import { AboutSettingsSection } from "./AboutSettingsPanel";
+import { IntegrationsSettingsSection } from "./IntegrationsSettingsPanel";
 import { SalesSettingsPanel } from "./SalesSettingsPanel";
 import { SettingsUsersPanel } from "./SettingsUsersPanel";
 
@@ -220,6 +222,8 @@ function SettingsCompanyOverview({
           />
         ) : null}
       </SettingsSection>
+      <IntegrationsSettingsSection />
+      <AboutSettingsSection />
     </SettingsOverviewShell>
   );
 }

@@ -121,7 +121,7 @@ describe("buildNavigation", () => {
     ).toEqual(["dashboard", "settings"]);
     expect(
       keys({
-        permissions: ["settings.sales.edit"],
+        permissions: ["settings.client.edit"],
         enabled_modules: ["sales"],
         user_type: "member",
       })

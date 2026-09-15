@@ -613,7 +613,7 @@ export function SalesSettingsPanel() {
   const session = useSession();
   // Null/undefined codes = still loading or Storybook: offer controls; API still refuses.
   const codes = session?.permissions;
-  const canEdit = codes == null || codes.includes("settings.sales.edit");
+  const canEdit = codes == null || codes.includes("settings.client.edit");
   const settingsQuery = useSalesSettingsQuery();
 
   if (settingsQuery.isLoading) {
