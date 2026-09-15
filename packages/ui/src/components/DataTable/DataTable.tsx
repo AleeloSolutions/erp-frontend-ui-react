@@ -16,7 +16,10 @@ import {
   bucketDate,
   cn,
   dateMatchesFilterTokens,
+  encodeCustomRange,
+  isCustomRangeValue,
   labelForDateFilterToken,
+  parseCustomRange,
   parsePeriodGroupingColumnId,
   sortPeriodGrains,
   toISODate,
@@ -167,15 +170,31 @@ function buildFilterOptionItems(
       (option.selectable === false || (hasChildren && option.selectable !== true));
 
     if (isCustom) {
+      const customToken = selected.find(isCustomRangeValue);
+      const customRange = customToken ? parseCustomRange(customToken) : null;
       return {
         id: `${filter.key}:${option.value}`,
         label: option.label,
-        checked: false,
+        checked: Boolean(customToken),
+        active: Boolean(customToken),
         selectable: false,
         dividerBefore:
           Boolean(option.dividerBefore) || (dividerBeforeFirst && optionIndex === 0),
         defaultExpanded: true,
-        extra: <CustomRangeFields from="" to="" onChange={() => undefined} />,
+        extra: (
+          <CustomRangeFields
+            from={customRange?.from ?? ""}
+            to={customRange?.to ?? ""}
+            onChange={() => undefined}
+            onApply={({ from, to }) => {
+              if (!from || !to) return;
+              onChange([
+                ...selected.filter((entry) => !isCustomRangeValue(entry)),
+                encodeCustomRange(from, to),
+              ]);
+            }}
+          />
+        ),
       };
     }
 
@@ -958,10 +977,14 @@ export function DataTable<TData, TValue = unknown>({
 
   function handleFilterChange(key: string, value: string | string[]) {
     if (catalogEmpty) return;
-    setFilterValues({
-      ...filterValues,
-      [key]: value,
-    });
+    const empty = Array.isArray(value) ? value.length === 0 : !value;
+    const next = { ...filterValues };
+    if (empty) {
+      delete next[key];
+    } else {
+      next[key] = value;
+    }
+    setFilterValues(next);
     if (!isServerPagination) {
       setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
     }

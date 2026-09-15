@@ -64,7 +64,7 @@ export default function OrdersPage() {
   const debouncedSearch = useDebounce(search, 300);
   const statusRaw = filterValues.status;
   const statusFilter = Array.isArray(statusRaw)
-    ? String(statusRaw[0] ?? "")
+    ? statusRaw.filter(Boolean).join(",")
     : String(statusRaw ?? "");
 
   const dateTokens = useMemo(() => {
@@ -113,7 +113,7 @@ export default function OrdersPage() {
       {
         key: "status",
         label: "Status",
-        type: "select",
+        type: "multi-select",
         placeholder: "All statuses",
         options: [
           { label: "Draft", value: "draft" },
