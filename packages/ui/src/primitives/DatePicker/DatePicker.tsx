@@ -61,6 +61,9 @@ export interface DatePickerProps {
   /** Side for `corner` / `tick`. Ignored by `underline`. Defaults to `end`. */
   chromeEdge?: FieldChromeEdge;
   className?: string;
+  /** Controlled open state for the calendar popover. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 type CalendarView = "days" | "months";
@@ -392,6 +395,8 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       chrome,
       chromeEdge,
       className,
+      open: openProp,
+      onOpenChange,
     },
     ref
   ) {
@@ -401,7 +406,15 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     const isoValue = isControlled ? (value ?? "") : uncontrolled;
     const selected = parseISODate(isoValue);
 
-    const [open, setOpen] = useState(false);
+    const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+    const isOpenControlled = openProp !== undefined;
+    const open = isOpenControlled ? openProp : uncontrolledOpen;
+
+    function setOpen(next: boolean | ((prev: boolean) => boolean)) {
+      const resolved = typeof next === "function" ? next(open) : next;
+      if (!isOpenControlled) setUncontrolledOpen(resolved);
+      onOpenChange?.(resolved);
+    }
     const [view, setView] = useState<CalendarView>("days");
     const [monthCursor, setMonthCursor] = useState(
       () => selected ?? startOfDay(new Date())
@@ -537,10 +550,11 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
               aria-modal="false"
               aria-label={t("datepicker.chooseDate")}
               className={cn(
-                "relative z-[70] max-w-full select-none rounded border border-erp-datepicker-popover-border",
+                "relative z-[1080] max-w-full select-none rounded border border-erp-datepicker-popover-border",
                 "bg-erp-datepicker-popover-bg text-[0.875rem] text-erp-text",
                 "shadow-[0_0.5rem_1rem_rgba(0,0,0,0.15)]"
               )}
+              data-erp-datepicker-popover=""
               style={{ position: "fixed", top: coords.top, left: coords.left }}
             >
               <div className="flex flex-col gap-2 p-2">

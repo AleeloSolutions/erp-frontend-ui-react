@@ -22,11 +22,11 @@ export default function HomePage() {
           <PageActions
             buttons={[
               {
-                key: "quotations",
-                children: "Open Quotations",
+                key: "orders",
+                children: "Open Sales",
                 variant: "primary",
                 size: "sm",
-                onClick: () => navigate("/sales/quotations"),
+                onClick: () => navigate("/sales"),
               },
             ]}
           />
@@ -55,7 +55,7 @@ export default function HomePage() {
           </CardHeader>
           <CardContent className="space-y-2 text-[12px] text-erp-muted">
             <p className="m-0">
-              Customers and quotations with Query mutations and feedback UI.
+              Customers and sales with Query mutations and feedback UI.
             </p>
             <Link
               to="/sales/customers"

@@ -31,7 +31,7 @@ export const WithSubmenu: Story = {
   args: {
     submenuItems: [
       { key: "customers", label: "Customers", href: "#" },
-      { key: "quotations", label: "Quotations", href: "#" },
+      { key: "orders", label: "Sales", href: "#" },
       { key: "invoices", label: "Invoices", href: "#" },
     ],
     submenuActiveKey: "customers",

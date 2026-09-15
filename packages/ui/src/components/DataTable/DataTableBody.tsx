@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import type { Row, Table } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { cn, formatPeriodBucket, parsePeriodGroupingColumnId } from "../../utils";
@@ -19,6 +19,14 @@ function groupingValueLabel(columnId: string, raw: string): string {
   return formatPeriodBucket(raw, period.grain);
 }
 
+export interface DataTableGroupSummaryContext<TData> {
+  /** Leaf rows in this group (includes nested children when deeper grains exist). */
+  rows: TData[];
+  columnId: string;
+  groupValue: string;
+  depth: number;
+}
+
 export interface DataTableBodyProps<TData> {
   table: Table<TData>;
   emptyMessage?: string;
@@ -30,6 +38,11 @@ export interface DataTableBodyProps<TData> {
   onClearActiveRow?: () => void;
   /** Optional per-row `<tr>` classes (e.g. `[&>td]:text-erp-brand-third`). */
   getRowClassName?: (row: TData) => string | undefined;
+  /**
+   * Extra meta on the right of each group header (beside the item count),
+   * e.g. a money total for the portion. Shared by every Group By consumer.
+   */
+  renderGroupSummary?: (ctx: DataTableGroupSummaryContext<TData>) => ReactNode;
 }
 
 function DataRow<TData>({
@@ -101,6 +114,7 @@ function GroupedRows<TData>({
   activeRowId,
   onClearActiveRow,
   getRowClassName,
+  renderGroupSummary,
 }: {
   rows: Row<TData>[];
   columnIds: string[];
@@ -109,6 +123,7 @@ function GroupedRows<TData>({
   activeRowId?: string | null;
   onClearActiveRow?: () => void;
   getRowClassName?: (row: TData) => string | undefined;
+  renderGroupSummary?: (ctx: DataTableGroupSummaryContext<TData>) => ReactNode;
 }) {
   if (columnIds.length === 0) {
     return (
@@ -140,40 +155,56 @@ function GroupedRows<TData>({
 
   return (
     <>
-      {[...groups.entries()].map(([groupName, groupRows]) => (
-        <Fragment key={`${columnId}:${groupName}:${depth}`}>
-          <tr className="table-group-row">
-            <td
-              colSpan={colSpan}
-              className="!border-b !border-erp-table-border !bg-erp-table-header !p-0"
-            >
-              <div
-                className="flex h-10 items-center gap-2 px-4"
-                style={{ paddingInlineStart: 16 + pad }}
+      {[...groups.entries()].map(([groupName, groupRows]) => {
+        const summary = renderGroupSummary?.({
+          rows: groupRows.map((row) => row.original),
+          columnId,
+          groupValue: groupName,
+          depth,
+        });
+        return (
+          <Fragment key={`${columnId}:${groupName}:${depth}`}>
+            <tr className="table-group-row">
+              <td
+                colSpan={colSpan}
+                className="!border-b !border-erp-table-border !bg-erp-table-header !p-0"
               >
-                <span className="inline-flex items-center rounded-full bg-erp-info-bg px-[0.65em] py-[0.25em] text-[0.75em] font-medium text-erp-info">
-                  {groupingBadgeLabel(columnId)}
-                </span>
-                <span className="min-w-0 truncate text-[14px] font-medium text-erp-text">
-                  {groupingValueLabel(columnId, groupName)}
-                </span>
-                <span className="ms-auto shrink-0 text-[14px] text-erp-muted">
-                  {groupRows.length} item{groupRows.length === 1 ? "" : "s"}
-                </span>
-              </div>
-            </td>
-          </tr>
-          <GroupedRows
-            rows={groupRows}
-            columnIds={rest}
-            colSpan={colSpan}
-            depth={depth + 1}
-            activeRowId={activeRowId}
-            onClearActiveRow={onClearActiveRow}
-            getRowClassName={getRowClassName}
-          />
-        </Fragment>
-      ))}
+                <div
+                  className="flex h-10 items-center gap-2 px-4"
+                  style={{ paddingInlineStart: 16 + pad }}
+                >
+                  <span className="inline-flex items-center rounded-full bg-erp-info-bg px-[0.65em] py-[0.25em] text-[0.75em] font-medium text-erp-info">
+                    {groupingBadgeLabel(columnId)}
+                  </span>
+                  <span className="min-w-0 truncate text-[14px] font-medium text-erp-text">
+                    {groupingValueLabel(columnId, groupName)}
+                  </span>
+                  <span className="ms-auto flex shrink-0 items-center gap-3 text-[14px] text-erp-muted">
+                    {summary != null && summary !== false ? (
+                      <span className="tabular-nums font-medium text-erp-text">
+                        {summary}
+                      </span>
+                    ) : null}
+                    <span>
+                      {groupRows.length} item{groupRows.length === 1 ? "" : "s"}
+                    </span>
+                  </span>
+                </div>
+              </td>
+            </tr>
+            <GroupedRows
+              rows={groupRows}
+              columnIds={rest}
+              colSpan={colSpan}
+              depth={depth + 1}
+              activeRowId={activeRowId}
+              onClearActiveRow={onClearActiveRow}
+              getRowClassName={getRowClassName}
+              renderGroupSummary={renderGroupSummary}
+            />
+          </Fragment>
+        );
+      })}
     </>
   );
 }
@@ -185,6 +216,7 @@ export function DataTableBody<TData>({
   activeRowId = null,
   onClearActiveRow,
   getRowClassName,
+  renderGroupSummary,
 }: DataTableBodyProps<TData>) {
   const rows = table.getRowModel().rows;
   const colSpan = Math.max(table.getVisibleLeafColumns().length, 1);
@@ -207,6 +239,7 @@ export function DataTableBody<TData>({
           activeRowId={activeRowId}
           onClearActiveRow={onClearActiveRow}
           getRowClassName={getRowClassName}
+          renderGroupSummary={renderGroupSummary}
         />
       </tbody>
     );

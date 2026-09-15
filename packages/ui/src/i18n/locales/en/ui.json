@@ -21,11 +21,8 @@
   "searchFilter": {
     "filters": "Filters",
     "groupBy": "Group By",
-    "favorites": "Favorites",
     "noFilters": "No filters",
     "noGroupings": "No groupings",
-    "noFavorites": "No favorites",
-    "saveCurrentSearch": "Save current search",
     "openPanel": "Open search filters",
     "closePanel": "Close search filters",
     "or": "or",
@@ -33,7 +30,8 @@
     "search": "Search...",
     "dateFrom": "From",
     "dateTo": "To",
-    "customRange": "Custom Range"
+    "customRange": "Custom",
+    "submit": "Submit"
   },
   "dropdown": {
     "noResults": "No results",

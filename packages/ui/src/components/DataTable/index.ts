@@ -1,5 +1,9 @@
 export { DataTable, type DataTableProps, type DataTableSearchConfig } from "./DataTable";
-export { DataTableBody, type DataTableBodyProps } from "./DataTableBody";
+export {
+  DataTableBody,
+  type DataTableBodyProps,
+  type DataTableGroupSummaryContext,
+} from "./DataTableBody";
 export {
   DataTableBulkActions,
   type DataTableBulkActionsProps,

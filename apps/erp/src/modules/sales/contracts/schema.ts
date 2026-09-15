@@ -2,7 +2,7 @@
  * The contract form's own shape.
  *
  * Header-only (v1): no lines, so no editor grid to translate, unlike a
- * quotation or invoice's schema.
+ * order or invoice's schema.
  */
 
 import { z } from "zod";

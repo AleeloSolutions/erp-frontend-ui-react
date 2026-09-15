@@ -39,20 +39,20 @@ npm run lint        # ESLint in all workspaces
 
 ## Architecture
 
-| Area | Location |
-|------|----------|
-| Design tokens | `packages/ui/src/tokens/` |
-| Primitives (atoms) | `packages/ui/src/primitives/` |
-| Composites | `packages/ui/src/components/` |
-| App shell | `packages/ui/src/layout/` |
-| Public UI exports | `packages/ui/src/index.ts` (`@erp/ui`) |
-| ERP routes | `apps/erp/src/routes.tsx` |
-| Providers / nav wiring | `apps/erp/src/app/` |
-| API client | `apps/erp/src/lib/api-client.ts` |
-| Sales module | `apps/erp/src/modules/sales/` |
-| Visual reference | `preview (12).html` |
+| Area                   | Location                               |
+| ---------------------- | -------------------------------------- |
+| Design tokens          | `packages/ui/src/tokens/`              |
+| Primitives (atoms)     | `packages/ui/src/primitives/`          |
+| Composites             | `packages/ui/src/components/`          |
+| App shell              | `packages/ui/src/layout/`              |
+| Public UI exports      | `packages/ui/src/index.ts` (`@erp/ui`) |
+| ERP routes             | `apps/erp/src/routes.tsx`              |
+| Providers / nav wiring | `apps/erp/src/app/`                    |
+| API client             | `apps/erp/src/lib/api-client.ts`       |
+| Sales module           | `apps/erp/src/modules/sales/`          |
+| Visual reference       | `preview (12).html`                    |
 
-Intended to talk to a **Django** API. Sales customers/quotations still use **mocks** in `apps/erp/src/modules/sales/api/`.
+Intended to talk to a **Django** API. Sales customers/orders talk to `/api/v1/sales/` (see `apps/erp/src/modules/sales/`).
 
 **Django tips**
 

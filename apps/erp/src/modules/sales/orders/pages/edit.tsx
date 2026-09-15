@@ -1,7 +1,7 @@
 /**
- * One quotation, against `/api/v1/sales/quotations/<uuid>/`.
+ * One order, against `/api/v1/sales/orders/<uuid>/`.
  *
- * The quotation's state decides what this page is. A draft is an editable
+ * The order's state decides what this page is. A draft is an editable
  * document with one way out — sending it, which allocates its number. Once
  * sent it is a record: the fields are read-only, and the only things left
  * to do are accepting it or cancelling it. Controls the state does not
@@ -47,38 +47,38 @@ import {
 import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { useCustomersQuery } from "@/modules/sales/customers";
 import {
-  useAcceptQuotationMutation,
-  useCancelQuotationMutation,
-  useConvertQuotationMutation,
-  useQuotationQuery,
-  useSendQuotationMutation,
-  useUpdateQuotationMutation,
+  useAcceptOrderMutation,
+  useCancelOrderMutation,
+  useConvertOrderMutation,
+  useOrderQuery,
+  useSendOrderMutation,
+  useUpdateOrderMutation,
 } from "../queries";
 import { can, useTaxesQuery } from "@/modules/sales/shared";
-import type { Quotation } from "../api";
+import type { Order } from "../api";
 import {
-  QUOTATION_STATUS_LABELS,
-  createEmptyQuotationLine,
-  emptyQuotationForm,
+  ORDER_STATUS_LABELS,
+  createEmptyOrderLine,
+  emptyOrderForm,
   estimateLineAmount,
   estimateUntaxedTotal,
   formatMoney,
   hasChargeableLine,
-  quotationFormSchema,
+  orderFormSchema,
   toFormLines,
   toLineInputs,
-  type QuotationFormValues,
-  type QuotationLineFormValue,
-} from "@/modules/sales/quotations/schema";
+  type OrderFormValues,
+  type OrderLineFormValue,
+} from "@/modules/sales/orders/schema";
 import { ApiError } from "@/lib/api-client";
 
 const detailTabs = [
-  { key: "lines", label: "Quotation Lines" },
+  { key: "lines", label: "Sale Lines" },
   { key: "other", label: "Other Info" },
 ];
 
-/** A cancelled quotation gets its own last step; a live one never shows it. */
-function stepsFor(status: Quotation["status"] | undefined): StatusStep[] {
+/** A cancelled order gets its own last step; a live one never shows it. */
+function stepsFor(status: Order["status"] | undefined): StatusStep[] {
   const steps: StatusStep[] = [
     { key: "draft", label: "Draft" },
     { key: "sent", label: "Pending" },
@@ -88,27 +88,27 @@ function stepsFor(status: Quotation["status"] | undefined): StatusStep[] {
   return steps;
 }
 
-export default function QuotationEditPage() {
+export default function OrderEditPage() {
   const { uuid = "" } = useParams<{ uuid: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const session = useSession();
-  const navbar = useSalesNavbar("quotations");
-  const canEdit = can(session?.permissions, "sales.quotation", "edit");
-  const canDelete = can(session?.permissions, "sales.quotation", "delete");
+  const navbar = useSalesNavbar("orders");
+  const canEdit = can(session?.permissions, "sales.order", "edit");
+  const canDelete = can(session?.permissions, "sales.order", "delete");
 
-  const quotationQuery = useQuotationQuery(uuid);
-  const quotation = quotationQuery.data;
-  const isDraft = quotation?.status === "draft";
-  const isSent = quotation?.status === "sent";
-  const isAccepted = quotation?.status === "accepted";
+  const orderQuery = useOrderQuery(uuid);
+  const order = orderQuery.data;
+  const isDraft = order?.status === "draft";
+  const isSent = order?.status === "sent";
+  const isAccepted = order?.status === "accepted";
   const editable = Boolean(isDraft && canEdit);
 
-  const updateMutation = useUpdateQuotationMutation();
-  const sendMutation = useSendQuotationMutation();
-  const acceptMutation = useAcceptQuotationMutation();
-  const cancelMutation = useCancelQuotationMutation();
-  const convertMutation = useConvertQuotationMutation();
+  const updateMutation = useUpdateOrderMutation();
+  const sendMutation = useSendOrderMutation();
+  const acceptMutation = useAcceptOrderMutation();
+  const cancelMutation = useCancelOrderMutation();
+  const convertMutation = useConvertOrderMutation();
 
   const customersQuery = useCustomersQuery({
     ordering: "name",
@@ -118,7 +118,7 @@ export default function QuotationEditPage() {
   const taxesQuery = useTaxesQuery();
 
   const [activeTab, setActiveTab] = useState("lines");
-  const [lines, setLines] = useState<QuotationLineFormValue[]>([]);
+  const [lines, setLines] = useState<OrderLineFormValue[]>([]);
   const [linesError, setLinesError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<
     "send" | "accept" | "cancel" | "convert" | null
@@ -147,35 +147,33 @@ export default function QuotationEditPage() {
     setValue,
     setError,
     formState: { errors },
-  } = useForm<QuotationFormValues>({
-    resolver: zodResolver(quotationFormSchema),
-    defaultValues: emptyQuotationForm(),
+  } = useForm<OrderFormValues>({
+    resolver: zodResolver(orderFormSchema),
+    defaultValues: emptyOrderForm(),
   });
 
   // Re-seed once the record arrives; until then the form holds its defaults.
   useEffect(() => {
-    if (!quotation) return;
+    if (!order) return;
     reset({
-      customer: quotation.customer.uuid,
-      issue_date: quotation.issue_date,
-      valid_until: quotation.valid_until,
-      discount_type: quotation.discount_type,
-      discount_value: quotation.discount_value,
-      customer_reference: quotation.customer_reference,
-      notes: quotation.notes,
-      terms: quotation.terms,
+      customer: order.customer.uuid,
+      issue_date: order.issue_date,
+      valid_until: order.valid_until,
+      discount_type: order.discount_type,
+      discount_value: order.discount_value,
+      customer_reference: order.customer_reference,
+      notes: order.notes,
+      terms: order.terms,
     });
     setLines(
-      quotation.lines.length > 0
-        ? toFormLines(quotation.lines)
-        : [createEmptyQuotationLine()]
+      order.lines.length > 0 ? toFormLines(order.lines) : [createEmptyOrderLine()]
     );
-  }, [quotation, reset]);
+  }, [order, reset]);
 
-  const currency = quotation?.currency ?? "";
+  const currency = order?.currency ?? "";
   const untaxedEstimate = estimateUntaxedTotal(lines);
 
-  const lineColumns: LineItemsColumn<QuotationLineFormValue>[] = [
+  const lineColumns: LineItemsColumn<OrderLineFormValue>[] = [
     {
       key: "description",
       label: "Description",
@@ -266,8 +264,8 @@ export default function QuotationEditPage() {
   function report(error: unknown, fallback: string) {
     if (error instanceof ApiError && error.fields) {
       for (const [field, messages] of Object.entries(error.fields)) {
-        if (field in quotationFormSchema.shape) {
-          setError(field as keyof QuotationFormValues, { message: messages[0] });
+        if (field in orderFormSchema.shape) {
+          setError(field as keyof OrderFormValues, { message: messages[0] });
         }
       }
     }
@@ -278,7 +276,7 @@ export default function QuotationEditPage() {
     });
   }
 
-  async function onSubmit(values: QuotationFormValues) {
+  async function onSubmit(values: OrderFormValues) {
     if (!hasChargeableLine(lines)) {
       setLinesError("Add at least one line with a description.");
       setActiveTab("lines");
@@ -291,9 +289,9 @@ export default function QuotationEditPage() {
         uuid,
         input: { ...values, lines: toLineInputs(lines) },
       });
-      toast({ title: "Quotation saved", variant: "success" });
+      toast({ title: "Sale saved", variant: "success" });
     } catch (error) {
-      report(error, "Could not save the quotation");
+      report(error, "Could not save the sale");
     }
   }
 
@@ -303,13 +301,13 @@ export default function QuotationEditPage() {
       // The number the backend allocated arrives with the refetch this
       // mutation triggers, so the heading announces it rather than the toast.
       toast({
-        title: "Quotation sent",
+        title: "Sale sent",
         description: "It has its number now and can no longer be edited.",
         variant: "success",
       });
       setConfirming(null);
     } catch (error) {
-      report(error, "Could not send the quotation");
+      report(error, "Could not send the sale");
     }
   }
 
@@ -317,13 +315,13 @@ export default function QuotationEditPage() {
     try {
       await acceptMutation.mutateAsync(uuid);
       toast({
-        title: "Quotation accepted",
-        description: "The customer has approved this quotation.",
+        title: "Sale accepted",
+        description: "The customer has approved this sale.",
         variant: "success",
       });
       setConfirming(null);
     } catch (error) {
-      report(error, "Could not accept the quotation");
+      report(error, "Could not accept the sale");
     }
   }
 
@@ -331,13 +329,13 @@ export default function QuotationEditPage() {
     try {
       await cancelMutation.mutateAsync(uuid);
       toast({
-        title: "Quotation cancelled",
+        title: "Sale cancelled",
         description: "Its number stays taken, which is what an audit expects.",
         variant: "success",
       });
       setConfirming(null);
     } catch (error) {
-      report(error, "Could not cancel the quotation");
+      report(error, "Could not cancel the sale");
     }
   }
 
@@ -347,18 +345,18 @@ export default function QuotationEditPage() {
       setConfirming(null);
       toast({
         title: "Invoice created",
-        description: "A draft invoice was created from this quotation's lines.",
+        description: "A draft invoice was created from this sale's lines.",
         variant: "success",
       });
       navigate(`/sales/invoices/${invoice.uuid}/edit`);
     } catch (error) {
-      report(error, "Could not create an invoice from this quotation");
+      report(error, "Could not create an invoice from this sale");
     }
   }
 
-  /** What this quotation's state actually permits — nothing else is offered. */
+  /** What this order's state actually permits — nothing else is offered. */
   function statusActions(): FormStatusBarAction[] {
-    if (!quotation) return [];
+    if (!order) return [];
     if (isDraft) {
       const actions: FormStatusBarAction[] = [];
       if (canEdit) {
@@ -383,7 +381,7 @@ export default function QuotationEditPage() {
         key: "back",
         label: "Back",
         variant: "secondary",
-        onClick: () => navigate("/sales/quotations"),
+        onClick: () => navigate("/sales"),
       });
       return actions;
     }
@@ -397,7 +395,7 @@ export default function QuotationEditPage() {
         onClick: () => setConfirming("accept"),
       });
     }
-    if (canEdit && isAccepted && !quotation.converted_invoice) {
+    if (canEdit && isAccepted && !order.converted_invoice) {
       actions.push({
         key: "convert",
         label: "Create invoice",
@@ -408,8 +406,8 @@ export default function QuotationEditPage() {
     }
     if (canDelete && (isSent || isAccepted)) {
       actions.push({
-        key: "cancel-quotation",
-        label: "Cancel quotation",
+        key: "cancel-sale",
+        label: "Cancel sale",
         variant: "danger",
         loading: cancelMutation.isPending,
         onClick: () => setConfirming("cancel"),
@@ -419,13 +417,13 @@ export default function QuotationEditPage() {
       key: "back",
       label: "Back",
       variant: "secondary",
-      onClick: () => navigate("/sales/quotations"),
+      onClick: () => navigate("/sales"),
     });
     return actions;
   }
 
-  const notFound = quotationQuery.isError;
-  const loading = quotationQuery.isLoading;
+  const notFound = orderQuery.isError;
+  const loading = orderQuery.isLoading;
 
   return (
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
@@ -433,17 +431,15 @@ export default function QuotationEditPage() {
         <ControlPanel
           sticky={false}
           pageActions={
-            <PageActions
-              breadcrumb={quotation ? quotation.number || "Draft quotation" : "Quotation"}
-            />
+            <PageActions breadcrumb={order ? order.number || "Draft sale" : "Sale"} />
           }
         />
 
-        {quotation ? (
+        {order ? (
           <FormStatusBar
             sticky={false}
-            steps={stepsFor(quotation.status)}
-            currentStepKey={quotation.status}
+            steps={stepsFor(order.status)}
+            currentStepKey={order.status}
             actions={statusActions()}
           />
         ) : null}
@@ -451,33 +447,33 @@ export default function QuotationEditPage() {
 
       {notFound ? (
         <div className="rounded-[10px] border border-erp-border bg-erp-surface p-4 text-[12px] text-erp-muted">
-          <p className="m-0 font-bold text-erp-text">Quotation not found</p>
+          <p className="m-0 font-bold text-erp-text">Sale not found</p>
           <p className="mb-0 mt-1">
             It may have been deleted, or belong to a branch you cannot reach.{" "}
             <button
               type="button"
               className="font-bold text-erp-brand-third hover:underline"
-              onClick={() => navigate("/sales/quotations")}
+              onClick={() => navigate("/sales")}
             >
-              Back to quotations
+              Back to sales
             </button>
           </p>
         </div>
-      ) : loading || !quotation ? (
-        <p className="p-4 text-[12px] text-erp-muted">Loading quotation…</p>
+      ) : loading || !order ? (
+        <p className="p-4 text-[12px] text-erp-muted">Loading sale…</p>
       ) : (
         <FormShell onSubmit={handleSubmit(onSubmit)}>
-          <FormSection title="Quotation details">
+          <FormSection title="Sale details">
             <FormGrid columns={12}>
               <FormField
                 label="Customer"
                 required
-                htmlFor="quotation-customer"
+                htmlFor="order-customer"
                 error={errors.customer?.message}
                 span={6}
               >
                 <FormDropdown
-                  id="quotation-customer"
+                  id="order-customer"
                   searchable
                   placeholder="Search customer..."
                   error={Boolean(errors.customer)}
@@ -493,14 +489,14 @@ export default function QuotationEditPage() {
                 />
               </FormField>
               <FormField
-                label="Quotation date"
+                label="Sale date"
                 required
-                htmlFor="quotation-date"
+                htmlFor="order-date"
                 error={errors.issue_date?.message}
                 span={3}
               >
                 <FormDatePicker
-                  id="quotation-date"
+                  id="order-date"
                   error={Boolean(errors.issue_date)}
                   disabled={!editable}
                   {...register("issue_date")}
@@ -509,12 +505,12 @@ export default function QuotationEditPage() {
               <FormField
                 label="Valid until"
                 required
-                htmlFor="quotation-valid-until"
+                htmlFor="order-valid-until"
                 error={errors.valid_until?.message}
                 span={3}
               >
                 <FormDatePicker
-                  id="quotation-valid-until"
+                  id="order-valid-until"
                   error={Boolean(errors.valid_until)}
                   disabled={!editable}
                   {...register("valid_until")}
@@ -522,17 +518,17 @@ export default function QuotationEditPage() {
               </FormField>
               <FormField label="Status" span={3}>
                 <div className="flex h-8 items-center gap-2">
-                  <StatusBadge status={QUOTATION_STATUS_LABELS[quotation.status]} />
+                  <StatusBadge status={ORDER_STATUS_LABELS[order.status]} />
                 </div>
               </FormField>
-              {quotation.converted_invoice ? (
+              {order.converted_invoice ? (
                 <FormField label="Invoice" span={3}>
                   <div className="flex h-8 items-center">
                     <button
                       type="button"
                       className="border-0 bg-transparent p-0 text-[12px] font-bold text-erp-brand-third hover:underline"
                       onClick={() =>
-                        navigate(`/sales/invoices/${quotation.converted_invoice}/edit`)
+                        navigate(`/sales/invoices/${order.converted_invoice}/edit`)
                       }
                     >
                       View invoice
@@ -548,24 +544,24 @@ export default function QuotationEditPage() {
               items={detailTabs}
               activeKey={activeTab}
               onChange={setActiveTab}
-              aria-label="Quotation details"
+              aria-label="Sale details"
             />
 
             {activeTab === "lines" ? (
-              <FormSection title="Quotation lines" className="border-b-0">
+              <FormSection title="Sale lines" className="border-b-0">
                 {editable ? (
                   <>
-                    <LineItemsTable<QuotationLineFormValue>
-                      tableId="sales-quotation-edit-lines"
+                    <LineItemsTable<OrderLineFormValue>
+                      tableId="sales-order-edit-lines"
                       columns={lineColumns}
                       rows={lines}
                       onRowsChange={setLines}
                       createEmptyRow={() =>
-                        createEmptyQuotationLine(
+                        createEmptyOrderLine(
                           taxes.find((tax) => tax.is_default)?.uuid ?? null
                         )
                       }
-                      aria-label="Quotation lines"
+                      aria-label="Sale lines"
                     />
                     {linesError ? (
                       <p className="m-0 mt-1.5 px-2 text-[10px] text-erp-error">
@@ -590,7 +586,7 @@ export default function QuotationEditPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {quotation.lines.map((line) => (
+                      {order.lines.map((line) => (
                         <tr key={line.uuid} className="border-b border-erp-border">
                           <td
                             className={
@@ -624,25 +620,23 @@ export default function QuotationEditPage() {
                     <div className="flex items-center justify-between py-0.5">
                       <dt className="text-erp-muted">Subtotal</dt>
                       <dd className="m-0">
-                        {formatMoney(quotation.subtotal_amount, currency)}
+                        {formatMoney(order.subtotal_amount, currency)}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between py-0.5">
                       <dt className="text-erp-muted">Discount</dt>
                       <dd className="m-0">
-                        {formatMoney(quotation.discount_amount, currency)}
+                        {formatMoney(order.discount_amount, currency)}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between py-0.5">
                       <dt className="text-erp-muted">Tax</dt>
-                      <dd className="m-0">
-                        {formatMoney(quotation.tax_amount, currency)}
-                      </dd>
+                      <dd className="m-0">{formatMoney(order.tax_amount, currency)}</dd>
                     </div>
                     <div className="flex items-center justify-between border-t border-erp-border py-1">
                       <dt className="font-bold">Total</dt>
                       <dd className="m-0 text-[1.1rem] font-bold">
-                        {formatMoney(quotation.total_amount, currency)}
+                        {formatMoney(order.total_amount, currency)}
                       </dd>
                     </div>
                   </dl>
@@ -653,22 +647,18 @@ export default function QuotationEditPage() {
                 <FormGrid columns={12}>
                   <FormField
                     label="Customer reference"
-                    htmlFor="quotation-customer-reference"
+                    htmlFor="order-customer-reference"
                     span={6}
                   >
                     <FormInput
-                      id="quotation-customer-reference"
+                      id="order-customer-reference"
                       disabled={!editable}
                       {...register("customer_reference")}
                     />
                   </FormField>
-                  <FormField
-                    label="Discount type"
-                    htmlFor="quotation-discount-type"
-                    span={3}
-                  >
+                  <FormField label="Discount type" htmlFor="order-discount-type" span={3}>
                     <FormSelect
-                      id="quotation-discount-type"
+                      id="order-discount-type"
                       disabled={!editable}
                       options={[
                         { label: "Percentage", value: "percentage" },
@@ -679,12 +669,12 @@ export default function QuotationEditPage() {
                   </FormField>
                   <FormField
                     label="Discount"
-                    htmlFor="quotation-discount-value"
+                    htmlFor="order-discount-value"
                     error={errors.discount_value?.message}
                     span={3}
                   >
                     <FormInput
-                      id="quotation-discount-value"
+                      id="order-discount-value"
                       inputMode="decimal"
                       disabled={!editable}
                       error={Boolean(errors.discount_value)}
@@ -694,28 +684,24 @@ export default function QuotationEditPage() {
                   {/* Assigned by the backend from whoever raised it, so it is shown, not asked for. */}
                   <FormField label="Salesperson" span={6}>
                     <p className="m-0 flex h-8 items-center text-[12px] text-erp-text">
-                      {quotation.salesperson_name ?? "—"}
+                      {order.salesperson_name ?? "—"}
                     </p>
                   </FormField>
                   <FormField label="Branch" span={6}>
                     <p className="m-0 flex h-8 items-center text-[12px] text-erp-text">
-                      {quotation.branch?.name ?? "—"}
+                      {order.branch?.name ?? "—"}
                     </p>
                   </FormField>
-                  <FormField
-                    label="Terms and conditions"
-                    htmlFor="quotation-terms"
-                    span={12}
-                  >
+                  <FormField label="Terms and conditions" htmlFor="order-terms" span={12}>
                     <FormTextarea
-                      id="quotation-terms"
+                      id="order-terms"
                       disabled={!editable}
                       {...register("terms")}
                     />
                   </FormField>
-                  <FormField label="Notes" htmlFor="quotation-notes" span={12}>
+                  <FormField label="Notes" htmlFor="order-notes" span={12}>
                     <FormTextarea
-                      id="quotation-notes"
+                      id="order-notes"
                       disabled={!editable}
                       {...register("notes")}
                     />
@@ -729,8 +715,8 @@ export default function QuotationEditPage() {
 
       <ConfirmDialog
         open={confirming === "send"}
-        title="Send this quotation?"
-        description="Sending issues it: the quotation takes the next number and stops being editable."
+        title="Send this sale?"
+        description="Sending issues it: the sale takes the next number and stops being editable."
         confirmLabel="Send"
         loading={sendMutation.isPending}
         onCancel={() => setConfirming(null)}
@@ -739,8 +725,8 @@ export default function QuotationEditPage() {
 
       <ConfirmDialog
         open={confirming === "accept"}
-        title="Accept this quotation?"
-        description="This marks the quotation as approved by the customer."
+        title="Accept this sale?"
+        description="This marks the sale as approved by the customer."
         confirmLabel="Accept"
         loading={acceptMutation.isPending}
         onCancel={() => setConfirming(null)}
@@ -749,7 +735,7 @@ export default function QuotationEditPage() {
 
       <ConfirmDialog
         open={confirming === "convert"}
-        title="Create an invoice from this quotation?"
+        title="Create an invoice from this sale?"
         description="A draft invoice is created with the same customer, lines, and terms. You can edit it before posting."
         confirmLabel="Create invoice"
         loading={convertMutation.isPending}
@@ -759,9 +745,9 @@ export default function QuotationEditPage() {
 
       <ConfirmDialog
         open={confirming === "cancel"}
-        title="Cancel this quotation?"
+        title="Cancel this sale?"
         description="It stays on file under its own number — a gap in the numbering is what an auditor expects to see."
-        confirmLabel="Cancel quotation"
+        confirmLabel="Cancel sale"
         cancelLabel="Keep it"
         variant="danger"
         loading={cancelMutation.isPending}

@@ -4,7 +4,7 @@ import { FormStatusBar, type FormStatusBarAction } from "./FormStatusBar";
 import type { StatusStep } from "./StatusStepper";
 
 const wizardSteps: StatusStep[] = [
-  { key: "quotation", label: "Quotation" },
+  { key: "order", label: "Sale" },
   { key: "done", label: "Locked" },
 ];
 
@@ -34,7 +34,7 @@ type Story = StoryObj<typeof meta>;
 export const Interactive: Story = {
   args: {
     steps: wizardSteps,
-    currentStepKey: "quotation",
+    currentStepKey: "order",
   },
   render: function Interactive(args) {
     const [currentStepKey, setCurrentStepKey] = useState(args.currentStepKey);

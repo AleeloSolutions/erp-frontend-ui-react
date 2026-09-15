@@ -91,11 +91,11 @@ function InvoiceDefaultsForm({
   const saveMutation = useUpdateSalesSettingsMutation();
   const [values, setValues] = useState({
     invoice_prefix: settings.invoice_prefix,
-    quotation_prefix: settings.quotation_prefix,
+    order_prefix: settings.order_prefix,
     has_branch_in_number: settings.has_branch_in_number,
     number_padding: String(settings.number_padding),
     default_due_days: String(settings.default_due_days),
-    default_quotation_valid_days: String(settings.default_quotation_valid_days),
+    default_order_valid_days: String(settings.default_order_valid_days),
     default_tax: settings.default_tax ?? "",
     invoice_terms: settings.invoice_terms,
     invoice_footer: settings.invoice_footer,
@@ -104,11 +104,11 @@ function InvoiceDefaultsForm({
   useEffect(() => {
     setValues({
       invoice_prefix: settings.invoice_prefix,
-      quotation_prefix: settings.quotation_prefix,
+      order_prefix: settings.order_prefix,
       has_branch_in_number: settings.has_branch_in_number,
       number_padding: String(settings.number_padding),
       default_due_days: String(settings.default_due_days),
-      default_quotation_valid_days: String(settings.default_quotation_valid_days),
+      default_order_valid_days: String(settings.default_order_valid_days),
       default_tax: settings.default_tax ?? "",
       invoice_terms: settings.invoice_terms,
       invoice_footer: settings.invoice_footer,
@@ -138,7 +138,7 @@ function InvoiceDefaultsForm({
       toast({ title: "Default due days must be zero or more" });
       return;
     }
-    const validDays = Number(values.default_quotation_valid_days);
+    const validDays = Number(values.default_order_valid_days);
     if (!Number.isFinite(validDays) || validDays < 0) {
       toast({ title: "Default valid days must be zero or more" });
       return;
@@ -146,11 +146,11 @@ function InvoiceDefaultsForm({
     try {
       await saveMutation.mutateAsync({
         invoice_prefix: values.invoice_prefix.trim() || "INV",
-        quotation_prefix: values.quotation_prefix.trim() || "QT",
+        order_prefix: values.order_prefix.trim() || "QT",
         has_branch_in_number: values.has_branch_in_number,
         number_padding: padding,
         default_due_days: dueDays,
-        default_quotation_valid_days: validDays,
+        default_order_valid_days: validDays,
         default_tax: values.default_tax || null,
         invoice_terms: values.invoice_terms,
         invoice_footer: values.invoice_footer,
@@ -265,18 +265,18 @@ function InvoiceDefaultsForm({
         </FormGrid>
       </FormSection>
       <FormSection
-        title="Quotation defaults"
-        description="Numbering, the validity window, and text that new quotations start with."
+        title="Sales defaults"
+        description="Numbering, the validity window, and text that new sales start with."
       >
         <FormGrid>
-          <FormField label="Quotation prefix" htmlFor="sales-quotation-prefix" span={4}>
+          <FormField label="Sales prefix" htmlFor="sales-order-prefix" span={4}>
             <FormInput
-              id="sales-quotation-prefix"
-              value={values.quotation_prefix}
+              id="sales-order-prefix"
+              value={values.order_prefix}
               onChange={(event) =>
                 setValues((current) => ({
                   ...current,
-                  quotation_prefix: event.target.value,
+                  order_prefix: event.target.value,
                 }))
               }
               maxLength={10}
@@ -291,11 +291,11 @@ function InvoiceDefaultsForm({
               id="sales-default-valid-days"
               type="number"
               min={0}
-              value={values.default_quotation_valid_days}
+              value={values.default_order_valid_days}
               onChange={(event) =>
                 setValues((current) => ({
                   ...current,
-                  default_quotation_valid_days: event.target.value,
+                  default_order_valid_days: event.target.value,
                 }))
               }
             />
@@ -373,7 +373,7 @@ function TaxesSection({ canEdit }: { canEdit: boolean }) {
   }
 
   return (
-    <FormSection title="Taxes" description="Rates offered on invoices and quotations.">
+    <FormSection title="Taxes" description="Rates offered on sales documents.">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[28rem] border-collapse text-sm">
           <thead>

@@ -28,14 +28,14 @@ export interface DemoInvoice {
   lines: InvoiceLine[];
 }
 
-export interface QuotationLine {
+export interface OrderLine {
   id: string;
   description: string;
   quantity: number;
   unitPrice: number;
 }
 
-export interface DemoQuotation {
+export interface DemoOrder {
   id: string;
   number: string;
   customer: string;
@@ -43,7 +43,7 @@ export interface DemoQuotation {
   validUntil: string;
   status: "Draft" | "Pending" | "Approved";
   amount: string;
-  lines: QuotationLine[];
+  lines: OrderLine[];
 }
 
 export interface DemoContract {
@@ -497,7 +497,7 @@ export const mockInvoices: DemoInvoice[] = [
   },
 ];
 
-export const mockQuotations: DemoQuotation[] = [
+export const mockOrders: DemoOrder[] = [
   {
     id: "1",
     number: "QT-2026-0001",
