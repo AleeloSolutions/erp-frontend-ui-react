@@ -118,7 +118,7 @@ export function CustomerForm({
           <FormField
             label="Payment terms"
             htmlFor="customer-terms"
-            description="Days until an invoice falls due. Zero means on receipt."
+            description="Days until a sale falls due. Zero means on receipt."
             error={errors.payment_terms_days?.message}
             span={3}
           >

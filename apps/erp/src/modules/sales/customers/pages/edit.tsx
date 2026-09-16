@@ -1,7 +1,7 @@
 /**
  * Edit a customer, against `/api/v1/sales/customers/<uuid>/`.
  *
- * Archiving lives here rather than on the list: a customer with invoices
+ * Archiving lives here rather than on the list: a customer with sales
  * can never be deleted, so archiving is the real end of their life and
  * belongs where the record is, not behind a row menu.
  */

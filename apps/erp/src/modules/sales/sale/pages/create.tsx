@@ -231,8 +231,8 @@ export default function SaleCreatePage() {
       "valid_until",
       validUntilFrom(watch("issue_date"), settings.default_sale_valid_days ?? 30)
     );
-    if (settings.invoice_terms) {
-      setValue("terms", settings.invoice_terms);
+    if (settings.sale_terms) {
+      setValue("terms", settings.sale_terms);
     }
   }, [settings, setValue, watch]);
 

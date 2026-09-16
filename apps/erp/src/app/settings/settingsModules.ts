@@ -20,7 +20,7 @@ export const SETTINGS_MODULE_TABS: Record<SettingsModuleKey, SettingsTabKey[]> =
 
 const STUB_TAB_LABELS: Partial<Record<SettingsTabKey, string>> = {
   language: "Language",
-  sales: "Invoice Defaults",
+  sales: "Sale Defaults",
   "sales-taxes": "Taxes",
   "sales-payments": "Payment Methods",
 };

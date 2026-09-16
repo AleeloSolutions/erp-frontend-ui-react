@@ -132,7 +132,6 @@ export const coreNavigation: NavigationItem[] = buildNavigation(null, []);
 export const navigation: NavigationItem[] = coreNavigation;
 
 export const financeSubmenu = [
-  { key: "invoices", label: "Customer invoices", href: "/" },
   { key: "payments", label: "Customer payments", href: "/" },
   { key: "statements", label: "Customer statements", href: "/" },
   { key: "creditnotes", label: "Credit notes", href: "/" },

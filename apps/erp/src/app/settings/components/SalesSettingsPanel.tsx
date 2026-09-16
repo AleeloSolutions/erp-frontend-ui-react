@@ -2,7 +2,7 @@
  * Settings → Sales panels.
  *
  * Same shell as General: white bordered card + FormShell / FormSection.
- * Split across Sales module tabs (Invoice Defaults, Taxes, Payment Methods).
+ * Split across Sales module tabs (Sale Defaults, Taxes, Payment Methods).
  */
 
 import { useEffect, useState } from "react";
@@ -79,7 +79,7 @@ function SalesPanelShell({
   );
 }
 
-function InvoiceDefaultsForm({
+function SaleDefaultsForm({
   settings,
   canEdit,
 }: {
@@ -90,28 +90,26 @@ function InvoiceDefaultsForm({
   const taxesQuery = useTaxesQuery();
   const saveMutation = useUpdateSalesSettingsMutation();
   const [values, setValues] = useState({
-    invoice_prefix: settings.invoice_prefix,
     sale_prefix: settings.sale_prefix,
     has_branch_in_number: settings.has_branch_in_number,
     number_padding: String(settings.number_padding),
     default_due_days: String(settings.default_due_days),
     default_sale_valid_days: String(settings.default_sale_valid_days),
     default_tax: settings.default_tax ?? "",
-    invoice_terms: settings.invoice_terms,
-    invoice_footer: settings.invoice_footer,
+    sale_terms: settings.sale_terms,
+    sale_footer: settings.sale_footer,
   });
 
   useEffect(() => {
     setValues({
-      invoice_prefix: settings.invoice_prefix,
       sale_prefix: settings.sale_prefix,
       has_branch_in_number: settings.has_branch_in_number,
       number_padding: String(settings.number_padding),
       default_due_days: String(settings.default_due_days),
       default_sale_valid_days: String(settings.default_sale_valid_days),
       default_tax: settings.default_tax ?? "",
-      invoice_terms: settings.invoice_terms,
-      invoice_footer: settings.invoice_footer,
+      sale_terms: settings.sale_terms,
+      sale_footer: settings.sale_footer,
     });
   }, [settings]);
 
@@ -145,15 +143,14 @@ function InvoiceDefaultsForm({
     }
     try {
       await saveMutation.mutateAsync({
-        invoice_prefix: values.invoice_prefix.trim() || "INV",
         sale_prefix: values.sale_prefix.trim() || "SL",
         has_branch_in_number: values.has_branch_in_number,
         number_padding: padding,
         default_due_days: dueDays,
         default_sale_valid_days: validDays,
         default_tax: values.default_tax || null,
-        invoice_terms: values.invoice_terms,
-        invoice_footer: values.invoice_footer,
+        sale_terms: values.sale_terms,
+        sale_footer: values.sale_footer,
       });
       toast({ title: "Sales settings saved", variant: "success" });
     } catch (err) {
@@ -164,18 +161,18 @@ function InvoiceDefaultsForm({
   return (
     <FormShell onSubmit={handleSubmit} className="max-w-3xl">
       <FormSection
-        title="Invoice defaults"
-        description="Numbering, due dates, and text that new invoices start with."
+        title="Sale defaults"
+        description="Numbering, dates, and the text that new sales start with."
       >
         <FormGrid>
-          <FormField label="Invoice prefix" htmlFor="sales-invoice-prefix" span={4}>
+          <FormField label="Sale prefix" htmlFor="sales-sale-prefix" span={4}>
             <FormInput
-              id="sales-invoice-prefix"
-              value={values.invoice_prefix}
+              id="sales-sale-prefix"
+              value={values.sale_prefix}
               onChange={(event) =>
                 setValues((current) => ({
                   ...current,
-                  invoice_prefix: event.target.value,
+                  sale_prefix: event.target.value,
                 }))
               }
               maxLength={10}
@@ -196,6 +193,19 @@ function InvoiceDefaultsForm({
               }
             />
           </FormField>
+          <FormField span={4}>
+            <FormCheckbox
+              id="sales-branch-in-number"
+              label="Include branch code in sale numbers"
+              checked={values.has_branch_in_number}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  has_branch_in_number: event.target.checked,
+                }))
+              }
+            />
+          </FormField>
           <FormField label="Default due days" htmlFor="sales-default-due-days" span={4}>
             <FormInput
               id="sales-default-due-days"
@@ -208,78 +218,6 @@ function InvoiceDefaultsForm({
                   default_due_days: event.target.value,
                 }))
               }
-            />
-          </FormField>
-          <FormField label="Default tax" htmlFor="sales-default-tax" span={6}>
-            <FormSelect
-              id="sales-default-tax"
-              options={taxOptions}
-              value={values.default_tax}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  default_tax: event.target.value,
-                }))
-              }
-            />
-          </FormField>
-          <FormField span={6}>
-            <FormCheckbox
-              id="sales-branch-in-number"
-              label="Include branch code in invoice numbers"
-              checked={values.has_branch_in_number}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  has_branch_in_number: event.target.checked,
-                }))
-              }
-            />
-          </FormField>
-          <FormField label="Default terms" htmlFor="sales-invoice-terms" span={12}>
-            <FormTextarea
-              id="sales-invoice-terms"
-              rows={3}
-              value={values.invoice_terms}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  invoice_terms: event.target.value,
-                }))
-              }
-            />
-          </FormField>
-          <FormField label="Invoice footer" htmlFor="sales-invoice-footer" span={12}>
-            <FormTextarea
-              id="sales-invoice-footer"
-              rows={2}
-              value={values.invoice_footer}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  invoice_footer: event.target.value,
-                }))
-              }
-            />
-          </FormField>
-        </FormGrid>
-      </FormSection>
-      <FormSection
-        title="Sales defaults"
-        description="Numbering, the validity window, and text that new sales start with."
-      >
-        <FormGrid>
-          <FormField label="Sales prefix" htmlFor="sales-sale-prefix" span={4}>
-            <FormInput
-              id="sales-sale-prefix"
-              value={values.sale_prefix}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  sale_prefix: event.target.value,
-                }))
-              }
-              maxLength={10}
             />
           </FormField>
           <FormField
@@ -296,6 +234,45 @@ function InvoiceDefaultsForm({
                 setValues((current) => ({
                   ...current,
                   default_sale_valid_days: event.target.value,
+                }))
+              }
+            />
+          </FormField>
+          <FormField label="Default tax" htmlFor="sales-default-tax" span={4}>
+            <FormSelect
+              id="sales-default-tax"
+              options={taxOptions}
+              value={values.default_tax}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  default_tax: event.target.value,
+                }))
+              }
+            />
+          </FormField>
+          <FormField label="Default terms" htmlFor="sales-sale-terms" span={12}>
+            <FormTextarea
+              id="sales-sale-terms"
+              rows={3}
+              value={values.sale_terms}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  sale_terms: event.target.value,
+                }))
+              }
+            />
+          </FormField>
+          <FormField label="Document footer" htmlFor="sales-sale-footer" span={12}>
+            <FormTextarea
+              id="sales-sale-footer"
+              rows={2}
+              value={values.sale_footer}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  sale_footer: event.target.value,
                 }))
               }
             />
@@ -639,14 +616,14 @@ function PaymentMethodsSection({ canEdit }: { canEdit: boolean }) {
   );
 }
 
-/** Settings → Sales → Invoice Defaults. */
-export function SalesInvoiceDefaultsPanel() {
+/** Settings → Sales → Sale Defaults. */
+export function SalesDefaultsPanel() {
   const canEdit = useSalesCanEdit();
   const settingsQuery = useSalesSettingsQuery();
 
   if (settingsQuery.isLoading) {
     return (
-      <SalesPanelShell label="Invoice Defaults">
+      <SalesPanelShell label="Sale Defaults">
         <div className="p-6 text-sm text-erp-muted">Loading sales settings…</div>
       </SalesPanelShell>
     );
@@ -654,7 +631,7 @@ export function SalesInvoiceDefaultsPanel() {
 
   if (settingsQuery.isError || !settingsQuery.data) {
     return (
-      <SalesPanelShell label="Invoice Defaults">
+      <SalesPanelShell label="Sale Defaults">
         <div className="p-6 text-sm text-erp-muted">
           Could not load sales settings. Enable the Sales module and try again.
         </div>
@@ -663,8 +640,8 @@ export function SalesInvoiceDefaultsPanel() {
   }
 
   return (
-    <SalesPanelShell label="Invoice Defaults">
-      <InvoiceDefaultsForm settings={settingsQuery.data} canEdit={canEdit} />
+    <SalesPanelShell label="Sale Defaults">
+      <SaleDefaultsForm settings={settingsQuery.data} canEdit={canEdit} />
     </SalesPanelShell>
   );
 }

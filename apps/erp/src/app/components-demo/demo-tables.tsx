@@ -4,9 +4,9 @@ import { DataTable } from "@erp/ui";
 import { Button, Card, CardContent, CardHeader, CardTitle, StatusBadge } from "@erp/ui";
 import {
   mockCustomers,
-  mockInvoices,
+  mockSales,
   type DemoCustomer,
-  type DemoInvoice,
+  type DemoSale,
 } from "@/modules/sales/shared/demo-table";
 import type { DataTableFilter } from "@erp/ui";
 
@@ -72,11 +72,11 @@ export function DataTableDemos() {
     []
   );
 
-  const invoiceColumns = useMemo<ColumnDef<DemoInvoice>[]>(
+  const saleColumns = useMemo<ColumnDef<DemoSale>[]>(
     () => [
       {
         accessorKey: "number",
-        header: "Invoice number",
+        header: "Sale number",
         cell: ({ getValue }) => (
           <span className="font-bold text-erp-primary">{String(getValue())}</span>
         ),
@@ -93,8 +93,8 @@ export function DataTableDemos() {
         size: 120,
       },
       {
-        accessorKey: "dueDate",
-        header: "Due date",
+        accessorKey: "validUntil",
+        header: "Valid until",
         size: 120,
       },
       {
@@ -129,7 +129,7 @@ export function DataTableDemos() {
     []
   );
 
-  const invoiceFilters = useMemo<DataTableFilter[]>(
+  const saleFilters = useMemo<DataTableFilter[]>(
     () => [
       {
         key: "status",
@@ -137,12 +137,9 @@ export function DataTableDemos() {
         type: "select",
         placeholder: "All statuses",
         options: [
-          { label: "Paid", value: "Paid" },
+          { label: "Draft", value: "Draft" },
           { label: "Pending", value: "Pending" },
           { label: "Approved", value: "Approved" },
-          { label: "Overdue", value: "Overdue" },
-          { label: "Draft", value: "Draft" },
-          { label: "Partially paid", value: "Partially paid" },
         ],
       },
     ],
@@ -211,15 +208,15 @@ export function DataTableDemos() {
       </DemoSection>
 
       <DemoSection
-        title="DataTable — Invoices"
-        description="Invoice list with status badges, amount alignment, filters, and bulk actions."
+        title="DataTable — Sales"
+        description="Sale list with status badges, amount alignment, filters, and bulk actions."
       >
-        <DataTable<DemoInvoice>
-          columns={invoiceColumns}
-          data={mockInvoices}
+        <DataTable<DemoSale>
+          columns={saleColumns}
+          data={mockSales}
           searchable
-          searchPlaceholder="Search invoices, customers, or amounts"
-          filters={invoiceFilters}
+          searchPlaceholder="Search sales, customers, or amounts"
+          filters={saleFilters}
           selectable
           pagination
           pageSize={8}
@@ -233,12 +230,12 @@ export function DataTableDemos() {
             {
               key: "approve",
               label: "Approve",
-              onClick: (rows) => setBulkMessage(`Approved ${rows.length} invoice(s)`),
+              onClick: (rows) => setBulkMessage(`Approved ${rows.length} sale(s)`),
             },
             {
               key: "export",
               label: "Export",
-              onClick: (rows) => setBulkMessage(`Exported ${rows.length} invoice(s)`),
+              onClick: (rows) => setBulkMessage(`Exported ${rows.length} sale(s)`),
             },
           ]}
           className="rounded-none border-0"

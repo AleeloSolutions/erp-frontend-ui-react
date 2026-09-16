@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  Bell,
-  CircleHelp,
-  FileText,
-  Info,
-} from "lucide-react";
+import { Bell, CircleHelp, FileText, Info } from "lucide-react";
 import { AppShell, PageHeader } from "@/app";
 import {
   Badge,
@@ -62,8 +57,8 @@ export default function ComponentsDemoPage() {
     <AppShell activeNavKey="finance" activeMobileKey="tasks">
       <PageHeader
         module="Finance"
-        section="Customer invoices"
-        title="Customer Invoices"
+        section="Customer payments"
+        title="Customer Payments"
         description="Component showcase for layout and UI primitives. No ERP business module yet."
         icon={<FileText className="h-4 w-4" aria-hidden />}
         organizations={[
@@ -101,13 +96,13 @@ export default function ComponentsDemoPage() {
           <>
             <Button variant="secondary">Import</Button>
             <Button variant="secondary">Export</Button>
-            <Button variant="primary">Create Invoice</Button>
+            <Button variant="primary">Record Payment</Button>
           </>
         }
         submenu={{
           module: "Finance",
           items: financeSubmenu,
-          activeKey: "invoices",
+          activeKey: "payments",
         }}
       />
 
@@ -144,7 +139,9 @@ export default function ComponentsDemoPage() {
       >
         <div className="grid grid-cols-1 gap-3 min-[721px]:grid-cols-3">
           <div className="space-y-1">
-            <label className="text-[10.5px] font-semibold text-[#4B5563]">Customer name</label>
+            <label className="text-[10.5px] font-semibold text-[#4B5563]">
+              Customer name
+            </label>
             <Input placeholder="Enter customer name" />
           </div>
           <div className="space-y-1">
@@ -168,7 +165,9 @@ export default function ComponentsDemoPage() {
             <Textarea placeholder="Additional notes" />
           </div>
           <div className="space-y-1">
-            <label className="text-[10.5px] font-semibold text-[#4B5563]">Error state</label>
+            <label className="text-[10.5px] font-semibold text-[#4B5563]">
+              Error state
+            </label>
             <Input error placeholder="Invalid value" defaultValue="bad@" />
             <p className="m-0 text-[10px] text-erp-error">Enter a valid email address.</p>
           </div>
@@ -203,10 +202,7 @@ export default function ComponentsDemoPage() {
         </div>
       </Section>
 
-      <Section
-        title="Selection controls"
-        description="Checkboxes, radios, and switches."
-      >
+      <Section title="Selection controls" description="Checkboxes, radios, and switches.">
         <div className="flex flex-wrap gap-6">
           <div className="space-y-2">
             <Checkbox id="chk-1" label="Selectable row" defaultChecked />
@@ -250,11 +246,14 @@ export default function ComponentsDemoPage() {
         </div>
       </Section>
 
-      <Section title="Cards" description="Surface containers matching prototype card density.">
+      <Section
+        title="Cards"
+        description="Surface containers matching prototype card density."
+      >
         <div className="grid grid-cols-1 gap-3 min-[721px]:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Invoice summary</CardTitle>
+              <CardTitle>Sale summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-[11px] text-erp-muted">
               <div className="flex justify-between">
@@ -312,7 +311,8 @@ export default function ComponentsDemoPage() {
         }
       >
         <p className="m-0 text-[12px] text-erp-muted">
-          Modal content stays generic. Business modules will compose their own body and actions.
+          Modal content stays generic. Business modules will compose their own body and
+          actions.
         </p>
       </Modal>
     </AppShell>

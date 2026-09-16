@@ -49,7 +49,6 @@ import { useCustomersQuery } from "@/modules/sales/customers";
 import {
   useAcceptSaleMutation,
   useCancelSaleMutation,
-  useConvertSaleMutation,
   useSaleQuery,
   useSendSaleMutation,
   useUpdateSaleMutation,
@@ -108,7 +107,6 @@ export default function SaleEditPage() {
   const sendMutation = useSendSaleMutation();
   const acceptMutation = useAcceptSaleMutation();
   const cancelMutation = useCancelSaleMutation();
-  const convertMutation = useConvertSaleMutation();
 
   const customersQuery = useCustomersQuery({
     ordering: "name",
@@ -120,9 +118,7 @@ export default function SaleEditPage() {
   const [activeTab, setActiveTab] = useState("lines");
   const [lines, setLines] = useState<SaleLineFormValue[]>([]);
   const [linesError, setLinesError] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState<
-    "send" | "accept" | "cancel" | "convert" | null
-  >(null);
+  const [confirming, setConfirming] = useState<"send" | "accept" | "cancel" | null>(null);
 
   const customers = useMemo(() => customersQuery.data?.data ?? [], [customersQuery.data]);
   const taxes = useMemo(
@@ -337,21 +333,6 @@ export default function SaleEditPage() {
     }
   }
 
-  async function convert() {
-    try {
-      const invoice = await convertMutation.mutateAsync(uuid);
-      setConfirming(null);
-      toast({
-        title: "Invoice created",
-        description: "A draft invoice was created from this sale's lines.",
-        variant: "success",
-      });
-      navigate(`/sales/invoices/${invoice.uuid}/edit`);
-    } catch (error) {
-      report(error, "Could not create an invoice from this sale");
-    }
-  }
-
   /** What this sale's state actually permits — nothing else is offered. */
   function statusActions(): FormStatusBarAction[] {
     if (!sale) return [];
@@ -391,15 +372,6 @@ export default function SaleEditPage() {
         variant: "primary",
         loading: acceptMutation.isPending,
         onClick: () => setConfirming("accept"),
-      });
-    }
-    if (canEdit && isAccepted && !sale.converted_invoice) {
-      actions.push({
-        key: "convert",
-        label: "Create invoice",
-        variant: "teal",
-        loading: convertMutation.isPending,
-        onClick: () => setConfirming("convert"),
       });
     }
     if (canDelete && (isSent || isAccepted)) {
@@ -519,21 +491,6 @@ export default function SaleEditPage() {
                   <StatusBadge status={SALE_STATUS_LABELS[sale.status]} />
                 </div>
               </FormField>
-              {sale.converted_invoice ? (
-                <FormField label="Invoice" span={3}>
-                  <div className="flex h-8 items-center">
-                    <button
-                      type="button"
-                      className="border-0 bg-transparent p-0 text-[12px] font-bold text-erp-brand-third hover:underline"
-                      onClick={() =>
-                        navigate(`/sales/invoices/${sale.converted_invoice}/edit`)
-                      }
-                    >
-                      View invoice
-                    </button>
-                  </div>
-                </FormField>
-              ) : null}
             </FormGrid>
           </FormSection>
 
@@ -729,16 +686,6 @@ export default function SaleEditPage() {
         loading={acceptMutation.isPending}
         onCancel={() => setConfirming(null)}
         onConfirm={() => void accept()}
-      />
-
-      <ConfirmDialog
-        open={confirming === "convert"}
-        title="Create an invoice from this sale?"
-        description="A draft invoice is created with the same customer, lines, and terms. You can edit it before posting."
-        confirmLabel="Create invoice"
-        loading={convertMutation.isPending}
-        onCancel={() => setConfirming(null)}
-        onConfirm={() => void convert()}
       />
 
       <ConfirmDialog

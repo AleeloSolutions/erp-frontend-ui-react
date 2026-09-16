@@ -23,7 +23,7 @@ export const salesConfigKeys = {
   settings: ["sales", "settings"] as const,
 };
 
-/** The tenant's tax rates; the invoice editor's tax dropdown. */
+/** The tenant's tax rates; the sale editor's tax dropdown. */
 export function useTaxesQuery() {
   return useQuery({ queryKey: salesConfigKeys.taxes, queryFn: listTaxes });
 }

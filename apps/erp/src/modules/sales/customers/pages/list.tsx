@@ -193,7 +193,7 @@ export default function CustomersPage() {
       });
       setPendingDelete(null);
     } catch (error) {
-      // A customer with invoices can never be deleted; the API says so and
+      // A customer with sales can never be deleted; the API says so and
       // the message tells them to archive instead.
       toast({
         title: "Could not delete the customer",
@@ -279,7 +279,7 @@ export default function CustomersPage() {
         title="Delete this customer?"
         description={
           pendingDelete
-            ? `${pendingDelete.name} will be removed. A customer with invoices cannot be deleted; archive them instead.`
+            ? `${pendingDelete.name} will be removed. A customer with sales cannot be deleted; archive them instead.`
             : ""
         }
         confirmLabel="Delete"
