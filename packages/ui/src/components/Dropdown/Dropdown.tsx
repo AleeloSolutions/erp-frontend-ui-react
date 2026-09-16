@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type ButtonHTMLAttributes,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type RefObject,
@@ -57,6 +58,33 @@ export interface DropdownProps {
   defaultValue?: string | null;
   onChange?: (key: string | null, item: DropdownItem | null) => void;
   onSearchMore?: () => void;
+  /**
+   * Custom row content for the field menu list (`trigger="field"`) — e.g. the
+   * matched substring in bold plus a muted secondary line. Receives the item
+   * and the current search text.
+   */
+  renderItem?: (
+    item: DropdownItem,
+    ctx: { selected: boolean; query: string }
+  ) => ReactNode;
+  /**
+   * Searchable combobox only. Fires whenever the search text changes: `typed` is
+   * false when the component seeded the box itself (opening pre-fills it with
+   * the current selection) rather than the user typing.
+   */
+  onQueryChange?: (query: string, meta: { typed: boolean }) => void;
+  /** Fires when the menu opens or closes. */
+  onOpenChange?: (open: boolean) => void;
+  /**
+   * Filter `items` against the search text in the browser. Turn this off when
+   * the list already comes back filtered from a server search. Defaults to true.
+   */
+  filterItems?: boolean;
+  /**
+   * Message row above the options — an async search's loading / failed / empty
+   * state. Replaces the built-in "no results" row while it is set.
+   */
+  statusContent?: ReactNode;
   size?: FieldSize;
   error?: boolean;
   disabled?: boolean;
@@ -264,6 +292,11 @@ function FieldMenu({
   menuRef,
   selectedKey,
   search,
+  renderItem,
+  statusContent,
+  activeIndex = -1,
+  optionIdPrefix,
+  query = "",
 }: {
   items: DropdownItem[];
   listId: string;
@@ -273,6 +306,14 @@ function FieldMenu({
   searchMoreLabel?: string;
   anchorRef: RefObject<HTMLElement | null>;
   menuRef: RefObject<HTMLDivElement | null>;
+  renderItem?: DropdownProps["renderItem"];
+  statusContent?: ReactNode;
+  /** Keyboard-highlighted row in `items`, or -1 for none. */
+  activeIndex?: number;
+  /** Prefix for per-option element ids (`aria-activedescendant`). */
+  optionIdPrefix?: string;
+  /** Current search text — passed through to `renderItem`. */
+  query?: string;
   /** Currently committed value — rendered bold in the list (Odoo many2one). */
   selectedKey?: string | null;
   /** Renders a live-filter search input above the list — used by the plain
@@ -285,6 +326,12 @@ function FieldMenu({
   };
 }) {
   const coords = useFieldMenuCoords(anchorRef);
+  const activeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    // `scrollIntoView` does not exist in jsdom — optional call keeps tests quiet.
+    activeRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [activeIndex]);
 
   return createPortal(
     <div
@@ -315,31 +362,46 @@ function FieldMenu({
           />
         </div>
       ) : null}
+      {statusContent ? (
+        <div role="status" className="shrink-0 px-5 py-1.5 text-[0.875rem]">
+          {statusContent}
+        </div>
+      ) : null}
       <ul
         id={listId}
         role="listbox"
         className="m-0 min-h-0 flex-1 list-none overflow-y-auto py-1 [scrollbar-width:thin]"
       >
-        {items.length === 0 ? (
+        {items.length === 0 && !statusContent ? (
           <li className="px-5 py-1.5 text-erp-muted">{emptyLabel}</li>
         ) : (
-          items.map((item) => {
+          items.map((item, index) => {
             const isSelected = selectedKey != null && item.key === selectedKey;
+            const isActive = index === activeIndex;
             return (
               <li key={item.key}>
                 <button
                   type="button"
+                  ref={isActive ? activeRef : undefined}
+                  id={optionIdPrefix ? `${optionIdPrefix}-${index}` : undefined}
                   role="option"
                   aria-selected={isSelected}
+                  // Custom content can split the text across elements (bolded
+                  // match, muted secondary); `label` stays the announced name.
+                  aria-label={renderItem ? item.label : undefined}
                   disabled={item.disabled}
                   className={cn(
-                    "block w-full truncate border-0 bg-transparent px-5 py-1.5 text-start text-[0.875rem] text-erp-text",
-                    "hover:bg-erp-menu-hover disabled:text-erp-muted"
+                    "block w-full border-0 bg-transparent px-5 py-1.5 text-start text-[0.875rem] text-erp-text",
+                    "hover:bg-erp-menu-hover disabled:text-erp-muted",
+                    renderItem ? "min-w-0" : "truncate",
+                    isActive && "bg-erp-menu-hover"
                   )}
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => onSelect(item)}
                 >
-                  {item.label}
+                  {renderItem
+                    ? renderItem(item, { selected: isSelected, query })
+                    : item.label}
                 </button>
               </li>
             );
@@ -376,6 +438,11 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
     defaultValue = null,
     onChange,
     onSearchMore,
+    renderItem,
+    onQueryChange,
+    onOpenChange,
+    filterItems = true,
+    statusContent,
     size = "sm",
     error = false,
     disabled,
@@ -397,6 +464,10 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
   // reopening on an existing selection shows the full list instead of
   // filtering it down to just that selection's text.
   const [searchTouched, setSearchTouched] = useState(false);
+  // Keyboard-highlighted row in the combobox list. -1 = nothing highlighted:
+  // Enter then never picks a row the user did not deliberately move onto,
+  // which matters when a server search keeps replacing the list underneath.
+  const [activeIndex, setActiveIndex] = useState(-1);
   const menuId = useId();
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -420,27 +491,30 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
 
   const isDisabled = disabled ?? buttonDisabled;
 
-  const close = () => setIsOpen(false);
+  function setOpenState(next: boolean) {
+    if (next === isOpen) return;
+    setIsOpen(next);
+    if (!next) setActiveIndex(-1);
+    onOpenChange?.(next);
+  }
+
+  const close = () => setOpenState(false);
+
+  /** Search text changes, mirrored to the consumer. */
+  function updateQuery(next: string, typed: boolean) {
+    setQuery(next);
+    onQueryChange?.(next, { typed });
+  }
 
   function commitItem(item: DropdownItem) {
     if (!isControlledValue) setInnerValue(item.key);
     onChange?.(item.key, item);
   }
 
-  // Dismissing (outside click / Escape) without picking a list item: if the
-  // typed text doesn't match the current selection, either commit it as a
-  // free-text value (allowFreeText) or just close — the display falls back
-  // to the last selection either way.
-  function dismiss() {
-    if (searchable && allowFreeText && isOpen) {
-      const typed = query.trim();
-      if (typed && typed !== (selected?.label ?? "")) {
-        commitItem({ key: typed, label: typed });
-      }
-    }
-    close();
-  }
-  useDismiss(isOpen, dismiss, rootRef, menuRef);
+  // Dismissing (outside click / Escape) never commits — it closes, and the
+  // display falls back to the last selection. Turning typed text into a value
+  // is an explicit act: Enter here, or a Create row in a composed picker.
+  useDismiss(isOpen, close, rootRef, menuRef);
 
   function pickItem(item: DropdownItem) {
     if (isFieldSelect || searchable) {
@@ -455,15 +529,17 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
     if (!isControlledValue) setInnerValue(null);
     onChange?.(null, null);
     if (searchable) {
-      setQuery("");
+      updateQuery("", false);
       setSearchTouched(false);
+      setActiveIndex(-1);
     }
   }
 
   // Only filter once the user has actually typed in this open session — a
   // reopened combobox pre-fills `query` with the current selection's label
   // (so it can be edited), but that shouldn't hide every other option.
-  const applySearchFilter = isFieldSelect || (searchable && searchTouched);
+  const applySearchFilter =
+    filterItems && (isFieldSelect || (searchable && searchTouched));
   const needle = query.trim().toLowerCase();
   const visibleItems =
     applySearchFilter && needle
@@ -476,7 +552,7 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
   }, [searchable, isOpen, displayLabel]);
 
   if (isButtonTrigger) {
-    const toggle = () => setIsOpen((open) => !open);
+    const toggle = () => setOpenState(!isOpen);
     const menu = isOpen ? (
       <ButtonMenu
         items={items}
@@ -519,9 +595,66 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
 
     function openSearchMenu() {
       if (isDisabled) return;
-      setQuery(displayLabel);
+      updateQuery(displayLabel, false);
       setSearchTouched(false);
-      setIsOpen(true);
+      setActiveIndex(-1);
+      setOpenState(true);
+    }
+
+    function moveActive(delta: number) {
+      const enabled = visibleItems
+        .map((item, index) => (item.disabled ? -1 : index))
+        .filter((index) => index >= 0);
+      if (enabled.length === 0) return;
+      const position = enabled.indexOf(activeIndex);
+      const next =
+        position === -1
+          ? delta > 0
+            ? 0
+            : enabled.length - 1
+          : (position + delta + enabled.length) % enabled.length;
+      setActiveIndex(enabled[next]);
+    }
+
+    function handleKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+      if (isDisabled) return;
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        if (!isOpen) {
+          openSearchMenu();
+          return;
+        }
+        moveActive(event.key === "ArrowDown" ? 1 : -1);
+        return;
+      }
+      if (event.key === "Escape") {
+        if (!isOpen) return;
+        event.preventDefault();
+        close();
+        return;
+      }
+      if (event.key === "Tab") {
+        // Leaving the field is a dismissal, not a commit.
+        if (isOpen) close();
+        return;
+      }
+      if (event.key !== "Enter" || !isOpen) return;
+      const active = activeIndex >= 0 ? visibleItems[activeIndex] : undefined;
+      if (active && !active.disabled) {
+        event.preventDefault();
+        pickItem(active);
+        return;
+      }
+      // Nothing highlighted: take the typed text when the field accepts free
+      // text, otherwise just close. Either way Enter must not submit the form.
+      event.preventDefault();
+      if (allowFreeText) {
+        const typed = query.trim();
+        if (typed && typed !== (selected?.label ?? "")) {
+          commitItem({ key: typed, label: typed });
+        }
+      }
+      close();
     }
 
     return (
@@ -533,6 +666,10 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
           autoComplete="off"
           aria-expanded={isOpen}
           aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={
+            isOpen && activeIndex >= 0 ? `${listId}-opt-${activeIndex}` : undefined
+          }
           disabled={isDisabled}
           error={error}
           size={size}
@@ -555,10 +692,12 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
             // again — reopen from click while already focused.
             if (!isOpen) openSearchMenu();
           }}
+          onKeyDown={handleKeyDown}
           onChange={(event) => {
-            setQuery(event.target.value);
+            updateQuery(event.target.value, true);
             setSearchTouched(true);
-            setIsOpen(true);
+            setActiveIndex(-1);
+            setOpenState(true);
           }}
         />
         {showClear ? (
@@ -620,6 +759,11 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
             searchMoreLabel={searchMoreLabel}
             anchorRef={rootRef}
             menuRef={menuRef}
+            renderItem={renderItem}
+            statusContent={statusContent}
+            activeIndex={activeIndex}
+            optionIdPrefix={`${listId}-opt`}
+            query={query}
           />
         ) : null}
       </div>
@@ -650,6 +794,9 @@ export const Dropdown = forwardRef<HTMLInputElement, DropdownProps>(function Dro
       onSelect={pickItem}
       anchorRef={rootRef}
       menuRef={menuRef}
+      renderItem={renderItem}
+      statusContent={statusContent}
+      query={query}
       search={{
         value: query,
         onChange: setQuery,

@@ -8,6 +8,8 @@ export * from "./Form";
 export * from "./FormStatusBar";
 export * from "./LineItemsTable";
 export * from "./Modal";
+export * from "./RecordForm";
+export * from "./RecordPicker";
 export * from "./SearchFilter";
 export * from "./Tabs";
 export * from "./Toast";
