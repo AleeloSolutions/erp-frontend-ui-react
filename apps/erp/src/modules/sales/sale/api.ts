@@ -1,10 +1,10 @@
 /**
- * Orders against `/api/v1/sales/orders/`.
+ * Sales against `/api/v1/sales/`.
  *
  * Totals are never sent: the backend computes them from the lines and
  * sends them back, so the form shows what will actually be charged.
  *
- * The `Customer` import is real coupling, not laziness — an order
+ * The `Customer` import is real coupling, not laziness — a sale
  * carries a trimmed copy of the customer it was issued to, the same way
  * an invoice does.
  */
@@ -15,11 +15,11 @@ import { query, type BranchRef, type ListParams } from "../shared/api";
 import type { Customer } from "../customers/api";
 import type { Invoice } from "../invoices/api";
 
-export type OrderStatus = "draft" | "sent" | "accepted" | "cancelled";
+export type SaleStatus = "draft" | "sent" | "accepted" | "cancelled";
 
 export type LineKind = "product" | "section" | "note";
 
-export interface OrderLine {
+export interface SaleLine {
   uuid: string;
   position: number;
   kind: LineKind;
@@ -35,15 +35,15 @@ export interface OrderLine {
   line_total: string;
 }
 
-export interface Order {
+export interface Sale {
   uuid: string;
-  /** Empty until the order is sent. */
+  /** Empty until the sale is sent. */
   number: string;
   customer: Pick<Customer, "uuid" | "name" | "email" | "phone" | "currency">;
   branch: BranchRef | null;
   issue_date: string;
   valid_until: string;
-  status: OrderStatus;
+  status: SaleStatus;
   currency: string;
   discount_type: "percentage" | "fixed";
   discount_value: string;
@@ -55,11 +55,11 @@ export interface Order {
   notes: string;
   terms: string;
   salesperson_name: string | null;
-  lines: OrderLine[];
+  lines: SaleLine[];
   sent_at: string | null;
   accepted_at: string | null;
   cancelled_at: string | null;
-  /** The invoice this order was converted to, if any. */
+  /** The invoice this sale was converted to, if any. */
   converted_invoice: string | null;
   is_archived: boolean;
   created_at: string;
@@ -67,7 +67,7 @@ export interface Order {
 }
 
 /** One row of the editor's grid. Amounts are absent: the API computes them. */
-export interface OrderLineInput {
+export interface SaleLineInput {
   kind: LineKind;
   description: string;
   quantity: string;
@@ -75,7 +75,7 @@ export interface OrderLineInput {
   tax: string | null;
 }
 
-export interface OrderInput {
+export interface SaleInput {
   customer: string;
   branch?: string;
   issue_date?: string;
@@ -85,49 +85,49 @@ export interface OrderInput {
   customer_reference?: string;
   notes?: string;
   terms?: string;
-  lines?: OrderLineInput[];
+  lines?: SaleLineInput[];
 }
 
-export function listOrders(params: ListParams = {}): Promise<Page<Order>> {
-  return apiGetPage<Order>(`/v1/sales/orders/?${query(params)}`);
+export function listSales(params: ListParams = {}): Promise<Page<Sale>> {
+  return apiGetPage<Sale>(`/v1/sales/?${query(params)}`);
 }
 
-export function getOrder(uuid: string) {
-  return apiGet<Order>(`/v1/sales/orders/${uuid}/`);
+export function getSale(uuid: string) {
+  return apiGet<Sale>(`/v1/sales/${uuid}/`);
 }
 
-export function createOrder(input: OrderInput) {
-  return apiPost<Order>("/v1/sales/orders/", input);
+export function createSale(input: SaleInput) {
+  return apiPost<Sale>("/v1/sales/", input);
 }
 
-export function updateOrder(uuid: string, input: Partial<OrderInput>) {
-  return apiPatch<Order>(`/v1/sales/orders/${uuid}/`, input);
+export function updateSale(uuid: string, input: Partial<SaleInput>) {
+  return apiPatch<Sale>(`/v1/sales/${uuid}/`, input);
 }
 
-export function deleteOrder(uuid: string) {
-  return apiDelete<void>(`/v1/sales/orders/${uuid}/`);
+export function deleteSale(uuid: string) {
+  return apiDelete<void>(`/v1/sales/${uuid}/`);
 }
 
-/** Issue the order: this is what allocates its number. */
-export function sendOrder(uuid: string) {
-  return apiPost<Order>(`/v1/sales/orders/${uuid}/send/`);
+/** Issue the sale: this is what allocates its number. */
+export function sendSale(uuid: string) {
+  return apiPost<Sale>(`/v1/sales/${uuid}/send/`);
 }
 
-/** The customer said yes. Only a sent order can be accepted. */
-export function acceptOrder(uuid: string) {
-  return apiPost<Order>(`/v1/sales/orders/${uuid}/accept/`);
+/** The customer said yes. Only a sent sale can be accepted. */
+export function acceptSale(uuid: string) {
+  return apiPost<Sale>(`/v1/sales/${uuid}/accept/`);
 }
 
-/** Void a sent or accepted order. The number stays. */
-export function cancelOrder(uuid: string) {
-  return apiPost<Order>(`/v1/sales/orders/${uuid}/cancel/`);
+/** Void a sent or accepted sale. The number stays. */
+export function cancelSale(uuid: string) {
+  return apiPost<Sale>(`/v1/sales/${uuid}/cancel/`);
 }
 
 /**
- * Convert an accepted order to a draft invoice, copying its lines.
- * Refused if the order is not accepted, has no product line, or has
- * already been converted (one conversion per order).
+ * Convert an accepted sale to a draft invoice, copying its lines.
+ * Refused if the sale is not accepted, has no product line, or has
+ * already been converted (one conversion per sale).
  */
-export function convertOrderToInvoice(uuid: string) {
-  return apiPost<Invoice>(`/v1/sales/orders/${uuid}/convert-to-invoice/`);
+export function convertSaleToInvoice(uuid: string) {
+  return apiPost<Invoice>(`/v1/sales/${uuid}/convert-to-invoice/`);
 }

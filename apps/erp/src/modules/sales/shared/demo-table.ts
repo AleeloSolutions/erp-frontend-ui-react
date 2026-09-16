@@ -28,14 +28,14 @@ export interface DemoInvoice {
   lines: InvoiceLine[];
 }
 
-export interface OrderLine {
+export interface DemoSaleLine {
   id: string;
   description: string;
   quantity: number;
   unitPrice: number;
 }
 
-export interface DemoOrder {
+export interface DemoSale {
   id: string;
   number: string;
   customer: string;
@@ -43,7 +43,7 @@ export interface DemoOrder {
   validUntil: string;
   status: "Draft" | "Pending" | "Approved";
   amount: string;
-  lines: OrderLine[];
+  lines: DemoSaleLine[];
 }
 
 export interface DemoContract {
@@ -497,7 +497,7 @@ export const mockInvoices: DemoInvoice[] = [
   },
 ];
 
-export const mockOrders: DemoOrder[] = [
+export const mockSales: DemoSale[] = [
   {
     id: "1",
     number: "QT-2026-0001",

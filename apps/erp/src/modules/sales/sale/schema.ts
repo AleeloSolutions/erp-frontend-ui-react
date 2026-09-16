@@ -1,13 +1,13 @@
 /**
- * The order editor's own shape, and the translation to and from the API.
+ * The sale editor's own shape, and the translation to and from the API.
  *
  * Quantities and prices stay strings the whole way — decimals on the backend.
  */
 
 import { z } from "zod";
-import type { LineKind, OrderLine, OrderLineInput, OrderStatus } from "./api";
+import type { LineKind, SaleLine, SaleLineInput, SaleStatus } from "./api";
 
-export const orderFormSchema = z.object({
+export const saleFormSchema = z.object({
   customer: z.string().min(1, "Customer is required"),
   issue_date: z.string().min(1, "Sale date is required"),
   valid_until: z.string().min(1, "Valid-until date is required"),
@@ -18,10 +18,10 @@ export const orderFormSchema = z.object({
   terms: z.string(),
 });
 
-export type OrderFormValues = z.infer<typeof orderFormSchema>;
+export type SaleFormValues = z.infer<typeof saleFormSchema>;
 
 /** UI labels: sent reads as Pending, accepted as Approved. */
-export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+export const SALE_STATUS_LABELS: Record<SaleStatus, string> = {
   draft: "Draft",
   sent: "Pending",
   accepted: "Approved",
@@ -41,7 +41,7 @@ export function validUntilFrom(issueDate: string, defaultValidDays: number): str
   return date.toISOString().slice(0, 10);
 }
 
-export function emptyOrderForm(): OrderFormValues {
+export function emptySaleForm(): SaleFormValues {
   return {
     customer: "",
     issue_date: todayIso(),
@@ -54,7 +54,7 @@ export function emptyOrderForm(): OrderFormValues {
   };
 }
 
-export interface OrderLineFormValue {
+export interface SaleLineFormValue {
   id: string;
   kind: LineKind;
   description: string;
@@ -65,7 +65,7 @@ export interface OrderLineFormValue {
 
 let nextLineId = 1;
 
-export function createEmptyOrderLine(tax: string | null = null): OrderLineFormValue {
+export function createEmptySaleLine(tax: string | null = null): SaleLineFormValue {
   return {
     id: `new-${nextLineId++}`,
     kind: "product",
@@ -76,15 +76,15 @@ export function createEmptyOrderLine(tax: string | null = null): OrderLineFormVa
   };
 }
 
-export function createOrderSectionLine(): OrderLineFormValue {
-  return { ...createEmptyOrderLine(), kind: "section" };
+export function createSaleSectionLine(): SaleLineFormValue {
+  return { ...createEmptySaleLine(), kind: "section" };
 }
 
-export function createOrderNoteLine(): OrderLineFormValue {
-  return { ...createEmptyOrderLine(), kind: "note" };
+export function createSaleNoteLine(): SaleLineFormValue {
+  return { ...createEmptySaleLine(), kind: "note" };
 }
 
-export function toFormLines(lines: OrderLine[]): OrderLineFormValue[] {
+export function toFormLines(lines: SaleLine[]): SaleLineFormValue[] {
   return lines.map((line) => ({
     id: line.uuid,
     kind: line.kind,
@@ -95,7 +95,7 @@ export function toFormLines(lines: OrderLine[]): OrderLineFormValue[] {
   }));
 }
 
-export function toLineInputs(lines: OrderLineFormValue[]): OrderLineInput[] {
+export function toLineInputs(lines: SaleLineFormValue[]): SaleLineInput[] {
   return lines
     .filter((line) => line.description.trim().length > 0)
     .map((line) =>
@@ -117,18 +117,18 @@ export function toLineInputs(lines: OrderLineFormValue[]): OrderLineInput[] {
     );
 }
 
-export function hasChargeableLine(lines: OrderLineFormValue[]): boolean {
+export function hasChargeableLine(lines: SaleLineFormValue[]): boolean {
   return lines.some(
     (line) => line.kind === "product" && line.description.trim().length > 0
   );
 }
 
-export function estimateLineAmount(line: OrderLineFormValue): number {
+export function estimateLineAmount(line: SaleLineFormValue): number {
   if (line.kind !== "product") return 0;
   return (Number(line.quantity) || 0) * (Number(line.unit_price) || 0);
 }
 
-export function estimateUntaxedTotal(lines: OrderLineFormValue[]): number {
+export function estimateUntaxedTotal(lines: SaleLineFormValue[]): number {
   return lines.reduce((sum, line) => sum + estimateLineAmount(line), 0);
 }
 

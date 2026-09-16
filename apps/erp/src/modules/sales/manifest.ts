@@ -24,7 +24,7 @@ export const salesManifest: ModuleManifest = {
   id: "sales",
   label: "Sales",
   version: "0.1.0",
-  description: "Customers, sales (orders), and products.",
+  description: "Customers, sales, and products.",
   icon: ShoppingCart,
   path: "/sales",
   nav: {

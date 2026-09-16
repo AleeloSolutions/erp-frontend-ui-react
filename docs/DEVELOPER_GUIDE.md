@@ -124,7 +124,7 @@ apps/erp/src/
         schema.ts
         components/     # entity-specific compositions ONLY
         pages/          # list.tsx · create.tsx · edit.tsx
-      invoices/ orders/ contracts/   # …same shape
+      invoices/ sale/ contracts/     # …same shape
 ```
 
 ---

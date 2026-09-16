@@ -4,7 +4,7 @@ import { moduleRegistry } from "@/modules";
 import type { ModuleManifest } from "@/modules/types";
 import { NAV_AREAS, buildNavigation } from "./navigation";
 
-const OWNER_CODES = ["sales.customer.view", "sales.order.view", "settings.role.edit"];
+const OWNER_CODES = ["sales.customer.view", "sales.sale.view", "settings.role.edit"];
 
 const POS: ModuleManifest = {
   key: "pos",
@@ -89,7 +89,7 @@ describe("buildNavigation", () => {
   it("hides Settings when no Settings tab would be usable", () => {
     expect(
       keys({
-        permissions: ["sales.customer.view", "sales.order.view"],
+        permissions: ["sales.customer.view", "sales.sale.view"],
         enabled_modules: ["sales"],
         user_type: "member",
       })
@@ -147,7 +147,7 @@ describe("buildNavigation", () => {
       {
         permissions: [
           "sales.customer.view",
-          "sales.order.view",
+          "sales.sale.view",
           "sales.product.view",
           "settings.client.edit",
         ],

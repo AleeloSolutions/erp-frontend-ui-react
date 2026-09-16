@@ -40,8 +40,8 @@ function withFilteredChildren(
   let href = item.href;
   if (hrefWasChild) {
     if (!hrefStillValid) href = children[0].href ?? item.href;
-  } else if (item.key === "sales" && !holdsAny(codes, childReqs.orders ?? [])) {
-    // Sales brand/home is the orders list — only keep `/sales` when permitted.
+  } else if (item.key === "sales" && !holdsAny(codes, childReqs.sales ?? [])) {
+    // Sales brand/home is the sales list — only keep `/sales` when permitted.
     href = children[0].href ?? item.href;
   }
 
