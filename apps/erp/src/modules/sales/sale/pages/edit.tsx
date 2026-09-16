@@ -9,6 +9,10 @@
  *
  * Every amount shown comes from the server. The line grid's own figures
  * are an estimate for the draft being typed, and are never sent back.
+ *
+ * The customer is chosen with `RecordPicker`, which searches the server:
+ * customer names are no longer unique, so typed text is never resolved to an
+ * existing record by matching it.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -22,7 +26,6 @@ import {
   ControlPanel,
   Dropdown,
   FormDatePicker,
-  FormDropdown,
   FormField,
   FormGrid,
   FormInput,
@@ -35,6 +38,9 @@ import {
   Input,
   LineItemsTable,
   PageActions,
+  RecordFormFields,
+  RecordFormModal,
+  RecordPicker,
   StatusBadge,
   Tabs,
   Textarea,
@@ -42,10 +48,19 @@ import {
   type DropdownItem,
   type FormStatusBarAction,
   type LineItemsColumn,
+  type PickerItem,
+  type RecordSearchColumn,
   type StatusStep,
 } from "@erp/ui";
 import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
-import { useCustomersQuery } from "@/modules/sales/customers";
+import { useCreateCustomerMutation } from "@/modules/sales/customers";
+import { listCustomers, type Customer } from "@/modules/sales/customers/api";
+import { customerFields } from "@/modules/sales/customers/fields";
+import {
+  EMPTY_CUSTOMER,
+  customerFormSchema,
+  type CustomerFormValues,
+} from "@/modules/sales/customers/schema";
 import {
   useAcceptSaleMutation,
   useCancelSaleMutation,
@@ -70,10 +85,52 @@ import {
   type SaleLineFormValue,
 } from "@/modules/sales/sale/schema";
 import { ApiError } from "@/lib/api-client";
+import { rhfAdapter } from "@/lib/form-adapter";
 
 const detailTabs = [
   { key: "lines", label: "Sale Lines" },
   { key: "other", label: "Other Info" },
+];
+
+/** Rows shown inline before "Search more…" — and so the page size we ask for. */
+const PICKER_LIMIT = 5;
+
+/** The record behind a picker row, put there when the row was mapped. */
+function metaOf<T>(item: PickerItem | null | undefined): T | undefined {
+  return item?.meta as T | undefined;
+}
+
+/**
+ * Two customers may legitimately share a name, so the row has to carry
+ * something that tells them apart — that is what `secondary` is for.
+ */
+function toCustomerItem(customer: Customer): PickerItem {
+  const secondary = [customer.email, customer.phone || customer.mobile]
+    .filter(Boolean)
+    .join(" · ");
+  return {
+    key: customer.uuid,
+    label: customer.name,
+    secondary: secondary || undefined,
+    meta: customer,
+  };
+}
+
+const customerSearchColumns: RecordSearchColumn<PickerItem>[] = [
+  { header: "Name", cell: (item) => item.label },
+  {
+    header: "Email",
+    cell: (item) => metaOf<Customer>(item)?.email || "—",
+    width: "220px",
+  },
+  {
+    header: "Phone",
+    cell: (item) => {
+      const customer = metaOf<Customer>(item);
+      return customer?.phone || customer?.mobile || "—";
+    },
+    width: "160px",
+  },
 ];
 
 /** A cancelled sale gets its own last step; a live one never shows it. */
@@ -108,28 +165,22 @@ export default function SaleEditPage() {
   const acceptMutation = useAcceptSaleMutation();
   const cancelMutation = useCancelSaleMutation();
 
-  const customersQuery = useCustomersQuery({
-    ordering: "name",
-    pageSize: 100,
-    filters: { is_archived: "false" },
-  });
+  const createCustomerMutation = useCreateCustomerMutation();
   const taxesQuery = useTaxesQuery();
 
   const [activeTab, setActiveTab] = useState("lines");
   const [lines, setLines] = useState<SaleLineFormValue[]>([]);
   const [linesError, setLinesError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<"send" | "accept" | "cancel" | null>(null);
+  // What the closed picker shows: the saved sale's own customer until
+  // another one is chosen, so the name is there without opening the menu.
+  const [customerLabel, setCustomerLabel] = useState<string | undefined>(undefined);
 
-  const customers = useMemo(() => customersQuery.data?.data ?? [], [customersQuery.data]);
   const taxes = useMemo(
     () => (taxesQuery.data?.data ?? []).filter((tax) => !tax.is_archived),
     [taxesQuery.data]
   );
 
-  const customerItems = useMemo<DropdownItem[]>(
-    () => customers.map((customer) => ({ key: customer.uuid, label: customer.name })),
-    [customers]
-  );
   const taxItems = useMemo<DropdownItem[]>(
     () => taxes.map((tax) => ({ key: tax.uuid, label: `${tax.name} (${tax.rate}%)` })),
     [taxes]
@@ -162,7 +213,55 @@ export default function SaleEditPage() {
       terms: sale.terms,
     });
     setLines(sale.lines.length > 0 ? toFormLines(sale.lines) : [createEmptySaleLine()]);
+    setCustomerLabel(sale.customer.name);
   }, [sale, reset]);
+
+  /* ---- Quick-create behind the picker's "Create and edit…" row ---- */
+
+  const [customerDraftOpen, setCustomerDraftOpen] = useState(false);
+  const [customerDraftError, setCustomerDraftError] = useState<string | null>(null);
+  const customerDraftForm = useForm<CustomerFormValues>({
+    resolver: zodResolver(customerFormSchema),
+    defaultValues: EMPTY_CUSTOMER,
+  });
+
+  function selectCustomer(customerUuid: string, name: string) {
+    setValue("customer", customerUuid, { shouldValidate: true, shouldDirty: true });
+    setCustomerLabel(name);
+  }
+
+  function openCustomerDraft(text: string) {
+    setCustomerDraftError(null);
+    customerDraftForm.reset({ ...EMPTY_CUSTOMER, name: text });
+    setCustomerDraftOpen(true);
+  }
+
+  async function saveCustomerDraft(values: CustomerFormValues) {
+    setCustomerDraftError(null);
+    try {
+      const created = await createCustomerMutation.mutateAsync({
+        ...values,
+        currency: values.currency.toUpperCase(),
+        country: values.country.toUpperCase(),
+      });
+      selectCustomer(created.uuid, created.name);
+      setCustomerDraftOpen(false);
+      toast({ title: "Customer created", variant: "success" });
+    } catch (error) {
+      if (error instanceof ApiError && error.fields) {
+        for (const [field, messages] of Object.entries(error.fields)) {
+          if (field in customerFormSchema.shape) {
+            customerDraftForm.setError(field as keyof CustomerFormValues, {
+              message: messages[0],
+            });
+          }
+        }
+      }
+      setCustomerDraftError(
+        error instanceof ApiError ? error.message : "Please try again."
+      );
+    }
+  }
 
   const currency = sale?.currency ?? "";
   const untaxedEstimate = estimateUntaxedTotal(lines);
@@ -442,20 +541,64 @@ export default function SaleEditPage() {
                 error={errors.customer?.message}
                 span={6}
               >
-                <FormDropdown
+                <RecordPicker
                   id="sale-customer"
-                  searchable
-                  placeholder="Search customer..."
+                  placeholder="Search a customer…"
+                  limit={PICKER_LIMIT}
                   error={Boolean(errors.customer)}
                   disabled={!editable}
                   value={watch("customer") || null}
-                  items={customerItems}
-                  onChange={(key) =>
-                    setValue("customer", key ?? "", {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    })
-                  }
+                  valueLabel={customerLabel}
+                  searchMoreColumns={customerSearchColumns}
+                  searchMoreTitle="Search: Customers"
+                  onSearch={async (query, options) => {
+                    const page = await listCustomers(
+                      {
+                        search: query,
+                        ordering: "name",
+                        page: options.page,
+                        pageSize: options.pageSize ?? PICKER_LIMIT,
+                        filters: { is_archived: "false" },
+                      },
+                      { signal: options.signal }
+                    );
+                    return {
+                      items: page.data.map(toCustomerItem),
+                      total: page.meta.total,
+                    };
+                  }}
+                  onCreate={async (text) => {
+                    try {
+                      const created = await createCustomerMutation.mutateAsync({
+                        name: text,
+                      });
+                      toast({ title: "Customer created", variant: "success" });
+                      return created.uuid;
+                    } catch (error) {
+                      toast({
+                        title: "Could not create the customer",
+                        description:
+                          error instanceof ApiError ? error.message : "Please try again.",
+                        variant: "error",
+                      });
+                      throw error;
+                    }
+                  }}
+                  onCreateAndEdit={openCustomerDraft}
+                  onChange={(key, item) => {
+                    if (!key) {
+                      setValue("customer", "", {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      });
+                      setCustomerLabel(undefined);
+                      return;
+                    }
+                    selectCustomer(
+                      key,
+                      metaOf<Customer>(item)?.name ?? item?.label ?? ""
+                    );
+                  }}
                 />
               </FormField>
               <FormField
@@ -667,6 +810,25 @@ export default function SaleEditPage() {
           </div>
         </FormShell>
       )}
+
+      {/* The same schema the customer pages render, so a customer added from
+          here cannot drift from one added from its own form. */}
+      <RecordFormModal
+        open={customerDraftOpen}
+        title="New customer"
+        saving={createCustomerMutation.isPending}
+        error={customerDraftError}
+        onClose={() => setCustomerDraftOpen(false)}
+        onSave={customerDraftForm.handleSubmit(saveCustomerDraft)}
+      >
+        <RecordFormFields
+          fields={customerFields}
+          adapter={rhfAdapter(
+            customerDraftForm.register,
+            customerDraftForm.formState.errors
+          )}
+        />
+      </RecordFormModal>
 
       <ConfirmDialog
         open={confirming === "send"}

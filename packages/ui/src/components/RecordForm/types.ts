@@ -26,6 +26,12 @@ export type FieldSpec =
       maxLength?: number;
       min?: number | string;
       max?: number | string;
+      /**
+       * Granularity for `kind: "number"`. Without it the browser assumes
+       * whole numbers and rejects a decimal on submit, so money wants
+       * `step="0.01"`.
+       */
+      step?: number | string;
       valueAsNumber?: boolean;
       /** Field border treatment, e.g. `chrome="tick"` on the identifying field. */
       chrome?: FieldChrome;

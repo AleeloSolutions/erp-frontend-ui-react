@@ -170,6 +170,7 @@ function SchemaField({
         maxLength={spec.maxLength}
         min={spec.min}
         max={spec.max}
+        step={spec.kind === "number" ? spec.step : undefined}
         {...fieldProps}
       />
     );

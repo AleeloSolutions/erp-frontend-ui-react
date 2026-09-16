@@ -17,18 +17,20 @@ import {
   FormShell,
   FormStickyHeader,
   PageActions,
+  RecordFormFields,
   useToast,
 } from "@erp/ui";
 import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { can } from "@/modules/sales/shared";
 import { useCreateCustomerMutation } from "../queries";
-import { CustomerForm } from "../components/CustomerForm";
+import { customerFields } from "../fields";
 import {
   EMPTY_CUSTOMER,
   customerFormSchema,
   type CustomerFormValues,
 } from "@/modules/sales/customers/schema";
 import { ApiError } from "@/lib/api-client";
+import { rhfAdapter } from "@/lib/form-adapter";
 
 export default function CustomerCreatePage() {
   const navigate = useNavigate();
@@ -47,8 +49,6 @@ export default function CustomerCreatePage() {
   const {
     register,
     handleSubmit,
-    watch,
-    setValue,
     setError,
     formState: { errors },
   } = useForm<CustomerFormValues>({
@@ -121,13 +121,9 @@ export default function CustomerCreatePage() {
       </FormStickyHeader>
 
       <FormShell onSubmit={handleSubmit(onSubmit)}>
-        <CustomerForm
-          register={register}
-          errors={errors}
-          customerType={watch("customer_type")}
-          onCustomerTypeChange={(value) =>
-            setValue("customer_type", value, { shouldDirty: true })
-          }
+        <RecordFormFields
+          fields={customerFields}
+          adapter={rhfAdapter(register, errors)}
         />
       </FormShell>
     </AppShell>
