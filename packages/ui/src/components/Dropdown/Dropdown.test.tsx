@@ -25,7 +25,7 @@ describe("Dropdown searchable", () => {
     expect(input.value).toBe("400000 Product Sales");
   });
 
-  it("with allowFreeText, commits typed text that doesn't match any item on dismiss", () => {
+  it("with allowFreeText, cancels typed text on click-away instead of committing it", () => {
     const onChange = vi.fn();
     render(
       <Dropdown
@@ -41,10 +41,88 @@ describe("Dropdown searchable", () => {
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: "Custom Account 12345" } });
     fireEvent.mouseDown(document.body);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(input.value).toBe("400000 Product Sales");
+  });
+
+  it("with allowFreeText, cancels typed text on Escape instead of committing it", () => {
+    const onChange = vi.fn();
+    render(
+      <Dropdown
+        trigger="field"
+        searchable
+        allowFreeText
+        value="400000 Product Sales"
+        items={items}
+        onChange={onChange}
+      />
+    );
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Custom Account 12345" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(input.value).toBe("400000 Product Sales");
+  });
+
+  it("with allowFreeText, commits typed text on Enter — an explicit act, unlike dismissal", () => {
+    const onChange = vi.fn();
+    render(
+      <Dropdown
+        trigger="field"
+        searchable
+        allowFreeText
+        value="400000 Product Sales"
+        items={items}
+        onChange={onChange}
+      />
+    );
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Custom Account 12345" } });
+    fireEvent.keyDown(input, { key: "Enter" });
     expect(onChange).toHaveBeenCalledWith("Custom Account 12345", {
       key: "Custom Account 12345",
       label: "Custom Account 12345",
     });
+  });
+
+  it("without allowFreeText, Enter on typed text commits nothing", () => {
+    const onChange = vi.fn();
+    render(
+      <Dropdown
+        trigger="field"
+        searchable
+        value={null}
+        items={items}
+        onChange={onChange}
+      />
+    );
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Brand new account" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("highlights rows with the arrow keys and picks the highlighted one on Enter", () => {
+    const onChange = vi.fn();
+    render(
+      <Dropdown
+        trigger="field"
+        searchable
+        value={null}
+        items={items}
+        onChange={onChange}
+      />
+    );
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onChange).toHaveBeenCalledWith("400010 Service Revenue", items[1]);
   });
 
   it("with allowFreeText, still commits the picked item (not the raw query) when a list item is clicked", () => {
@@ -107,6 +185,46 @@ describe("Dropdown searchable", () => {
     expect(
       screen.getByRole("option", { name: "400010 Service Revenue" })
     ).toBeInTheDocument();
+  });
+});
+
+describe("Dropdown server-driven list", () => {
+  it("reports the typed query and skips client-side filtering when asked", () => {
+    const onQueryChange = vi.fn();
+    render(
+      <Dropdown
+        trigger="field"
+        searchable
+        filterItems={false}
+        value={null}
+        items={items}
+        onQueryChange={onQueryChange}
+        onChange={() => {}}
+      />
+    );
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "zzz" } });
+    expect(onQueryChange).toHaveBeenCalledWith("zzz", { typed: true });
+    // Both rows survive: the server owns what the list contains.
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+  });
+
+  it("renders a status row instead of the built-in empty row", () => {
+    render(
+      <Dropdown
+        trigger="field"
+        searchable
+        filterItems={false}
+        value={null}
+        items={[]}
+        statusContent="Search failed"
+        onChange={() => {}}
+      />
+    );
+    fireEvent.focus(screen.getByRole("combobox"));
+    expect(screen.getByRole("status")).toHaveTextContent("Search failed");
+    expect(screen.queryByText("No results")).not.toBeInTheDocument();
   });
 });
 

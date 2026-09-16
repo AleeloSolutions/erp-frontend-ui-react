@@ -1,7 +1,7 @@
 /**
  * Edit a customer, against `/api/v1/sales/customers/<uuid>/`.
  *
- * Archiving lives here rather than on the list: a customer with invoices
+ * Archiving lives here rather than on the list: a customer with sales
  * can never be deleted, so archiving is the real end of their life and
  * belongs where the record is, not behind a row menu.
  */
@@ -18,6 +18,7 @@ import {
   FormStatusBar,
   FormStickyHeader,
   PageActions,
+  RecordFormFields,
   useToast,
   type FormStatusBarAction,
   type StatusStep,
@@ -25,13 +26,14 @@ import {
 import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { can } from "@/modules/sales/shared";
 import { useCustomerQuery, useUpdateCustomerMutation } from "../queries";
-import { CustomerForm } from "../components/CustomerForm";
+import { customerFields } from "../fields";
 import {
   EMPTY_CUSTOMER,
   customerFormSchema,
   type CustomerFormValues,
 } from "@/modules/sales/customers/schema";
 import { ApiError } from "@/lib/api-client";
+import { rhfAdapter } from "@/lib/form-adapter";
 
 const LIFECYCLE: StatusStep[] = [
   { key: "active", label: "Active" },
@@ -54,8 +56,6 @@ export default function CustomerEditPage() {
     register,
     handleSubmit,
     reset,
-    watch,
-    setValue,
     setError,
     formState: { errors },
   } = useForm<CustomerFormValues>({
@@ -178,13 +178,9 @@ export default function CustomerEditPage() {
             This customer could not be loaded.
           </p>
         ) : (
-          <CustomerForm
-            register={register}
-            errors={errors}
-            customerType={watch("customer_type")}
-            onCustomerTypeChange={(value) =>
-              setValue("customer_type", value, { shouldDirty: true })
-            }
+          <RecordFormFields
+            fields={customerFields}
+            adapter={rhfAdapter(register, errors)}
             readOnly={!canEdit}
           />
         )}

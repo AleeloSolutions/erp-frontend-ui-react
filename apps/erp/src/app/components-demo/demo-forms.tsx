@@ -61,10 +61,10 @@ const customerSchema = z.object({
 
 type CustomerFormValues = z.infer<typeof customerSchema>;
 
-const invoiceSchema = z.object({
+const saleSchema = z.object({
   customer: z.string().min(1, "Customer is required"),
-  invoiceNumber: z.string().min(1, "Invoice number is required"),
-  invoiceDate: z.string().min(1, "Invoice date is required"),
+  saleNumber: z.string().min(1, "Sale number is required"),
+  saleDate: z.string().min(1, "Sale date is required"),
   dueDate: z.string().min(1, "Due date is required"),
   currency: z.string().min(1, "Currency is required"),
   status: z.string().min(1, "Status is required"),
@@ -78,7 +78,7 @@ const invoiceSchema = z.object({
   attachmentName: z.string().optional(),
 });
 
-type InvoiceFormValues = z.infer<typeof invoiceSchema>;
+type SaleFormValues = z.infer<typeof saleSchema>;
 
 function CustomerFormDemo() {
   const [submitting, setSubmitting] = useState(false);
@@ -337,7 +337,7 @@ function CustomerFormDemo() {
   );
 }
 
-function InvoiceFormDemo() {
+function SaleFormDemo() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -348,12 +348,12 @@ function InvoiceFormDemo() {
     setValue,
     reset,
     formState: { errors },
-  } = useForm<InvoiceFormValues>({
-    resolver: zodResolver(invoiceSchema),
+  } = useForm<SaleFormValues>({
+    resolver: zodResolver(saleSchema),
     defaultValues: {
       customer: "",
-      invoiceNumber: "INV-2026-0015",
-      invoiceDate: "2026-08-08",
+      saleNumber: "SL-2026-0015",
+      saleDate: "2026-08-08",
       dueDate: "2026-08-23",
       currency: "USD",
       status: "Draft",
@@ -369,8 +369,8 @@ function InvoiceFormDemo() {
 
   const summaryItems = useMemo(
     () => [
-      { key: "type", label: "Record type", value: "Invoice" },
-      { key: "module", label: "Module", value: "Finance" },
+      { key: "type", label: "Record type", value: "Sale" },
+      { key: "module", label: "Module", value: "Sales" },
       { key: "status", label: "Status", value: values.status || "Draft" },
       {
         key: "total",
@@ -385,7 +385,7 @@ function InvoiceFormDemo() {
     [estimatedTotal, values.status]
   );
 
-  async function onSubmit(_data: InvoiceFormValues) {
+  async function onSubmit(_data: SaleFormValues) {
     setSubmitting(true);
     await new Promise((resolve) => window.setTimeout(resolve, 1000));
     setSubmitting(false);
@@ -394,13 +394,13 @@ function InvoiceFormDemo() {
 
   return (
     <DemoSection
-      title="Form — Create Invoice"
+      title="Form — Create Sale"
       description="Date fields, currency, amount validation, file upload, and summary panel."
     >
       <div className="p-3 pt-0">
         {submitted ? (
           <p className="mb-2 rounded-md border border-erp-success/20 bg-erp-success-bg px-2.5 py-2 text-[11px] text-erp-success">
-            Invoice submitted successfully (mock).
+            Sale submitted successfully (mock).
           </p>
         ) : null}
         <FormStepper
@@ -433,12 +433,12 @@ function InvoiceFormDemo() {
               <FormField
                 label="Customer"
                 required
-                htmlFor="invoice-customer"
+                htmlFor="sale-customer"
                 error={errors.customer?.message}
                 span={6}
               >
                 <FormSelect
-                  id="invoice-customer"
+                  id="sale-customer"
                   placeholder="Select customer"
                   error={Boolean(errors.customer)}
                   options={[
@@ -456,40 +456,40 @@ function InvoiceFormDemo() {
                 />
               </FormField>
               <FormField
-                label="Invoice number"
+                label="Sale number"
                 required
-                htmlFor="invoice-number"
-                error={errors.invoiceNumber?.message}
+                htmlFor="sale-number"
+                error={errors.saleNumber?.message}
                 span={6}
               >
                 <FormInput
-                  id="invoice-number"
-                  error={Boolean(errors.invoiceNumber)}
-                  {...register("invoiceNumber")}
+                  id="sale-number"
+                  error={Boolean(errors.saleNumber)}
+                  {...register("saleNumber")}
                 />
               </FormField>
               <FormField
-                label="Invoice date"
+                label="Sale date"
                 required
-                htmlFor="invoice-date"
-                error={errors.invoiceDate?.message}
+                htmlFor="sale-date"
+                error={errors.saleDate?.message}
                 span={4}
               >
                 <FormDatePicker
-                  id="invoice-date"
-                  error={Boolean(errors.invoiceDate)}
-                  {...register("invoiceDate")}
+                  id="sale-date"
+                  error={Boolean(errors.saleDate)}
+                  {...register("saleDate")}
                 />
               </FormField>
               <FormField
                 label="Due date"
                 required
-                htmlFor="invoice-due"
+                htmlFor="sale-due"
                 error={errors.dueDate?.message}
                 span={4}
               >
                 <FormDatePicker
-                  id="invoice-due"
+                  id="sale-due"
                   error={Boolean(errors.dueDate)}
                   {...register("dueDate")}
                 />
@@ -497,12 +497,12 @@ function InvoiceFormDemo() {
               <FormField
                 label="Currency"
                 required
-                htmlFor="invoice-currency"
+                htmlFor="sale-currency"
                 error={errors.currency?.message}
                 span={4}
               >
                 <FormSelect
-                  id="invoice-currency"
+                  id="sale-currency"
                   error={Boolean(errors.currency)}
                   options={[
                     { label: "USD", value: "USD" },
@@ -515,12 +515,12 @@ function InvoiceFormDemo() {
               <FormField
                 label="Status"
                 required
-                htmlFor="invoice-status"
+                htmlFor="sale-status"
                 error={errors.status?.message}
                 span={4}
               >
                 <FormSelect
-                  id="invoice-status"
+                  id="sale-status"
                   error={Boolean(errors.status)}
                   options={[
                     { label: "Draft", value: "Draft" },
@@ -533,12 +533,12 @@ function InvoiceFormDemo() {
               <FormField
                 label="Amount"
                 required
-                htmlFor="invoice-amount"
+                htmlFor="sale-amount"
                 error={errors.amount?.message}
                 span={4}
               >
                 <FormInput
-                  id="invoice-amount"
+                  id="sale-amount"
                   inputMode="decimal"
                   placeholder="0.00"
                   error={Boolean(errors.amount)}
@@ -552,20 +552,20 @@ function InvoiceFormDemo() {
             <FormGrid>
               <FormField
                 label="Notes"
-                htmlFor="invoice-notes"
+                htmlFor="sale-notes"
                 error={errors.notes?.message}
                 span={12}
               >
                 <FormTextarea
-                  id="invoice-notes"
+                  id="sale-notes"
                   placeholder="Internal notes"
                   error={Boolean(errors.notes)}
                   {...register("notes")}
                 />
               </FormField>
-              <FormField label="Attachment" htmlFor="invoice-file" span={12}>
+              <FormField label="Attachment" htmlFor="sale-file" span={12}>
                 <FormFileUpload
-                  id="invoice-file"
+                  id="sale-file"
                   accept=".pdf,.png,.jpg"
                   onFilesChange={(files) => {
                     setValue("attachmentName", files?.[0]?.name ?? "");
@@ -593,7 +593,7 @@ export function FormDemos() {
   return (
     <>
       <CustomerFormDemo />
-      <InvoiceFormDemo />
+      <SaleFormDemo />
     </>
   );
 }

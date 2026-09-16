@@ -3,8 +3,8 @@ import { ShoppingCart } from "lucide-react";
 import type { ModuleManifest } from "../types";
 
 /**
- * Visible Sales tabs. Invoices and contracts stay in the codebase/API but
- * are hidden from the product UI until we turn them back on.
+ * Visible Sales tabs. Contracts stay in the codebase/API but are hidden
+ * from the product UI until we turn them back on.
  */
 export const salesSubmenu = [
   { key: "customers", label: "Customers", href: "/sales/customers" },

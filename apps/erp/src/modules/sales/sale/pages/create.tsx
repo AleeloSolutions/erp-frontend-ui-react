@@ -6,6 +6,11 @@
  * the amounts beside the lines are the editor's own estimate, shown so the
  * page is not blank while the draft is typed, and they are replaced by the
  * server's figures the moment it is saved.
+ *
+ * Customers and products are chosen with `RecordPicker`, which searches the
+ * server on every keystroke. Neither name is unique any more, so typed text
+ * is never resolved to an existing record by matching it: the only ways to
+ * get a record are picking a row or explicitly creating one.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -15,11 +20,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AppShell } from "@/app";
 import { useSession } from "@/app/session";
 import {
-  Button,
   ControlPanel,
   Dropdown,
   FormDatePicker,
-  FormDropdown,
   FormField,
   FormGrid,
   FormInput,
@@ -31,20 +34,40 @@ import {
   FormTextarea,
   Input,
   LineItemsTable,
-  Modal,
   PageActions,
+  RecordFormFields,
+  RecordFormModal,
+  RecordPicker,
   Tabs,
   Textarea,
   useToast,
   type DropdownItem,
+  type FieldOption,
   type LineItemsColumn,
   type LineItemsRowHelpers,
   type LineItemsSpecialRow,
+  type PickerItem,
+  type RecordSearchColumn,
   type StatusStep,
 } from "@erp/ui";
 import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
-import { useCreateCustomerMutation, useCustomersQuery } from "@/modules/sales/customers";
-import { useCreateProductMutation, useProductsQuery } from "@/modules/sales/products";
+import { useCreateCustomerMutation } from "@/modules/sales/customers";
+import { listCustomers, type Customer } from "@/modules/sales/customers/api";
+import { customerFields } from "@/modules/sales/customers/fields";
+import {
+  EMPTY_CUSTOMER,
+  customerFormSchema,
+  type CustomerFormValues,
+} from "@/modules/sales/customers/schema";
+import { useCreateProductMutation } from "@/modules/sales/products";
+import { listProducts, type Product } from "@/modules/sales/products/api";
+import { productFields } from "@/modules/sales/products/fields";
+import {
+  EMPTY_PRODUCT,
+  productFormSchema,
+  toProductInput,
+  type ProductFormValues,
+} from "@/modules/sales/products/schema";
 import { useCreateSaleMutation } from "../queries";
 import { can, useSalesSettingsQuery, useTaxesQuery } from "@/modules/sales/shared";
 import {
@@ -63,6 +86,7 @@ import {
   type SaleLineFormValue,
 } from "@/modules/sales/sale/schema";
 import { ApiError } from "@/lib/api-client";
+import { rhfAdapter } from "@/lib/form-adapter";
 
 /** Read-only until it is saved and sent — sending is its own action. */
 const statusSteps: StatusStep[] = [
@@ -73,6 +97,72 @@ const statusSteps: StatusStep[] = [
 const detailTabs = [
   { key: "lines", label: "Sale Lines" },
   { key: "other", label: "Other Info" },
+];
+
+/** Rows shown inline before "Search more…" — and so the page size we ask for. */
+const PICKER_LIMIT = 5;
+
+/** The record behind a picker row, put there when the row was mapped. */
+function metaOf<T>(item: PickerItem | null | undefined): T | undefined {
+  return item?.meta as T | undefined;
+}
+
+/**
+ * Two customers may legitimately share a name, so the row has to carry
+ * something that tells them apart — that is what `secondary` is for.
+ */
+function toCustomerItem(customer: Customer): PickerItem {
+  const secondary = [customer.email, customer.phone || customer.mobile]
+    .filter(Boolean)
+    .join(" · ");
+  return {
+    key: customer.uuid,
+    label: customer.name,
+    secondary: secondary || undefined,
+    meta: customer,
+  };
+}
+
+/** Same problem, same answer: the code and the price identify the product. */
+function toProductItem(product: Product): PickerItem {
+  const secondary = [product.code, product.unit_price].filter(Boolean).join(" · ");
+  return {
+    key: product.uuid,
+    label: product.name,
+    secondary: secondary || undefined,
+    meta: product,
+  };
+}
+
+const customerSearchColumns: RecordSearchColumn<PickerItem>[] = [
+  { header: "Name", cell: (item) => item.label },
+  {
+    header: "Email",
+    cell: (item) => metaOf<Customer>(item)?.email || "—",
+    width: "220px",
+  },
+  {
+    header: "Phone",
+    cell: (item) => {
+      const customer = metaOf<Customer>(item);
+      return customer?.phone || customer?.mobile || "—";
+    },
+    width: "160px",
+  },
+];
+
+const productSearchColumns: RecordSearchColumn<PickerItem>[] = [
+  { header: "Name", cell: (item) => item.label },
+  {
+    header: "Code",
+    cell: (item) => metaOf<Product>(item)?.code || "—",
+    width: "160px",
+  },
+  {
+    header: "Unit price",
+    cell: (item) => metaOf<Product>(item)?.unit_price ?? "—",
+    width: "120px",
+  },
 ];
 
 /** Odoo behaviour: a section subtotals every product row below it, down to the next section. */
@@ -105,31 +195,12 @@ export default function SaleCreatePage() {
   const [lines, setLines] = useState<SaleLineFormValue[]>([createEmptySaleLine()]);
   const [linesError, setLinesError] = useState<string | null>(null);
 
-  // One page of customers feeds the picker; the Dropdown filters what it
-  // was given, so a tenant past this many needs a server-backed search.
-  const customersQuery = useCustomersQuery({
-    ordering: "name",
-    pageSize: 100,
-    filters: { is_archived: "false" },
-  });
   const createCustomerMutation = useCreateCustomerMutation();
-  const productsQuery = useProductsQuery({
-    ordering: "name",
-    pageSize: 100,
-    filters: { is_archived: "false" },
-  });
   const createProductMutation = useCreateProductMutation();
-  const [customerModalOpen, setCustomerModalOpen] = useState(false);
-  const [customerModalName, setCustomerModalName] = useState("");
-  const [productModalOpen, setProductModalOpen] = useState(false);
-  const [productModalName, setProductModalName] = useState("");
-  const productLineTarget = useRef<string | null>(null);
   const taxesQuery = useTaxesQuery();
   const settingsQuery = useSalesSettingsQuery();
   const settings = settingsQuery.data;
 
-  const customers = useMemo(() => customersQuery.data?.data ?? [], [customersQuery.data]);
-  const products = useMemo(() => productsQuery.data?.data ?? [], [productsQuery.data]);
   const taxes = useMemo(
     () => (taxesQuery.data?.data ?? []).filter((tax) => !tax.is_archived),
     [taxesQuery.data]
@@ -137,73 +208,19 @@ export default function SaleCreatePage() {
   const defaultTax = taxes.find((tax) => tax.is_default) ?? null;
   const defaultValidDays = settings?.default_sale_valid_days ?? 30;
 
-  const customerItems = useMemo<DropdownItem[]>(
-    () => customers.map((customer) => ({ key: customer.uuid, label: customer.name })),
-    [customers]
-  );
-  const productItems = useMemo<DropdownItem[]>(
-    () => products.map((product) => ({ key: product.name, label: product.name })),
-    [products]
-  );
   const taxItems = useMemo<DropdownItem[]>(
     () => taxes.map((tax) => ({ key: tax.uuid, label: `${tax.name} (${tax.rate}%)` })),
     [taxes]
   );
-
-  async function ensureCustomer(nameOrUuid: string): Promise<string | null> {
-    const trimmed = nameOrUuid.trim();
-    if (!trimmed) return null;
-    const existing = customers.find(
-      (customer) =>
-        customer.uuid === trimmed || customer.name.toLowerCase() === trimmed.toLowerCase()
-    );
-    if (existing) return existing.uuid;
-    try {
-      const created = await createCustomerMutation.mutateAsync({ name: trimmed });
-      toast({ title: "Customer created", variant: "success" });
-      await customersQuery.refetch();
-      return created.uuid;
-    } catch (err) {
-      toast({
-        title: "Could not create the customer",
-        description: err instanceof ApiError ? err.message : "Please try again.",
-        variant: "error",
-      });
-      return null;
-    }
-  }
-
-  async function applyProductToLine(
-    _lineId: string,
-    nameOrUuid: string,
-    onChange: (patch: Partial<SaleLineFormValue>) => void
-  ) {
-    const trimmed = nameOrUuid.trim();
-    if (!trimmed) return;
-    let product = products.find(
-      (row) => row.uuid === trimmed || row.name.toLowerCase() === trimmed.toLowerCase()
-    );
-    if (!product) {
-      try {
-        product = await createProductMutation.mutateAsync({ name: trimmed });
-        toast({ title: "Product created", variant: "success" });
-        await productsQuery.refetch();
-      } catch (err) {
-        toast({
-          title: "Could not create the product",
-          description: err instanceof ApiError ? err.message : "Please try again.",
-          variant: "error",
-        });
-        onChange({ description: trimmed });
-        return;
-      }
-    }
-    onChange({
-      description: product.name,
-      unit_price: product.unit_price || "0.00",
-      tax: product.default_tax ?? defaultTax?.uuid ?? null,
-    });
-  }
+  // `productFields` reads its `default_tax` choices through `optionsKey: "taxes"`.
+  // The empty option leads because a `<select>` has no null.
+  const taxOptions = useMemo<FieldOption[]>(
+    () => [
+      { value: "", label: "No tax" },
+      ...taxes.map((tax) => ({ value: tax.uuid, label: `${tax.name} (${tax.rate}%)` })),
+    ],
+    [taxes]
+  );
 
   const {
     register,
@@ -217,9 +234,68 @@ export default function SaleCreatePage() {
     defaultValues: emptySaleForm(),
   });
 
+  // The form stores the customer's uuid; the picker also needs a label to
+  // show, and the header needs the currency, so both are kept beside it.
+  const [customerLabel, setCustomerLabel] = useState<string | undefined>(undefined);
+  const [currency, setCurrency] = useState("");
+  // `createCustomer` answers with the whole record but the picker hands back
+  // only a key, so the rest waits here for the `onChange` that follows.
+  const justCreatedCustomer = useRef<Customer | null>(null);
+
   const customerUuid = watch("customer");
-  const selectedCustomer = customers.find((customer) => customer.uuid === customerUuid);
-  const currency = selectedCustomer?.currency ?? "";
+
+  function selectCustomer(uuid: string, name: string, customerCurrency: string) {
+    setValue("customer", uuid, { shouldValidate: true, shouldDirty: true });
+    setCustomerLabel(name);
+    setCurrency(customerCurrency);
+    setValue("valid_until", validUntilFrom(watch("issue_date"), defaultValidDays), {
+      shouldDirty: true,
+    });
+  }
+
+  function clearCustomer() {
+    setValue("customer", "", { shouldValidate: true, shouldDirty: true });
+    setCustomerLabel(undefined);
+    setCurrency("");
+  }
+
+  // Which product each line points at. The line itself only stores the
+  // description the API stores, and names are no longer unique, so the uuid
+  // the picker selected is remembered here, keyed by the row's id.
+  const [lineProducts, setLineProducts] = useState<Record<string, string>>({});
+
+  function selectLineProduct(lineId: string, product: Product) {
+    setLineProducts((previous) => ({ ...previous, [lineId]: product.uuid }));
+    setLines((previous) =>
+      previous.map((line) =>
+        line.id === lineId
+          ? {
+              ...line,
+              description: product.name,
+              unit_price: product.unit_price || "0.00",
+              tax: product.default_tax ?? defaultTax?.uuid ?? null,
+            }
+          : line
+      )
+    );
+  }
+
+  /** The row is gone; drop what was remembered about it. */
+  function forgetLineProduct(lineId: string) {
+    setLineProducts((previous) => {
+      if (!(lineId in previous)) return previous;
+      const next = { ...previous };
+      delete next[lineId];
+      return next;
+    });
+  }
+
+  function clearLineProduct(lineId: string) {
+    forgetLineProduct(lineId);
+    setLines((previous) =>
+      previous.map((line) => (line.id === lineId ? { ...line, description: "" } : line))
+    );
+  }
 
   // Tenant defaults arrive after the first render; seed valid-until and terms
   // into the untouched form rather than making them a manual step.
@@ -231,8 +307,8 @@ export default function SaleCreatePage() {
       "valid_until",
       validUntilFrom(watch("issue_date"), settings.default_sale_valid_days ?? 30)
     );
-    if (settings.invoice_terms) {
-      setValue("terms", settings.invoice_terms);
+    if (settings.sale_terms) {
+      setValue("terms", settings.sale_terms);
     }
   }, [settings, setValue, watch]);
 
@@ -249,6 +325,92 @@ export default function SaleCreatePage() {
     );
   }, [defaultTax]);
 
+  /* ---- Quick-create forms behind the pickers' "Create and edit…" rows ---- */
+
+  const [customerDraftOpen, setCustomerDraftOpen] = useState(false);
+  const [customerDraftError, setCustomerDraftError] = useState<string | null>(null);
+  const customerDraftForm = useForm<CustomerFormValues>({
+    resolver: zodResolver(customerFormSchema),
+    defaultValues: EMPTY_CUSTOMER,
+  });
+
+  /** `lineId` is the row the new product lands on, or null for catalogue-only. */
+  const [productDraft, setProductDraft] = useState<{ lineId: string | null } | null>(
+    null
+  );
+  const [productDraftError, setProductDraftError] = useState<string | null>(null);
+  const productDraftForm = useForm<ProductFormValues>({
+    resolver: zodResolver(productFormSchema),
+    defaultValues: EMPTY_PRODUCT,
+  });
+
+  function openCustomerDraft(text: string) {
+    setCustomerDraftError(null);
+    customerDraftForm.reset({ ...EMPTY_CUSTOMER, name: text });
+    setCustomerDraftOpen(true);
+  }
+
+  function openProductDraft(lineId: string | null, text: string) {
+    setProductDraftError(null);
+    productDraftForm.reset({
+      ...EMPTY_PRODUCT,
+      name: text,
+      default_tax: defaultTax?.uuid ?? "",
+    });
+    setProductDraft({ lineId });
+  }
+
+  async function saveCustomerDraft(values: CustomerFormValues) {
+    setCustomerDraftError(null);
+    try {
+      const created = await createCustomerMutation.mutateAsync({
+        ...values,
+        currency: values.currency.toUpperCase(),
+        country: values.country.toUpperCase(),
+      });
+      selectCustomer(created.uuid, created.name, created.currency);
+      setCustomerDraftOpen(false);
+      toast({ title: "Customer created", variant: "success" });
+    } catch (error) {
+      if (error instanceof ApiError && error.fields) {
+        for (const [field, messages] of Object.entries(error.fields)) {
+          if (field in customerFormSchema.shape) {
+            customerDraftForm.setError(field as keyof CustomerFormValues, {
+              message: messages[0],
+            });
+          }
+        }
+      }
+      setCustomerDraftError(
+        error instanceof ApiError ? error.message : "Please try again."
+      );
+    }
+  }
+
+  async function saveProductDraft(values: ProductFormValues) {
+    setProductDraftError(null);
+    const lineId = productDraft?.lineId ?? null;
+    try {
+      const created = await createProductMutation.mutateAsync(toProductInput(values));
+      if (lineId) selectLineProduct(lineId, created);
+      setProductDraft(null);
+      toast({ title: "Product created", variant: "success" });
+    } catch (error) {
+      if (error instanceof ApiError && error.fields) {
+        for (const [field, messages] of Object.entries(error.fields)) {
+          if (field in productFormSchema.shape) {
+            productDraftForm.setError(field as keyof ProductFormValues, {
+              message: messages[0],
+            });
+          }
+        }
+      }
+      setProductDraftError(
+        error instanceof ApiError ? error.message : "Please try again."
+      );
+    }
+  }
+
   const untaxedEstimate = estimateUntaxedTotal(lines);
 
   const lineColumns: LineItemsColumn<SaleLineFormValue>[] = [
@@ -260,21 +422,55 @@ export default function SaleCreatePage() {
       maxSize: 560,
       renderCell: (row, { onChange, onCommit }) =>
         row.kind === "product" ? (
-          <FormDropdown
+          <RecordPicker
             id={`line-product-${row.id}`}
-            searchable
-            allowFreeText
-            chrome="cell"
-            placeholder="Search or type a product…"
-            value={row.description || null}
-            items={productItems}
-            onChange={(key) => {
-              if (!key) {
-                onChange({ description: "" });
-                onCommit();
+            placeholder="Search a product…"
+            limit={PICKER_LIMIT}
+            value={lineProducts[row.id] ?? null}
+            valueLabel={row.description || undefined}
+            searchMoreColumns={productSearchColumns}
+            searchMoreTitle="Search: Products"
+            onSearch={async (query, options) => {
+              const page = await listProducts(
+                {
+                  search: query,
+                  ordering: "name",
+                  page: options.page,
+                  pageSize: options.pageSize ?? PICKER_LIMIT,
+                  filters: { is_archived: "false" },
+                },
+                { signal: options.signal }
+              );
+              return { items: page.data.map(toProductItem), total: page.meta.total };
+            }}
+            onCreate={async (text) => {
+              try {
+                const created = await createProductMutation.mutateAsync({ name: text });
+                // The picker only hands a key back to `onChange`, so the row is
+                // filled in here, where the whole record is still in hand.
+                selectLineProduct(row.id, created);
+                toast({ title: "Product created", variant: "success" });
+                return created.uuid;
+              } catch (error) {
+                toast({
+                  title: "Could not create the product",
+                  description:
+                    error instanceof ApiError ? error.message : "Please try again.",
+                  variant: "error",
+                });
+                throw error;
+              }
+            }}
+            onCreateAndEdit={(text) => openProductDraft(row.id, text)}
+            onChange={(_key, item) => {
+              const product = metaOf<Product>(item);
+              if (product) {
+                selectLineProduct(row.id, product);
                 return;
               }
-              void applyProductToLine(row.id, key, onChange).then(onCommit);
+              // No record on the row means the clear button, or the quick
+              // create that already wrote this line when it resolved.
+              if (!item) clearLineProduct(row.id);
             }}
           />
         ) : (
@@ -486,55 +682,72 @@ export default function SaleCreatePage() {
 
         <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
           <div>
-            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2">
+            <div className="grid grid-cols-[auto_1fr] items-center gap-x-2">
               <label className="text-base font-[500]" htmlFor="sale-customer">
                 Customer<span className="text-erp-error"> *</span>
               </label>
               <div className="max-w-sm">
-                <FormDropdown
+                <RecordPicker
                   id="sale-customer"
-                  searchable
-                  allowFreeText
-                  placeholder="Search or type a customer…"
+                  placeholder="Search a customer…"
+                  limit={PICKER_LIMIT}
                   error={Boolean(errors.customer)}
-                  disabled={customersQuery.isLoading || createCustomerMutation.isPending}
                   value={customerUuid || null}
-                  items={customerItems}
-                  onChange={(key) => {
-                    void (async () => {
-                      if (!key) {
-                        setValue("customer", "", {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        });
-                        return;
-                      }
-                      const uuid = await ensureCustomer(key);
-                      if (!uuid) return;
-                      setValue("customer", uuid, {
-                        shouldValidate: true,
-                        shouldDirty: true,
+                  valueLabel={customerLabel}
+                  searchMoreColumns={customerSearchColumns}
+                  searchMoreTitle="Search: Customers"
+                  onSearch={async (query, options) => {
+                    const page = await listCustomers(
+                      {
+                        search: query,
+                        ordering: "name",
+                        page: options.page,
+                        pageSize: options.pageSize ?? PICKER_LIMIT,
+                        filters: { is_archived: "false" },
+                      },
+                      { signal: options.signal }
+                    );
+                    return {
+                      items: page.data.map(toCustomerItem),
+                      total: page.meta.total,
+                    };
+                  }}
+                  onCreate={async (text) => {
+                    try {
+                      const created = await createCustomerMutation.mutateAsync({
+                        name: text,
                       });
-                      setValue(
-                        "valid_until",
-                        validUntilFrom(watch("issue_date"), defaultValidDays),
-                        { shouldDirty: true }
-                      );
-                    })();
+                      justCreatedCustomer.current = created;
+                      toast({ title: "Customer created", variant: "success" });
+                      return created.uuid;
+                    } catch (error) {
+                      toast({
+                        title: "Could not create the customer",
+                        description:
+                          error instanceof ApiError ? error.message : "Please try again.",
+                        variant: "error",
+                      });
+                      throw error;
+                    }
+                  }}
+                  onCreateAndEdit={openCustomerDraft}
+                  onChange={(key, item) => {
+                    if (!key) {
+                      clearCustomer();
+                      return;
+                    }
+                    const created = justCreatedCustomer.current;
+                    const customer =
+                      metaOf<Customer>(item) ??
+                      (created?.uuid === key ? created : undefined);
+                    selectCustomer(
+                      key,
+                      customer?.name ?? item?.label ?? "",
+                      customer?.currency ?? ""
+                    );
                   }}
                 />
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setCustomerModalName("");
-                  setCustomerModalOpen(true);
-                }}
-              >
-                New
-              </Button>
             </div>
             {errors.customer ? (
               <p className="m-0 mt-1 text-[10px] text-erp-error">
@@ -577,6 +790,7 @@ export default function SaleCreatePage() {
               columns={lineColumns}
               rows={lines}
               onRowsChange={setLines}
+              onRemoveRow={forgetLineProduct}
               createEmptyRow={() => createEmptySaleLine(defaultTax?.uuid ?? null)}
               getSpecialRow={getSaleSpecialRow}
               secondaryFooterActions={[
@@ -597,9 +811,7 @@ export default function SaleCreatePage() {
                     const target =
                       lines.find((line) => line.kind === "product" && !line.description)
                         ?.id ?? null;
-                    productLineTarget.current = target;
-                    setProductModalName("");
-                    setProductModalOpen(true);
+                    openProductDraft(target, "");
                   },
                 },
               ]}
@@ -671,130 +883,42 @@ export default function SaleCreatePage() {
         )}
       </FormShell>
 
-      <Modal
-        open={customerModalOpen}
+      {/* The same schema the customer pages render, so a customer added from
+          here cannot drift from one added from its own form. */}
+      <RecordFormModal
+        open={customerDraftOpen}
         title="New customer"
-        onClose={() => setCustomerModalOpen(false)}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => setCustomerModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              loading={createCustomerMutation.isPending}
-              onClick={() => {
-                void (async () => {
-                  const uuid = await ensureCustomer(customerModalName);
-                  if (!uuid) return;
-                  setValue("customer", uuid, { shouldValidate: true, shouldDirty: true });
-                  setCustomerModalOpen(false);
-                  setCustomerModalName("");
-                })();
-              }}
-            >
-              Create
-            </Button>
-          </div>
-        }
+        saving={createCustomerMutation.isPending}
+        error={customerDraftError}
+        onClose={() => setCustomerDraftOpen(false)}
+        onSave={customerDraftForm.handleSubmit(saveCustomerDraft)}
       >
-        <p className="m-0 mb-3 text-[12px] text-erp-muted">
-          Name only — other fields stay empty.
-        </p>
-        <FormField label="Name" htmlFor="sale-customer-quick" required>
-          <FormInput
-            id="sale-customer-quick"
-            chrome="underline"
-            value={customerModalName}
-            autoFocus
-            onChange={(event) => setCustomerModalName(event.target.value)}
-          />
-        </FormField>
-      </Modal>
+        <RecordFormFields
+          fields={customerFields}
+          adapter={rhfAdapter(
+            customerDraftForm.register,
+            customerDraftForm.formState.errors
+          )}
+        />
+      </RecordFormModal>
 
-      <Modal
-        open={productModalOpen}
+      <RecordFormModal
+        open={productDraft !== null}
         title="New product"
-        onClose={() => setProductModalOpen(false)}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => setProductModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              loading={createProductMutation.isPending}
-              onClick={() => {
-                void (async () => {
-                  const name = productModalName.trim();
-                  if (!name) {
-                    toast({ title: "Product name is required" });
-                    return;
-                  }
-                  const targetId = productLineTarget.current;
-                  const apply = (patch: Partial<SaleLineFormValue>) => {
-                    if (!targetId) return;
-                    setLines((prev) =>
-                      prev.map((line) =>
-                        line.id === targetId ? { ...line, ...patch } : line
-                      )
-                    );
-                  };
-                  if (targetId) {
-                    await applyProductToLine(targetId, name, apply);
-                  } else {
-                    try {
-                      await createProductMutation.mutateAsync({ name });
-                      toast({ title: "Product created", variant: "success" });
-                      await productsQuery.refetch();
-                    } catch (err) {
-                      toast({
-                        title: "Could not create the product",
-                        description:
-                          err instanceof ApiError ? err.message : "Please try again.",
-                        variant: "error",
-                      });
-                      return;
-                    }
-                  }
-                  setProductModalOpen(false);
-                  setProductModalName("");
-                  productLineTarget.current = null;
-                })();
-              }}
-            >
-              Create
-            </Button>
-          </div>
-        }
+        saving={createProductMutation.isPending}
+        error={productDraftError}
+        onClose={() => setProductDraft(null)}
+        onSave={productDraftForm.handleSubmit(saveProductDraft)}
       >
-        <p className="m-0 mb-3 text-[12px] text-erp-muted">
-          Name only — other fields stay empty.
-        </p>
-        <FormField label="Name" htmlFor="sale-product-quick" required>
-          <FormInput
-            id="sale-product-quick"
-            chrome="underline"
-            value={productModalName}
-            autoFocus
-            onChange={(event) => setProductModalName(event.target.value)}
-          />
-        </FormField>
-      </Modal>
+        <RecordFormFields
+          fields={productFields}
+          adapter={rhfAdapter(
+            productDraftForm.register,
+            productDraftForm.formState.errors
+          )}
+          options={{ taxes: taxOptions }}
+        />
+      </RecordFormModal>
     </AppShell>
   );
 }

@@ -182,7 +182,7 @@ function knownTableStyle(value: string): TableStyleKey {
     : defaultDocumentSettings.tableStyle;
 }
 
-function toInvoiceSettings(
+function toDocumentSettings(
   dto: DocumentLayoutDto,
   identity: CompanyIdentityDto
 ): DocumentSettings {
@@ -210,7 +210,7 @@ async function fetchDocumentLayout(): Promise<DocumentSettings> {
     apiGet<DocumentLayoutDto>("/v1/document-layout/"),
     apiGet<CompanyIdentityDto>("/v1/client-config/"),
   ]);
-  return toInvoiceSettings(dto, identity);
+  return toDocumentSettings(dto, identity);
 }
 
 /** The picker hands us a `blob:` URL for a freshly chosen file; turn it
@@ -285,7 +285,7 @@ export function useDocumentLayout() {
         }
       }
 
-      return toInvoiceSettings(
+      return toDocumentSettings(
         savedLayout,
         savedIdentity ?? {
           ...addressColumns(next),

@@ -5,7 +5,7 @@
  */
 
 import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
-import type { Page } from "@/lib/api-client";
+import type { ApiFetchOptions, Page } from "@/lib/api-client";
 import { query, type BranchRef, type ListParams } from "../shared/api";
 
 export interface Product {
@@ -24,8 +24,12 @@ export type ProductInput = Partial<
   Omit<Product, "uuid" | "branch" | "created_at" | "updated_at">
 > & { branch_uuid?: string };
 
-export function listProducts(params: ListParams = {}): Promise<Page<Product>> {
-  return apiGetPage<Product>(`/v1/sales/products/?${query(params)}`);
+/** `init` carries the picker's AbortSignal — see `listCustomers`. */
+export function listProducts(
+  params: ListParams = {},
+  init?: ApiFetchOptions
+): Promise<Page<Product>> {
+  return apiGetPage<Product>(`/v1/sales/products/?${query(params)}`, init);
 }
 
 export function getProduct(uuid: string) {

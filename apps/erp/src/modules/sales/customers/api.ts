@@ -6,7 +6,7 @@
  */
 
 import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
-import type { Page } from "@/lib/api-client";
+import type { ApiFetchOptions, Page } from "@/lib/api-client";
 import { query, type BranchRef, type ListParams } from "../shared/api";
 
 export type CustomerType = "organization" | "person";
@@ -41,8 +41,13 @@ export type CustomerInput = Partial<
   Omit<Customer, "uuid" | "branch" | "full_address" | "created_at" | "updated_at">
 > & { branch_uuid?: string };
 
-export function listCustomers(params: ListParams = {}): Promise<Page<Customer>> {
-  return apiGetPage<Customer>(`/v1/sales/customers/?${query(params)}`);
+/** `init` carries the picker's AbortSignal: a search superseded by the next
+ * keystroke is dropped in flight rather than raced to the screen. */
+export function listCustomers(
+  params: ListParams = {},
+  init?: ApiFetchOptions
+): Promise<Page<Customer>> {
+  return apiGetPage<Customer>(`/v1/sales/customers/?${query(params)}`, init);
 }
 
 export function getCustomer(uuid: string) {

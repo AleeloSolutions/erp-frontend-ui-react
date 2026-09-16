@@ -58,7 +58,7 @@ export default function ContractCreatePage() {
     }
   }, [session, canCreate, navigate]);
 
-  // One page of customers feeds the picker, as the invoice form does; the
+  // One page of customers feeds the picker, as the sale form does; the
   // Dropdown filters what it was given.
   const customersQuery = useCustomersQuery({
     ordering: "name",

@@ -41,6 +41,20 @@
     "open": "Open",
     "close": "Close"
   },
+  "picker": {
+    "searchMore": "Search more...",
+    "create": "Create \"{{text}}\"",
+    "createAndEdit": "Create and edit...",
+    "searching": "Searching...",
+    "noResults": "No results",
+    "searchFailed": "Search failed. Try again.",
+    "createFailed": "Could not create \"{{text}}\".",
+    "creating": "Creating...",
+    "searchTitle": "Search"
+  },
+  "recordForm": {
+    "save": "Save"
+  },
   "datepicker": {
     "chooseDate": "Choose date",
     "previousMonth": "Previous month",

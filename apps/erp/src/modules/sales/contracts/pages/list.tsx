@@ -2,8 +2,8 @@
  * Sales → Contracts, against `/api/v1/sales/contracts/`.
  *
  * Header-only (v1): no lines, no document number. Only a draft is ever
- * hard-deleted; anything past draft is archived instead, same rule as an
- * invoice or sale.
+ * hard-deleted; anything past draft is archived instead, same rule as a
+ * sale.
  */
 
 import { useCallback, useMemo, useState } from "react";

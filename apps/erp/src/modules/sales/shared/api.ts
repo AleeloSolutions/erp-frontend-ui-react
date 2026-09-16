@@ -64,7 +64,6 @@ export type PaymentMethodInput = {
 
 export interface SalesSettings {
   uuid: string;
-  invoice_prefix: string;
   sale_prefix: string;
   has_branch_in_number: boolean;
   number_padding: number;
@@ -72,21 +71,20 @@ export interface SalesSettings {
   default_sale_valid_days: number;
   /** Tax uuid, or null when none is set. */
   default_tax: string | null;
-  invoice_terms: string;
-  invoice_footer: string;
+  sale_terms: string;
+  sale_footer: string;
   updated_at: string;
 }
 
 export type SalesSettingsInput = Partial<{
-  invoice_prefix: string;
   sale_prefix: string;
   has_branch_in_number: boolean;
   number_padding: number;
   default_due_days: number;
   default_sale_valid_days: number;
   default_tax: string | null;
-  invoice_terms: string;
-  invoice_footer: string;
+  sale_terms: string;
+  sale_footer: string;
 }>;
 
 /** Shared so each entity builds identical list URLs. */

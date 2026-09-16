@@ -1,5 +1,9 @@
 /**
- * React Query hooks for sales.
+ * React Query hooks for sales and their payments.
+ *
+ * Payments hang off the sale detail key rather than owning a key of their
+ * own: recording one changes the sale's balance, so the two can never be
+ * invalidated independently.
  */
 
 import {
@@ -14,17 +18,19 @@ import type { ListParams } from "../shared/api";
 import {
   acceptSale,
   cancelSale,
-  convertSaleToInvoice,
   createSale,
   deleteSale,
   getSale,
+  listSalePayments,
   listSales,
+  recordSalePayment,
   sendSale,
   updateSale,
+  voidSalePayment,
   type Sale,
   type SaleInput,
+  type SalePaymentInput,
 } from "./api";
-import { invoiceKeys } from "../invoices/queries";
 
 export const saleKeys = {
   all: ["sales"] as const,
@@ -58,6 +64,7 @@ export function useSaleQuery(
   });
 }
 
+/** Every mutation on one sale invalidates the same two keys. */
 function useSaleMutation<TInput>(
   mutationFn: (input: TInput) => Promise<Sale | void>,
   uuidOf: (input: TInput) => string
@@ -123,15 +130,27 @@ export function useCancelSaleMutation() {
   );
 }
 
-/** Converts to a draft invoice, so both the sale and invoice lists change. */
-export function useConvertSaleMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (uuid: string) => convertSaleToInvoice(uuid),
-    onSuccess: (invoice, uuid) => {
-      void queryClient.invalidateQueries({ queryKey: saleKeys.detail(uuid) });
-      void queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
-      void queryClient.invalidateQueries({ queryKey: invoiceKeys.detail(invoice.uuid) });
-    },
+/** The money collected against one sale; a child of its detail key. */
+export function useSalePaymentsQuery(uuid: string, enabled = true) {
+  return useQuery({
+    queryKey: [...saleKeys.detail(uuid), "payments"],
+    queryFn: () => listSalePayments(uuid),
+    enabled: Boolean(uuid) && enabled,
   });
+}
+
+export function useRecordSalePaymentMutation() {
+  return useSaleMutation(
+    ({ uuid, input }: { uuid: string; input: SalePaymentInput }) =>
+      recordSalePayment(uuid, input),
+    ({ uuid }) => uuid
+  );
+}
+
+export function useVoidSalePaymentMutation() {
+  return useSaleMutation(
+    ({ uuid, paymentUuid }: { uuid: string; paymentUuid: string }) =>
+      voidSalePayment(uuid, paymentUuid),
+    ({ uuid }) => uuid
+  );
 }

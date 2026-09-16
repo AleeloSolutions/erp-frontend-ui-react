@@ -3,7 +3,7 @@
  *
  * Each cell is a rung of the scope ladder rather than a tick — all
  * branches, this branch, or own records — so a role reads the way an
- * administrator thinks: "invoices, edit, this branch". A verb the
+ * administrator thinks: "sales, edit, this branch". A verb the
  * resource does not offer renders as a dash, and a verb with a single
  * rung is a plain checkbox, since a dropdown of one is a worse control.
  *

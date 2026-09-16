@@ -3,7 +3,7 @@
  *
  * Header-only (v1): no lines, no document number. A contract is filed,
  * edited, and archived once its term ends -- the same "own records"
- * shape as a customer, not the numbered-document shape of an invoice.
+ * shape as a customer, not the numbered-document shape of a sale.
  */
 
 import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";

@@ -22,7 +22,7 @@ import { LanguageSettingsForm } from "./LanguageSettingsForm";
 import { AboutSettingsSection } from "./AboutSettingsPanel";
 import { IntegrationsSettingsSection } from "./IntegrationsSettingsPanel";
 import {
-  SalesInvoiceDefaultsPanel,
+  SalesDefaultsPanel,
   SalesPaymentMethodsPanel,
   SalesTaxesPanel,
 } from "./SalesSettingsPanel";
@@ -320,7 +320,7 @@ export function SettingsTabPanel({
   }
 
   if (activeTab === "sales") {
-    return <SalesInvoiceDefaultsPanel />;
+    return <SalesDefaultsPanel />;
   }
 
   if (activeTab === "sales-taxes") {
