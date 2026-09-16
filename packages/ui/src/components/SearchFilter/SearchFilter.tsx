@@ -5,6 +5,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
@@ -321,7 +322,6 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
     const [panelPos, setPanelPos] = useState<{
       top: number;
       left: number;
-      width: number;
     } | null>(null);
     const isControlled = controlledOpen !== undefined;
     const open = showPanel && (isControlled ? controlledOpen : uncontrolledOpen);
@@ -346,7 +346,6 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
       setPanelPos({
         top: rect.bottom + 6,
         left: rect.left,
-        width: rect.width,
       });
     }
 
@@ -409,7 +408,7 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
               role="menu"
               aria-label={t("searchFilter.filters")}
               className={cn(
-                "fixed z-[1070] flex w-[26rem] max-h-[min(50vh,18rem)]",
+                "fixed z-[1070] flex w-[26rem] max-w-[calc(100vw-1rem)] max-h-[min(50vh,18rem)]",
                 "flex-row flex-nowrap items-start overflow-y-auto overscroll-contain py-2.5",
                 "rounded border border-erp-table-border bg-erp-table-bg text-[12px] text-erp-text",
                 "shadow-[0_0.3rem_1rem_rgba(0,0,0,0.1)]",
@@ -417,10 +416,12 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
                 "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full",
                 "[&::-webkit-scrollbar-thumb]:bg-erp-muted/40 [&::-webkit-scrollbar-track]:bg-transparent"
               )}
+              // Width is deliberately not tracked to the shell: the shell now
+              // grows with its facets, and a measured width would go stale the
+              // moment one lands. Odoo's panel is a fixed-width menu too.
               style={{
                 top: panelPos.top,
                 left: panelPos.left,
-                width: panelPos.width,
               }}
             >
               <PanelColumn
@@ -444,15 +445,23 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
     return (
       <div
         ref={rootRef}
+        // The shell rests at 26rem and grows with its facets until only
+        // --sf-gutter is left either side, then wraps downward instead. The
+        // side tracks hold that gutter, minus the grid gap they sit next to,
+        // so the clearance stays 50px however the gap changes.
+        style={{ "--sf-gutter": "50px" } as CSSProperties}
         className={cn(
           "relative w-full min-w-0",
           hasSideSlots &&
-            "grid grid-cols-[minmax(0,1fr)_minmax(26rem,26rem)_minmax(0,1fr)] items-center gap-3",
+            "grid items-center gap-3 grid-cols-[minmax(calc(var(--sf-gutter)-0.75rem),1fr)_minmax(26rem,max-content)_minmax(calc(var(--sf-gutter)-0.75rem),1fr)]",
           className
         )}
       >
         {hasSideSlots ? <div /> : null}
-        <div ref={shellRef} className="relative mx-auto w-[26rem] shrink-0">
+        <div
+          ref={shellRef}
+          className="relative mx-auto w-full min-w-[min(26rem,100%)] max-w-[calc(100%-2*var(--sf-gutter))]"
+        >
           <div className="flex w-full max-w-full items-stretch">
             <div
               className={cn(
