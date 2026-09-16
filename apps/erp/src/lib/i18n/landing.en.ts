@@ -30,7 +30,7 @@ export const landingEn = {
   },
   apps: {
     customers: "Customers",
-    orders: "Sales",
+    sales: "Sales",
     invoices: "Invoices",
     products: "Products",
     dashboard: "Dashboard",

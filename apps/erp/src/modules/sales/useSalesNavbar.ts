@@ -18,7 +18,7 @@ export function salesSubmenuFor(codes: string[] | null) {
 
 /** First Sales URL this account may open — module home `/sales` when permitted. */
 export function firstSalesHref(codes: string[] | null): string {
-  if (holdsAny(codes, CHILD_NAV_REQUIREMENTS.sales.orders)) return "/sales";
+  if (holdsAny(codes, CHILD_NAV_REQUIREMENTS.sales.sales)) return "/sales";
   const items = salesSubmenuFor(codes);
   return items[0]?.href ?? "/sales";
 }
@@ -32,7 +32,7 @@ export function useSalesNavbar(activeKey: string) {
     // Brand (grid + "Sales") opens the sales list, not the app home.
     onHomeClick: () => navigate(firstSalesHref(codes)),
     submenuItems: salesSubmenuFor(codes),
-    // "orders" is the list home — no matching submenu tab, so nothing highlighted.
-    submenuActiveKey: activeKey === "orders" ? undefined : activeKey,
+    // "sales" is the list home — no matching submenu tab, so nothing highlighted.
+    submenuActiveKey: activeKey === "sales" ? undefined : activeKey,
   });
 }

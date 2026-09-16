@@ -1,6 +1,6 @@
 import { Routes } from "react-router-dom";
 import { customerRoutes } from "./customers/routes";
-import { orderRoutes } from "./orders/routes";
+import { saleRoutes } from "./sale/routes";
 import { productRoutes } from "./products/routes";
 
 /**
@@ -12,7 +12,7 @@ import { productRoutes } from "./products/routes";
 export function SalesRoutes() {
   return (
     <Routes>
-      {orderRoutes}
+      {saleRoutes}
       {customerRoutes}
       {productRoutes}
     </Routes>

@@ -2,7 +2,7 @@
  * Edit a contract, against `/api/v1/sales/contracts/<uuid>/`.
  *
  * Header-only (v1): no lines, so nothing here locks once "sent" the way
- * a order does. Status (draft/active/expired) changes immediately,
+ * a sale does. Status (draft/active/expired) changes immediately,
  * the same way a customer's archived toggle does, rather than waiting on
  * the form's own Save. Only a draft is ever hard-deleted (policy §10);
  * anything else is archived instead.

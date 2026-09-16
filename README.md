@@ -52,7 +52,7 @@ npm run lint        # ESLint in all workspaces
 | Sales module           | `apps/erp/src/modules/sales/`          |
 | Visual reference       | `preview (12).html`                    |
 
-Intended to talk to a **Django** API. Sales customers/orders talk to `/api/v1/sales/` (see `apps/erp/src/modules/sales/`).
+Intended to talk to a **Django** API. Sales customers/sales talk to `/api/v1/sales/` (see `apps/erp/src/modules/sales/`).
 
 **Django tips**
 

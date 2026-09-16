@@ -22,7 +22,7 @@ export default function HomePage() {
           <PageActions
             buttons={[
               {
-                key: "orders",
+                key: "sales",
                 children: "Open Sales",
                 variant: "primary",
                 size: "sm",

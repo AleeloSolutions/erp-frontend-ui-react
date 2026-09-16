@@ -61,7 +61,7 @@ export const SETTINGS_ACCESS_CODES: string[] = [
 export const NAV_REQUIREMENTS: Record<string, string[]> = {
   dashboard: [],
   // Invoices/contracts remain in the permission catalogue but are hidden from nav.
-  sales: viewing("sales.customer", "sales.order", "sales.product"),
+  sales: viewing("sales.customer", "sales.sale", "sales.product"),
   notes: viewing("notes.note"),
   settings: SETTINGS_ACCESS_CODES,
 };
@@ -76,7 +76,7 @@ export const NAV_REQUIREMENTS: Record<string, string[]> = {
 export const CHILD_NAV_REQUIREMENTS: Record<string, Record<string, string[]>> = {
   sales: {
     customers: viewing("sales.customer"),
-    orders: viewing("sales.order"),
+    sales: viewing("sales.sale"),
     products: viewing("sales.product"),
     // Settings submenu opens Settings → Sales → Invoice Defaults (no sales.* code).
     settings: [...SETTINGS_CODES.sales],

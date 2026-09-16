@@ -91,11 +91,11 @@ function InvoiceDefaultsForm({
   const saveMutation = useUpdateSalesSettingsMutation();
   const [values, setValues] = useState({
     invoice_prefix: settings.invoice_prefix,
-    order_prefix: settings.order_prefix,
+    sale_prefix: settings.sale_prefix,
     has_branch_in_number: settings.has_branch_in_number,
     number_padding: String(settings.number_padding),
     default_due_days: String(settings.default_due_days),
-    default_order_valid_days: String(settings.default_order_valid_days),
+    default_sale_valid_days: String(settings.default_sale_valid_days),
     default_tax: settings.default_tax ?? "",
     invoice_terms: settings.invoice_terms,
     invoice_footer: settings.invoice_footer,
@@ -104,11 +104,11 @@ function InvoiceDefaultsForm({
   useEffect(() => {
     setValues({
       invoice_prefix: settings.invoice_prefix,
-      order_prefix: settings.order_prefix,
+      sale_prefix: settings.sale_prefix,
       has_branch_in_number: settings.has_branch_in_number,
       number_padding: String(settings.number_padding),
       default_due_days: String(settings.default_due_days),
-      default_order_valid_days: String(settings.default_order_valid_days),
+      default_sale_valid_days: String(settings.default_sale_valid_days),
       default_tax: settings.default_tax ?? "",
       invoice_terms: settings.invoice_terms,
       invoice_footer: settings.invoice_footer,
@@ -138,7 +138,7 @@ function InvoiceDefaultsForm({
       toast({ title: "Default due days must be zero or more" });
       return;
     }
-    const validDays = Number(values.default_order_valid_days);
+    const validDays = Number(values.default_sale_valid_days);
     if (!Number.isFinite(validDays) || validDays < 0) {
       toast({ title: "Default valid days must be zero or more" });
       return;
@@ -146,11 +146,11 @@ function InvoiceDefaultsForm({
     try {
       await saveMutation.mutateAsync({
         invoice_prefix: values.invoice_prefix.trim() || "INV",
-        order_prefix: values.order_prefix.trim() || "QT",
+        sale_prefix: values.sale_prefix.trim() || "SL",
         has_branch_in_number: values.has_branch_in_number,
         number_padding: padding,
         default_due_days: dueDays,
-        default_order_valid_days: validDays,
+        default_sale_valid_days: validDays,
         default_tax: values.default_tax || null,
         invoice_terms: values.invoice_terms,
         invoice_footer: values.invoice_footer,
@@ -269,14 +269,14 @@ function InvoiceDefaultsForm({
         description="Numbering, the validity window, and text that new sales start with."
       >
         <FormGrid>
-          <FormField label="Sales prefix" htmlFor="sales-order-prefix" span={4}>
+          <FormField label="Sales prefix" htmlFor="sales-sale-prefix" span={4}>
             <FormInput
-              id="sales-order-prefix"
-              value={values.order_prefix}
+              id="sales-sale-prefix"
+              value={values.sale_prefix}
               onChange={(event) =>
                 setValues((current) => ({
                   ...current,
-                  order_prefix: event.target.value,
+                  sale_prefix: event.target.value,
                 }))
               }
               maxLength={10}
@@ -291,11 +291,11 @@ function InvoiceDefaultsForm({
               id="sales-default-valid-days"
               type="number"
               min={0}
-              value={values.default_order_valid_days}
+              value={values.default_sale_valid_days}
               onChange={(event) =>
                 setValues((current) => ({
                   ...current,
-                  default_order_valid_days: event.target.value,
+                  default_sale_valid_days: event.target.value,
                 }))
               }
             />

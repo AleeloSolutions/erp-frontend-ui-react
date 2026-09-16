@@ -1,5 +1,5 @@
 /**
- * Sales → Orders, against `/api/v1/sales/orders/`.
+ * Sales → Sales, against `/api/v1/sales/`.
  *
  * Only a draft can be edited or deleted; once sent it is a record.
  */
@@ -26,15 +26,15 @@ import {
 import { AppShell } from "@/app";
 import { useSession } from "@/app/session";
 import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
-import { useDeleteOrderMutation, useOrdersQuery } from "../queries";
-import type { Order } from "../api";
+import { useDeleteSaleMutation, useSalesQuery } from "../queries";
+import type { Sale } from "../api";
 import { ApiError } from "@/lib/api-client";
 import { DRAFT_ROW_CLASS_NAME, can, listTableState } from "@/modules/sales/shared";
 import {
-  ORDER_STATUS_LABELS,
+  SALE_STATUS_LABELS,
   formatMoney,
   sumMoneyByCurrency,
-} from "@/modules/sales/orders/schema";
+} from "@/modules/sales/sale/schema";
 
 function orderingOf(sorting: SortingState): string {
   const [first] = sorting;
@@ -42,10 +42,10 @@ function orderingOf(sorting: SortingState): string {
   return first.desc ? `-${first.id}` : first.id;
 }
 
-export default function OrdersPage() {
+export default function SalesPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const navbar = useSalesNavbar("orders");
+  const navbar = useSalesNavbar("sales");
   const session = useSession();
 
   const [search, setSearch] = useState("");
@@ -56,8 +56,8 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [periodGroupingActive, setPeriodGroupingActive] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<Order | null>(null);
-  const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Sale | null>(null);
+  const [detailSale, setDetailSale] = useState<Sale | null>(null);
   /** Last successful unfiltered-or-filtered total — used to avoid period page bumps on empty. */
   const knownTotalRef = useRef<number | null>(null);
 
@@ -96,17 +96,17 @@ export default function OrdersPage() {
     [debouncedSearch, sorting, page, listPageSize, statusFilter, issueDateRanges]
   );
 
-  const ordersQuery = useOrdersQuery(params);
-  const tableState = listTableState(ordersQuery);
-  if (ordersQuery.isSuccess) {
-    knownTotalRef.current = ordersQuery.data.meta.total;
+  const salesQuery = useSalesQuery(params);
+  const tableState = listTableState(salesQuery);
+  if (salesQuery.isSuccess) {
+    knownTotalRef.current = salesQuery.data.meta.total;
   }
-  const deleteMutation = useDeleteOrderMutation();
+  const deleteMutation = useDeleteSaleMutation();
 
   const codes = session?.permissions;
-  const canCreate = can(codes, "sales.order", "create");
-  const canEdit = can(codes, "sales.order", "edit");
-  const canDelete = can(codes, "sales.order", "delete");
+  const canCreate = can(codes, "sales.sale", "create");
+  const canEdit = can(codes, "sales.sale", "edit");
+  const canDelete = can(codes, "sales.sale", "delete");
 
   const filters = useMemo<DataTableFilter[]>(
     () => [
@@ -132,7 +132,7 @@ export default function OrdersPage() {
     []
   );
 
-  const columns = useMemo<ColumnDef<Order>[]>(
+  const columns = useMemo<ColumnDef<Sale>[]>(
     () => [
       {
         accessorKey: "number",
@@ -143,7 +143,7 @@ export default function OrdersPage() {
           <button
             type="button"
             className="border-0 bg-transparent p-0 text-left text-erp-brand-third hover:underline"
-            onClick={() => setDetailOrder(row.original)}
+            onClick={() => setDetailSale(row.original)}
           >
             {row.original.number || "Draft"}
           </button>
@@ -161,12 +161,12 @@ export default function OrdersPage() {
       { accessorKey: "valid_until", header: "Valid until", size: 120 },
       {
         id: "status",
-        accessorFn: (row) => ORDER_STATUS_LABELS[row.status],
+        accessorFn: (row) => SALE_STATUS_LABELS[row.status],
         header: "Status",
         enableSorting: false,
         size: 110,
         cell: ({ row }) => (
-          <StatusBadge status={ORDER_STATUS_LABELS[row.original.status]} />
+          <StatusBadge status={SALE_STATUS_LABELS[row.original.status]} />
         ),
       },
       {
@@ -181,20 +181,20 @@ export default function OrdersPage() {
   );
 
   const rowActions = useCallback(
-    (order: Order): DataTableRowAction[] => {
+    (sale: Sale): DataTableRowAction[] => {
       const actions: DataTableRowAction[] = [
         {
           key: "open",
-          label: canEdit && order.status === "draft" ? "Edit" : "Open",
-          onClick: () => navigate(`/sales/${order.uuid}/edit`),
+          label: canEdit && sale.status === "draft" ? "Edit" : "Open",
+          onClick: () => navigate(`/sales/${sale.uuid}/edit`),
         },
       ];
-      if (canDelete && order.status === "draft") {
+      if (canDelete && sale.status === "draft") {
         actions.push({
           key: "delete",
           label: "Delete",
           danger: true,
-          onClick: () => setPendingDelete(order),
+          onClick: () => setPendingDelete(sale),
         });
       }
       return actions;
@@ -208,7 +208,7 @@ export default function OrdersPage() {
       await deleteMutation.mutateAsync(pendingDelete.uuid);
       toast({ title: "Sale deleted", variant: "success" });
       setPendingDelete(null);
-      setDetailOrder(null);
+      setDetailSale(null);
     } catch (error) {
       toast({
         title: "Could not delete the sale",
@@ -221,7 +221,7 @@ export default function OrdersPage() {
   return (
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
       <DataTable
-        tableId="sales-orders"
+        tableId="sales-sales"
         renderToolbar={({ searchFilter, pagination }) => (
           <ControlPanel
             pageActions={
@@ -292,8 +292,8 @@ export default function OrdersPage() {
         error={tableState.error}
         getRowId={(row) => row.uuid}
         getRowActions={rowActions}
-        getRowClassName={(order) =>
-          order.status === "draft" ? DRAFT_ROW_CLASS_NAME : undefined
+        getRowClassName={(sale) =>
+          sale.status === "draft" ? DRAFT_ROW_CLASS_NAME : undefined
         }
         renderGroupSummary={({ rows }) => sumMoneyByCurrency(rows)}
         pagination={{
@@ -321,55 +321,55 @@ export default function OrdersPage() {
       />
 
       <Drawer
-        open={Boolean(detailOrder)}
-        onClose={() => setDetailOrder(null)}
-        title={detailOrder?.number || "Draft sale"}
-        description={detailOrder?.customer.name}
+        open={Boolean(detailSale)}
+        onClose={() => setDetailSale(null)}
+        title={detailSale?.number || "Draft sale"}
+        description={detailSale?.customer.name}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setDetailOrder(null)}>
+            <Button variant="secondary" onClick={() => setDetailSale(null)}>
               Close
             </Button>
-            {detailOrder ? (
+            {detailSale ? (
               <Button
                 variant="secondary"
-                onClick={() => navigate(`/sales/${detailOrder.uuid}/edit`)}
+                onClick={() => navigate(`/sales/${detailSale.uuid}/edit`)}
               >
-                {canEdit && detailOrder.status === "draft" ? "Edit" : "Open"}
+                {canEdit && detailSale.status === "draft" ? "Edit" : "Open"}
               </Button>
             ) : null}
-            {detailOrder && canDelete && detailOrder.status === "draft" ? (
-              <Button variant="danger" onClick={() => setPendingDelete(detailOrder)}>
+            {detailSale && canDelete && detailSale.status === "draft" ? (
+              <Button variant="danger" onClick={() => setPendingDelete(detailSale)}>
                 Delete
               </Button>
             ) : null}
           </>
         }
       >
-        {detailOrder ? (
+        {detailSale ? (
           <dl className="m-0 grid gap-2 text-[12px]">
             <div>
               <dt className="text-erp-subtle">Customer</dt>
-              <dd className="m-0 font-bold text-erp-text">{detailOrder.customer.name}</dd>
+              <dd className="m-0 font-bold text-erp-text">{detailSale.customer.name}</dd>
             </div>
             <div>
               <dt className="text-erp-subtle">Date</dt>
-              <dd className="m-0 font-bold text-erp-text">{detailOrder.issue_date}</dd>
+              <dd className="m-0 font-bold text-erp-text">{detailSale.issue_date}</dd>
             </div>
             <div>
               <dt className="text-erp-subtle">Valid until</dt>
-              <dd className="m-0 font-bold text-erp-text">{detailOrder.valid_until}</dd>
+              <dd className="m-0 font-bold text-erp-text">{detailSale.valid_until}</dd>
             </div>
             <div>
               <dt className="text-erp-subtle">Status</dt>
               <dd className="m-0 mt-1">
-                <StatusBadge status={ORDER_STATUS_LABELS[detailOrder.status]} />
+                <StatusBadge status={SALE_STATUS_LABELS[detailSale.status]} />
               </dd>
             </div>
             <div>
               <dt className="text-erp-subtle">Total</dt>
               <dd className="m-0 font-bold text-erp-text">
-                {formatMoney(detailOrder.total_amount, detailOrder.currency)}
+                {formatMoney(detailSale.total_amount, detailSale.currency)}
               </dd>
             </div>
           </dl>

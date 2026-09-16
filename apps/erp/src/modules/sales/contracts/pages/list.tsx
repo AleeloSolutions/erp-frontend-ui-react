@@ -3,7 +3,7 @@
  *
  * Header-only (v1): no lines, no document number. Only a draft is ever
  * hard-deleted; anything past draft is archived instead, same rule as an
- * invoice or order.
+ * invoice or sale.
  */
 
 import { useCallback, useMemo, useState } from "react";

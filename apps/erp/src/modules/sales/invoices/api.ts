@@ -61,8 +61,8 @@ export interface Invoice {
   lines: InvoiceLine[];
   posted_at: string | null;
   cancelled_at: string | null;
-  /** The order this invoice was converted from, if any. */
-  source_order: string | null;
+  /** The sale this invoice was converted from, if any. */
+  source_sale: string | null;
   is_archived: boolean;
   created_at: string;
   updated_at: string;

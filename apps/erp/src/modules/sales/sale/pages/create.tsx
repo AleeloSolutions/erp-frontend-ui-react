@@ -1,7 +1,7 @@
 /**
- * New order, against `/api/v1/sales/orders/`.
+ * New sale, against `/api/v1/sales/`.
  *
- * A new order is always a draft: `POST` stores it, and only sending it
+ * A new sale is always a draft: `POST` stores it, and only sending it
  * later allocates a number. Nothing here computes what will be charged —
  * the amounts beside the lines are the editor's own estimate, shown so the
  * page is not blank while the draft is typed, and they are replaced by the
@@ -45,23 +45,23 @@ import {
 import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { useCreateCustomerMutation, useCustomersQuery } from "@/modules/sales/customers";
 import { useCreateProductMutation, useProductsQuery } from "@/modules/sales/products";
-import { useCreateOrderMutation } from "../queries";
+import { useCreateSaleMutation } from "../queries";
 import { can, useSalesSettingsQuery, useTaxesQuery } from "@/modules/sales/shared";
 import {
-  createEmptyOrderLine,
-  createOrderNoteLine,
-  createOrderSectionLine,
-  emptyOrderForm,
+  createEmptySaleLine,
+  createSaleNoteLine,
+  createSaleSectionLine,
+  emptySaleForm,
   estimateLineAmount,
   estimateUntaxedTotal,
   formatMoney,
   hasChargeableLine,
-  orderFormSchema,
+  saleFormSchema,
   toLineInputs,
   validUntilFrom,
-  type OrderFormValues,
-  type OrderLineFormValue,
-} from "@/modules/sales/orders/schema";
+  type SaleFormValues,
+  type SaleLineFormValue,
+} from "@/modules/sales/sale/schema";
 import { ApiError } from "@/lib/api-client";
 
 /** Read-only until it is saved and sent — sending is its own action. */
@@ -76,10 +76,7 @@ const detailTabs = [
 ];
 
 /** Odoo behaviour: a section subtotals every product row below it, down to the next section. */
-function sectionEstimate(
-  sectionLine: OrderLineFormValue,
-  allLines: OrderLineFormValue[]
-) {
+function sectionEstimate(sectionLine: SaleLineFormValue, allLines: SaleLineFormValue[]) {
   const startIndex = allLines.findIndex((line) => line.id === sectionLine.id);
   let sum = 0;
   for (let i = startIndex + 1; i < allLines.length; i++) {
@@ -90,13 +87,13 @@ function sectionEstimate(
   return sum;
 }
 
-export default function OrderCreatePage() {
+export default function SaleCreatePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const session = useSession();
-  const navbar = useSalesNavbar("orders");
-  const createMutation = useCreateOrderMutation();
-  const canCreate = can(session?.permissions, "sales.order", "create");
+  const navbar = useSalesNavbar("sales");
+  const createMutation = useCreateSaleMutation();
+  const canCreate = can(session?.permissions, "sales.sale", "create");
 
   useEffect(() => {
     if (session && !canCreate) {
@@ -105,7 +102,7 @@ export default function OrderCreatePage() {
   }, [session, canCreate, navigate]);
 
   const [activeTab, setActiveTab] = useState("lines");
-  const [lines, setLines] = useState<OrderLineFormValue[]>([createEmptyOrderLine()]);
+  const [lines, setLines] = useState<SaleLineFormValue[]>([createEmptySaleLine()]);
   const [linesError, setLinesError] = useState<string | null>(null);
 
   // One page of customers feeds the picker; the Dropdown filters what it
@@ -138,7 +135,7 @@ export default function OrderCreatePage() {
     [taxesQuery.data]
   );
   const defaultTax = taxes.find((tax) => tax.is_default) ?? null;
-  const defaultValidDays = settings?.default_order_valid_days ?? 30;
+  const defaultValidDays = settings?.default_sale_valid_days ?? 30;
 
   const customerItems = useMemo<DropdownItem[]>(
     () => customers.map((customer) => ({ key: customer.uuid, label: customer.name })),
@@ -179,7 +176,7 @@ export default function OrderCreatePage() {
   async function applyProductToLine(
     _lineId: string,
     nameOrUuid: string,
-    onChange: (patch: Partial<OrderLineFormValue>) => void
+    onChange: (patch: Partial<SaleLineFormValue>) => void
   ) {
     const trimmed = nameOrUuid.trim();
     if (!trimmed) return;
@@ -215,9 +212,9 @@ export default function OrderCreatePage() {
     setValue,
     setError,
     formState: { errors },
-  } = useForm<OrderFormValues>({
-    resolver: zodResolver(orderFormSchema),
-    defaultValues: emptyOrderForm(),
+  } = useForm<SaleFormValues>({
+    resolver: zodResolver(saleFormSchema),
+    defaultValues: emptySaleForm(),
   });
 
   const customerUuid = watch("customer");
@@ -232,7 +229,7 @@ export default function OrderCreatePage() {
     settingsSeeded.current = true;
     setValue(
       "valid_until",
-      validUntilFrom(watch("issue_date"), settings.default_order_valid_days ?? 30)
+      validUntilFrom(watch("issue_date"), settings.default_sale_valid_days ?? 30)
     );
     if (settings.invoice_terms) {
       setValue("terms", settings.invoice_terms);
@@ -254,7 +251,7 @@ export default function OrderCreatePage() {
 
   const untaxedEstimate = estimateUntaxedTotal(lines);
 
-  const lineColumns: LineItemsColumn<OrderLineFormValue>[] = [
+  const lineColumns: LineItemsColumn<SaleLineFormValue>[] = [
     {
       key: "description",
       label: "Product",
@@ -365,9 +362,9 @@ export default function OrderCreatePage() {
     },
   ];
 
-  function getOrderSpecialRow(
-    row: OrderLineFormValue,
-    { onChange, onCommit }: LineItemsRowHelpers<OrderLineFormValue>
+  function getSaleSpecialRow(
+    row: SaleLineFormValue,
+    { onChange, onCommit }: LineItemsRowHelpers<SaleLineFormValue>
   ): LineItemsSpecialRow | undefined {
     if (row.kind === "section") {
       return {
@@ -406,7 +403,7 @@ export default function OrderCreatePage() {
     return undefined;
   }
 
-  async function onSubmit(values: OrderFormValues) {
+  async function onSubmit(values: SaleFormValues) {
     if (!hasChargeableLine(lines)) {
       setLinesError("Add at least one line with a description.");
       setActiveTab("lines");
@@ -415,7 +412,7 @@ export default function OrderCreatePage() {
     setLinesError(null);
 
     try {
-      const order = await createMutation.mutateAsync({
+      const sale = await createMutation.mutateAsync({
         ...values,
         lines: toLineInputs(lines),
       });
@@ -425,14 +422,14 @@ export default function OrderCreatePage() {
         variant: "success",
       });
       // Straight to the record: sending, and the server's real totals, live there.
-      navigate(`/sales/${order.uuid}/edit`);
+      navigate(`/sales/${sale.uuid}/edit`);
     } catch (error) {
       // The API owns the rules the form cannot know — a customer over their
       // credit limit, a tax that no longer applies.
       if (error instanceof ApiError && error.fields) {
         for (const [field, messages] of Object.entries(error.fields)) {
-          if (field in orderFormSchema.shape) {
-            setError(field as keyof OrderFormValues, { message: messages[0] });
+          if (field in saleFormSchema.shape) {
+            setError(field as keyof SaleFormValues, { message: messages[0] });
           }
         }
       }
@@ -490,12 +487,12 @@ export default function OrderCreatePage() {
         <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
           <div>
             <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2">
-              <label className="text-base font-[500]" htmlFor="order-customer">
+              <label className="text-base font-[500]" htmlFor="sale-customer">
                 Customer<span className="text-erp-error"> *</span>
               </label>
               <div className="max-w-sm">
                 <FormDropdown
-                  id="order-customer"
+                  id="sale-customer"
                   searchable
                   allowFreeText
                   placeholder="Search or type a customer…"
@@ -547,19 +544,19 @@ export default function OrderCreatePage() {
           </div>
 
           <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1.5">
-            <label className="font-semibold" htmlFor="order-date">
+            <label className="font-semibold" htmlFor="sale-date">
               Sale date<span className="text-erp-error"> *</span>
             </label>
             <FormDatePicker
-              id="order-date"
+              id="sale-date"
               error={Boolean(errors.issue_date)}
               {...register("issue_date")}
             />
-            <label className="font-[500] font-semibold" htmlFor="order-valid-until">
+            <label className="font-[500] font-semibold" htmlFor="sale-valid-until">
               Valid until<span className="text-erp-error"> *</span>
             </label>
             <FormDatePicker
-              id="order-valid-until"
+              id="sale-valid-until"
               error={Boolean(errors.valid_until)}
               {...register("valid_until")}
             />
@@ -575,23 +572,23 @@ export default function OrderCreatePage() {
 
         {activeTab === "lines" ? (
           <div>
-            <LineItemsTable<OrderLineFormValue>
-              tableId="sales-order-create-lines"
+            <LineItemsTable<SaleLineFormValue>
+              tableId="sales-sale-create-lines"
               columns={lineColumns}
               rows={lines}
               onRowsChange={setLines}
-              createEmptyRow={() => createEmptyOrderLine(defaultTax?.uuid ?? null)}
-              getSpecialRow={getOrderSpecialRow}
+              createEmptyRow={() => createEmptySaleLine(defaultTax?.uuid ?? null)}
+              getSpecialRow={getSaleSpecialRow}
               secondaryFooterActions={[
                 {
                   key: "section",
                   label: "Add a section",
-                  onClick: () => setLines((prev) => [...prev, createOrderSectionLine()]),
+                  onClick: () => setLines((prev) => [...prev, createSaleSectionLine()]),
                 },
                 {
                   key: "note",
                   label: "Add a note",
-                  onClick: () => setLines((prev) => [...prev, createOrderNoteLine()]),
+                  onClick: () => setLines((prev) => [...prev, createSaleNoteLine()]),
                 },
                 {
                   key: "product",
@@ -632,17 +629,17 @@ export default function OrderCreatePage() {
             <FormGrid columns={12}>
               <FormField
                 label="Customer reference"
-                htmlFor="order-customer-reference"
+                htmlFor="sale-customer-reference"
                 span={6}
               >
                 <FormInput
-                  id="order-customer-reference"
+                  id="sale-customer-reference"
                   {...register("customer_reference")}
                 />
               </FormField>
-              <FormField label="Discount type" htmlFor="order-discount-type" span={3}>
+              <FormField label="Discount type" htmlFor="sale-discount-type" span={3}>
                 <FormSelect
-                  id="order-discount-type"
+                  id="sale-discount-type"
                   options={[
                     { label: "Percentage", value: "percentage" },
                     { label: "Fixed amount", value: "fixed" },
@@ -652,22 +649,22 @@ export default function OrderCreatePage() {
               </FormField>
               <FormField
                 label="Discount"
-                htmlFor="order-discount-value"
+                htmlFor="sale-discount-value"
                 error={errors.discount_value?.message}
                 span={3}
               >
                 <FormInput
-                  id="order-discount-value"
+                  id="sale-discount-value"
                   inputMode="decimal"
                   error={Boolean(errors.discount_value)}
                   {...register("discount_value")}
                 />
               </FormField>
-              <FormField label="Terms and conditions" htmlFor="order-terms" span={12}>
-                <FormTextarea id="order-terms" {...register("terms")} />
+              <FormField label="Terms and conditions" htmlFor="sale-terms" span={12}>
+                <FormTextarea id="sale-terms" {...register("terms")} />
               </FormField>
-              <FormField label="Notes" htmlFor="order-notes" span={12}>
-                <FormTextarea id="order-notes" {...register("notes")} />
+              <FormField label="Notes" htmlFor="sale-notes" span={12}>
+                <FormTextarea id="sale-notes" {...register("notes")} />
               </FormField>
             </FormGrid>
           </FormSection>
@@ -749,7 +746,7 @@ export default function OrderCreatePage() {
                     return;
                   }
                   const targetId = productLineTarget.current;
-                  const apply = (patch: Partial<OrderLineFormValue>) => {
+                  const apply = (patch: Partial<SaleLineFormValue>) => {
                     if (!targetId) return;
                     setLines((prev) =>
                       prev.map((line) =>

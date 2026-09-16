@@ -1,7 +1,7 @@
 /**
- * One order, against `/api/v1/sales/orders/<uuid>/`.
+ * One sale, against `/api/v1/sales/<uuid>/`.
  *
- * The order's state decides what this page is. A draft is an editable
+ * The sale's state decides what this page is. A draft is an editable
  * document with one way out — sending it, which allocates its number. Once
  * sent it is a record: the fields are read-only, and the only things left
  * to do are accepting it or cancelling it. Controls the state does not
@@ -47,29 +47,29 @@ import {
 import { useSalesNavbar } from "@/modules/sales/useSalesNavbar";
 import { useCustomersQuery } from "@/modules/sales/customers";
 import {
-  useAcceptOrderMutation,
-  useCancelOrderMutation,
-  useConvertOrderMutation,
-  useOrderQuery,
-  useSendOrderMutation,
-  useUpdateOrderMutation,
+  useAcceptSaleMutation,
+  useCancelSaleMutation,
+  useConvertSaleMutation,
+  useSaleQuery,
+  useSendSaleMutation,
+  useUpdateSaleMutation,
 } from "../queries";
 import { can, useTaxesQuery } from "@/modules/sales/shared";
-import type { Order } from "../api";
+import type { Sale } from "../api";
 import {
-  ORDER_STATUS_LABELS,
-  createEmptyOrderLine,
-  emptyOrderForm,
+  SALE_STATUS_LABELS,
+  createEmptySaleLine,
+  emptySaleForm,
   estimateLineAmount,
   estimateUntaxedTotal,
   formatMoney,
   hasChargeableLine,
-  orderFormSchema,
+  saleFormSchema,
   toFormLines,
   toLineInputs,
-  type OrderFormValues,
-  type OrderLineFormValue,
-} from "@/modules/sales/orders/schema";
+  type SaleFormValues,
+  type SaleLineFormValue,
+} from "@/modules/sales/sale/schema";
 import { ApiError } from "@/lib/api-client";
 
 const detailTabs = [
@@ -77,8 +77,8 @@ const detailTabs = [
   { key: "other", label: "Other Info" },
 ];
 
-/** A cancelled order gets its own last step; a live one never shows it. */
-function stepsFor(status: Order["status"] | undefined): StatusStep[] {
+/** A cancelled sale gets its own last step; a live one never shows it. */
+function stepsFor(status: Sale["status"] | undefined): StatusStep[] {
   const steps: StatusStep[] = [
     { key: "draft", label: "Draft" },
     { key: "sent", label: "Pending" },
@@ -88,27 +88,27 @@ function stepsFor(status: Order["status"] | undefined): StatusStep[] {
   return steps;
 }
 
-export default function OrderEditPage() {
+export default function SaleEditPage() {
   const { uuid = "" } = useParams<{ uuid: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const session = useSession();
-  const navbar = useSalesNavbar("orders");
-  const canEdit = can(session?.permissions, "sales.order", "edit");
-  const canDelete = can(session?.permissions, "sales.order", "delete");
+  const navbar = useSalesNavbar("sales");
+  const canEdit = can(session?.permissions, "sales.sale", "edit");
+  const canDelete = can(session?.permissions, "sales.sale", "delete");
 
-  const orderQuery = useOrderQuery(uuid);
-  const order = orderQuery.data;
-  const isDraft = order?.status === "draft";
-  const isSent = order?.status === "sent";
-  const isAccepted = order?.status === "accepted";
+  const saleQuery = useSaleQuery(uuid);
+  const sale = saleQuery.data;
+  const isDraft = sale?.status === "draft";
+  const isSent = sale?.status === "sent";
+  const isAccepted = sale?.status === "accepted";
   const editable = Boolean(isDraft && canEdit);
 
-  const updateMutation = useUpdateOrderMutation();
-  const sendMutation = useSendOrderMutation();
-  const acceptMutation = useAcceptOrderMutation();
-  const cancelMutation = useCancelOrderMutation();
-  const convertMutation = useConvertOrderMutation();
+  const updateMutation = useUpdateSaleMutation();
+  const sendMutation = useSendSaleMutation();
+  const acceptMutation = useAcceptSaleMutation();
+  const cancelMutation = useCancelSaleMutation();
+  const convertMutation = useConvertSaleMutation();
 
   const customersQuery = useCustomersQuery({
     ordering: "name",
@@ -118,7 +118,7 @@ export default function OrderEditPage() {
   const taxesQuery = useTaxesQuery();
 
   const [activeTab, setActiveTab] = useState("lines");
-  const [lines, setLines] = useState<OrderLineFormValue[]>([]);
+  const [lines, setLines] = useState<SaleLineFormValue[]>([]);
   const [linesError, setLinesError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<
     "send" | "accept" | "cancel" | "convert" | null
@@ -147,33 +147,31 @@ export default function OrderEditPage() {
     setValue,
     setError,
     formState: { errors },
-  } = useForm<OrderFormValues>({
-    resolver: zodResolver(orderFormSchema),
-    defaultValues: emptyOrderForm(),
+  } = useForm<SaleFormValues>({
+    resolver: zodResolver(saleFormSchema),
+    defaultValues: emptySaleForm(),
   });
 
   // Re-seed once the record arrives; until then the form holds its defaults.
   useEffect(() => {
-    if (!order) return;
+    if (!sale) return;
     reset({
-      customer: order.customer.uuid,
-      issue_date: order.issue_date,
-      valid_until: order.valid_until,
-      discount_type: order.discount_type,
-      discount_value: order.discount_value,
-      customer_reference: order.customer_reference,
-      notes: order.notes,
-      terms: order.terms,
+      customer: sale.customer.uuid,
+      issue_date: sale.issue_date,
+      valid_until: sale.valid_until,
+      discount_type: sale.discount_type,
+      discount_value: sale.discount_value,
+      customer_reference: sale.customer_reference,
+      notes: sale.notes,
+      terms: sale.terms,
     });
-    setLines(
-      order.lines.length > 0 ? toFormLines(order.lines) : [createEmptyOrderLine()]
-    );
-  }, [order, reset]);
+    setLines(sale.lines.length > 0 ? toFormLines(sale.lines) : [createEmptySaleLine()]);
+  }, [sale, reset]);
 
-  const currency = order?.currency ?? "";
+  const currency = sale?.currency ?? "";
   const untaxedEstimate = estimateUntaxedTotal(lines);
 
-  const lineColumns: LineItemsColumn<OrderLineFormValue>[] = [
+  const lineColumns: LineItemsColumn<SaleLineFormValue>[] = [
     {
       key: "description",
       label: "Description",
@@ -264,8 +262,8 @@ export default function OrderEditPage() {
   function report(error: unknown, fallback: string) {
     if (error instanceof ApiError && error.fields) {
       for (const [field, messages] of Object.entries(error.fields)) {
-        if (field in orderFormSchema.shape) {
-          setError(field as keyof OrderFormValues, { message: messages[0] });
+        if (field in saleFormSchema.shape) {
+          setError(field as keyof SaleFormValues, { message: messages[0] });
         }
       }
     }
@@ -276,7 +274,7 @@ export default function OrderEditPage() {
     });
   }
 
-  async function onSubmit(values: OrderFormValues) {
+  async function onSubmit(values: SaleFormValues) {
     if (!hasChargeableLine(lines)) {
       setLinesError("Add at least one line with a description.");
       setActiveTab("lines");
@@ -354,9 +352,9 @@ export default function OrderEditPage() {
     }
   }
 
-  /** What this order's state actually permits — nothing else is offered. */
+  /** What this sale's state actually permits — nothing else is offered. */
   function statusActions(): FormStatusBarAction[] {
-    if (!order) return [];
+    if (!sale) return [];
     if (isDraft) {
       const actions: FormStatusBarAction[] = [];
       if (canEdit) {
@@ -395,7 +393,7 @@ export default function OrderEditPage() {
         onClick: () => setConfirming("accept"),
       });
     }
-    if (canEdit && isAccepted && !order.converted_invoice) {
+    if (canEdit && isAccepted && !sale.converted_invoice) {
       actions.push({
         key: "convert",
         label: "Create invoice",
@@ -422,8 +420,8 @@ export default function OrderEditPage() {
     return actions;
   }
 
-  const notFound = orderQuery.isError;
-  const loading = orderQuery.isLoading;
+  const notFound = saleQuery.isError;
+  const loading = saleQuery.isLoading;
 
   return (
     <AppShell activeNavKey="sales" activeMobileKey="tasks" navbar={navbar}>
@@ -431,15 +429,15 @@ export default function OrderEditPage() {
         <ControlPanel
           sticky={false}
           pageActions={
-            <PageActions breadcrumb={order ? order.number || "Draft sale" : "Sale"} />
+            <PageActions breadcrumb={sale ? sale.number || "Draft sale" : "Sale"} />
           }
         />
 
-        {order ? (
+        {sale ? (
           <FormStatusBar
             sticky={false}
-            steps={stepsFor(order.status)}
-            currentStepKey={order.status}
+            steps={stepsFor(sale.status)}
+            currentStepKey={sale.status}
             actions={statusActions()}
           />
         ) : null}
@@ -459,7 +457,7 @@ export default function OrderEditPage() {
             </button>
           </p>
         </div>
-      ) : loading || !order ? (
+      ) : loading || !sale ? (
         <p className="p-4 text-[12px] text-erp-muted">Loading sale…</p>
       ) : (
         <FormShell onSubmit={handleSubmit(onSubmit)}>
@@ -468,12 +466,12 @@ export default function OrderEditPage() {
               <FormField
                 label="Customer"
                 required
-                htmlFor="order-customer"
+                htmlFor="sale-customer"
                 error={errors.customer?.message}
                 span={6}
               >
                 <FormDropdown
-                  id="order-customer"
+                  id="sale-customer"
                   searchable
                   placeholder="Search customer..."
                   error={Boolean(errors.customer)}
@@ -491,12 +489,12 @@ export default function OrderEditPage() {
               <FormField
                 label="Sale date"
                 required
-                htmlFor="order-date"
+                htmlFor="sale-date"
                 error={errors.issue_date?.message}
                 span={3}
               >
                 <FormDatePicker
-                  id="order-date"
+                  id="sale-date"
                   error={Boolean(errors.issue_date)}
                   disabled={!editable}
                   {...register("issue_date")}
@@ -505,12 +503,12 @@ export default function OrderEditPage() {
               <FormField
                 label="Valid until"
                 required
-                htmlFor="order-valid-until"
+                htmlFor="sale-valid-until"
                 error={errors.valid_until?.message}
                 span={3}
               >
                 <FormDatePicker
-                  id="order-valid-until"
+                  id="sale-valid-until"
                   error={Boolean(errors.valid_until)}
                   disabled={!editable}
                   {...register("valid_until")}
@@ -518,17 +516,17 @@ export default function OrderEditPage() {
               </FormField>
               <FormField label="Status" span={3}>
                 <div className="flex h-8 items-center gap-2">
-                  <StatusBadge status={ORDER_STATUS_LABELS[order.status]} />
+                  <StatusBadge status={SALE_STATUS_LABELS[sale.status]} />
                 </div>
               </FormField>
-              {order.converted_invoice ? (
+              {sale.converted_invoice ? (
                 <FormField label="Invoice" span={3}>
                   <div className="flex h-8 items-center">
                     <button
                       type="button"
                       className="border-0 bg-transparent p-0 text-[12px] font-bold text-erp-brand-third hover:underline"
                       onClick={() =>
-                        navigate(`/sales/invoices/${order.converted_invoice}/edit`)
+                        navigate(`/sales/invoices/${sale.converted_invoice}/edit`)
                       }
                     >
                       View invoice
@@ -551,13 +549,13 @@ export default function OrderEditPage() {
               <FormSection title="Sale lines" className="border-b-0">
                 {editable ? (
                   <>
-                    <LineItemsTable<OrderLineFormValue>
-                      tableId="sales-order-edit-lines"
+                    <LineItemsTable<SaleLineFormValue>
+                      tableId="sales-sale-edit-lines"
                       columns={lineColumns}
                       rows={lines}
                       onRowsChange={setLines}
                       createEmptyRow={() =>
-                        createEmptyOrderLine(
+                        createEmptySaleLine(
                           taxes.find((tax) => tax.is_default)?.uuid ?? null
                         )
                       }
@@ -586,7 +584,7 @@ export default function OrderEditPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {order.lines.map((line) => (
+                      {sale.lines.map((line) => (
                         <tr key={line.uuid} className="border-b border-erp-border">
                           <td
                             className={
@@ -620,23 +618,23 @@ export default function OrderEditPage() {
                     <div className="flex items-center justify-between py-0.5">
                       <dt className="text-erp-muted">Subtotal</dt>
                       <dd className="m-0">
-                        {formatMoney(order.subtotal_amount, currency)}
+                        {formatMoney(sale.subtotal_amount, currency)}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between py-0.5">
                       <dt className="text-erp-muted">Discount</dt>
                       <dd className="m-0">
-                        {formatMoney(order.discount_amount, currency)}
+                        {formatMoney(sale.discount_amount, currency)}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between py-0.5">
                       <dt className="text-erp-muted">Tax</dt>
-                      <dd className="m-0">{formatMoney(order.tax_amount, currency)}</dd>
+                      <dd className="m-0">{formatMoney(sale.tax_amount, currency)}</dd>
                     </div>
                     <div className="flex items-center justify-between border-t border-erp-border py-1">
                       <dt className="font-bold">Total</dt>
                       <dd className="m-0 text-[1.1rem] font-bold">
-                        {formatMoney(order.total_amount, currency)}
+                        {formatMoney(sale.total_amount, currency)}
                       </dd>
                     </div>
                   </dl>
@@ -647,18 +645,18 @@ export default function OrderEditPage() {
                 <FormGrid columns={12}>
                   <FormField
                     label="Customer reference"
-                    htmlFor="order-customer-reference"
+                    htmlFor="sale-customer-reference"
                     span={6}
                   >
                     <FormInput
-                      id="order-customer-reference"
+                      id="sale-customer-reference"
                       disabled={!editable}
                       {...register("customer_reference")}
                     />
                   </FormField>
-                  <FormField label="Discount type" htmlFor="order-discount-type" span={3}>
+                  <FormField label="Discount type" htmlFor="sale-discount-type" span={3}>
                     <FormSelect
-                      id="order-discount-type"
+                      id="sale-discount-type"
                       disabled={!editable}
                       options={[
                         { label: "Percentage", value: "percentage" },
@@ -669,12 +667,12 @@ export default function OrderEditPage() {
                   </FormField>
                   <FormField
                     label="Discount"
-                    htmlFor="order-discount-value"
+                    htmlFor="sale-discount-value"
                     error={errors.discount_value?.message}
                     span={3}
                   >
                     <FormInput
-                      id="order-discount-value"
+                      id="sale-discount-value"
                       inputMode="decimal"
                       disabled={!editable}
                       error={Boolean(errors.discount_value)}
@@ -684,24 +682,24 @@ export default function OrderEditPage() {
                   {/* Assigned by the backend from whoever raised it, so it is shown, not asked for. */}
                   <FormField label="Salesperson" span={6}>
                     <p className="m-0 flex h-8 items-center text-[12px] text-erp-text">
-                      {order.salesperson_name ?? "—"}
+                      {sale.salesperson_name ?? "—"}
                     </p>
                   </FormField>
                   <FormField label="Branch" span={6}>
                     <p className="m-0 flex h-8 items-center text-[12px] text-erp-text">
-                      {order.branch?.name ?? "—"}
+                      {sale.branch?.name ?? "—"}
                     </p>
                   </FormField>
-                  <FormField label="Terms and conditions" htmlFor="order-terms" span={12}>
+                  <FormField label="Terms and conditions" htmlFor="sale-terms" span={12}>
                     <FormTextarea
-                      id="order-terms"
+                      id="sale-terms"
                       disabled={!editable}
                       {...register("terms")}
                     />
                   </FormField>
-                  <FormField label="Notes" htmlFor="order-notes" span={12}>
+                  <FormField label="Notes" htmlFor="sale-notes" span={12}>
                     <FormTextarea
-                      id="order-notes"
+                      id="sale-notes"
                       disabled={!editable}
                       {...register("notes")}
                     />
