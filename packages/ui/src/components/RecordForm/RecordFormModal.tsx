@@ -32,7 +32,12 @@ export function RecordFormModal({
   error = null,
   saveLabel,
   cancelLabel,
-  size = "lg",
+  // `xl` is the only size that caps its height, and a record form is exactly
+  // the content that outgrows the viewport: at `lg` a fifteen-field form
+  // pushed its own title and Save button off-screen. The extra width also
+  // stops span-3 fields collapsing into columns too narrow for their own
+  // helper text.
+  size = "xl",
   children,
 }: RecordFormModalProps) {
   const { t } = useUiTranslation("ui");
@@ -49,13 +54,16 @@ export function RecordFormModal({
       title={title}
       size={size}
       bodyClassName="p-0"
+      // Save first, then Discard -- the order the record pages already use,
+      // so the dialog and the full page do not disagree about which button
+      // sits where.
       footer={
         <>
-          <Button variant="secondary" onClick={handleClose} disabled={saving}>
-            {cancelLabel ?? t("confirm.cancel")}
-          </Button>
           <Button variant="primary" loading={saving} onClick={onSave}>
             {saveLabel ?? t("recordForm.save")}
+          </Button>
+          <Button variant="secondary" onClick={handleClose} disabled={saving}>
+            {cancelLabel ?? t("recordForm.discard")}
           </Button>
         </>
       }
@@ -63,12 +71,14 @@ export function RecordFormModal({
       {error ? (
         <div
           role="alert"
-          className="border-b border-erp-error-border bg-erp-error-bg px-3 py-2 text-[11px] text-erp-error"
+          className="shrink-0 border-b border-erp-error-border bg-erp-error-bg px-3 py-2 text-[11px] text-erp-error"
         >
           {error}
         </div>
       ) : null}
-      {children}
+      {/* The fields scroll, not the dialog: the title stays put, the error
+          banner stays visible, and Save never leaves the screen. */}
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">{children}</div>
     </Modal>
   );
 }
