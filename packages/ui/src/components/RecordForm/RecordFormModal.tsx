@@ -53,6 +53,10 @@ export function RecordFormModal({
       onClose={handleClose}
       title={title}
       size={size}
+      // `xl` exists to cap the height; its 1200px width is too wide for a
+      // form -- at full stretch the dialog covers the record behind it and
+      // stops reading as a sub-task you will return from.
+      className="max-w-[min(768px,calc(100vw-2rem))]"
       bodyClassName="p-0"
       // Save first, then Discard -- the order the record pages already use,
       // so the dialog and the full page do not disagree about which button
