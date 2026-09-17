@@ -257,9 +257,9 @@ function SearchFacet({
           <Filter className="h-3 w-3" />
         )}
       </span>
-      <div className="relative z-[1] flex min-w-0 flex-wrap items-center ps-2">
+      <div className="relative z-[1] flex min-w-0 flex-wrap items-center gap-y-0.5 py-1 ps-2">
         {chip.prefix ? (
-          <small className="me-0.5 max-w-[8rem] truncate text-[12px] leading-none text-erp-text">
+          <small className="me-0.5 max-w-[8rem] truncate text-[12px] leading-[1.4] text-erp-text">
             {chip.prefix}:
           </small>
         ) : null}
@@ -269,7 +269,7 @@ function SearchFacet({
               <em className="mx-1 text-[12px] font-bold opacity-50">{separator}</em>
             ) : null}
             <small
-              className="max-w-[11rem] truncate text-[12px] leading-none text-erp-text"
+              className="max-w-[11rem] truncate text-[12px] leading-[1.4] text-erp-text"
               title={value}
             >
               {value}
