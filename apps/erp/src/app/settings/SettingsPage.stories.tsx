@@ -95,3 +95,20 @@ export const Sales: Story = {
     defaultTab: "sales",
   },
 };
+
+/**
+ * A module that does not exist yet: no tabs, no controls, one sentence
+ * saying so. The navbar above it is the point — eight entries is what the
+ * quiet tone was drawn against.
+ */
+export const ComingSoon: Story = {
+  args: {
+    defaultModule: "sample:accounting",
+  },
+};
+
+export const ComingSoonLongestTitle: Story = {
+  args: {
+    defaultModule: "sample:pos",
+  },
+};
