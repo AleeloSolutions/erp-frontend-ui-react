@@ -16,7 +16,17 @@
     "selectedCount": "{{count}} selected",
     "selected": "selected",
     "clearSelection": "Clear selection",
-    "actions": "Actions"
+    "actions": "Actions",
+    "groups": "groups",
+    "expandGroup": "Expand {{label}}",
+    "collapseGroup": "Collapse {{label}}",
+    "groupRowsLoading": "Loading rows…",
+    "groupRowsError": "Could not load this group's rows.",
+    "groupRowsEmpty": "No rows in this group.",
+    "retry": "Retry",
+    "overallTotal": "Total",
+    "overallTotalHint": "Every record matching the current filters — not just this page.",
+    "records": "records"
   },
   "searchFilter": {
     "filters": "Filters",

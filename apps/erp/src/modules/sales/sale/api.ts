@@ -10,8 +10,15 @@
  * carries a trimmed copy of the customer it was issued to.
  */
 
-import { apiDelete, apiGet, apiGetPage, apiPatch, apiPost } from "@/lib/api-client";
-import type { Page } from "@/lib/api-client";
+import {
+  apiDelete,
+  apiFetch,
+  apiGet,
+  apiGetPage,
+  apiPatch,
+  apiPost,
+} from "@/lib/api-client";
+import type { ApiFetchOptions, Page } from "@/lib/api-client";
 import { query, type BranchRef, type ListParams } from "../shared/api";
 import type { Customer } from "../customers/api";
 
@@ -116,8 +123,112 @@ export interface SaleInput {
   lines?: SaleLineInput[];
 }
 
+// ---------------------------------------------------------------------------
+// The grouped list (`?group_by=`)
+// ---------------------------------------------------------------------------
+
+/** The columns the list can be grouped by, server-side. */
+export type SaleGroupField =
+  "customer" | "branch" | "salesperson" | "status" | "currency" | "issue_date";
+
+export type SaleDateGrain = "day" | "week" | "month" | "quarter" | "year";
+
+/** A `group_by` spec. A bare `issue_date` means `issue_date:day`. */
+export type SaleGroupBy = SaleGroupField | `issue_date:${SaleDateGrain}`;
+
+/**
+ * One group row, counted and totalled over every matching sale rather
+ * than over the rows a page happened to load.
+ *
+ * `key` is null only where the grouped column itself is null — a sale
+ * with no salesperson. Send it back through `listSalesInGroup` unchanged
+ * to open the group; `label` is already resolved server-side, so a group
+ * row costs no second request.
+ */
+export interface SaleGroup {
+  key: string | null;
+  label: string;
+  count: number;
+  /**
+   * Currency code → amount, as a decimal string. Money is PER CURRENCY:
+   * a tenant legitimately trades in USD and SOS, and one number spanning
+   * both would be arithmetic on two different things.
+   */
+  totals: Record<string, string>;
+}
+
+/** The grand total over the WHOLE filtered set — never just this page. */
+export interface SaleGroupAggregate {
+  count: number;
+  totals: Record<string, string>;
+}
+
+/**
+ * The grouped envelope. `meta.total` counts GROUPS, so it drives the
+ * group pager; `aggregate` describes every matching sale whatever page is
+ * on screen, which is what the grand-total footer must read. Adding up
+ * `data` would print "the total of the groups currently visible".
+ */
+export interface SaleGroupPage extends Page<SaleGroup> {
+  aggregate: SaleGroupAggregate;
+}
+
+/** The backend's own group page size, so the pager agrees with it. */
+export const SALE_GROUP_PAGE_SIZE = 50;
+
+/** JSON null cannot travel in a query string, so the null group is named. */
+export const NULL_GROUP_KEY = "__none__";
+
 export function listSales(params: ListParams = {}): Promise<Page<Sale>> {
   return apiGetPage<Sale>(`/v1/sales/?${query(params)}`);
+}
+
+/**
+ * The same list, aggregated in the database: one row per group.
+ *
+ * Deliberately not `apiGetPage`. That helper returns `Page<T>`, which
+ * admits only `data` and `meta` — the `aggregate` block does survive the
+ * fetch (the helper already passes `unwrap: false`) but is invisible to
+ * every caller, one type away from being lost for good. The footer has to
+ * read the server's grand total, so this drops to `apiFetch` and keeps
+ * the whole envelope instead of widening the shared helper for one
+ * endpoint.
+ */
+export function listSaleGroups(
+  groupBy: SaleGroupBy,
+  params: ListParams = {},
+  init?: ApiFetchOptions
+): Promise<SaleGroupPage> {
+  const search = new URLSearchParams(
+    query({ ...params, pageSize: params.pageSize ?? SALE_GROUP_PAGE_SIZE })
+  );
+  search.set("group_by", groupBy);
+  return apiFetch<SaleGroupPage>(`/v1/sales/?${search.toString()}`, {
+    ...init,
+    method: "GET",
+    unwrap: false,
+  });
+}
+
+/**
+ * Opening one group: the FLAT list again, narrowed to exactly the rows
+ * that group counted.
+ *
+ * The spec travels beside the key, so the backend rebuilds the predicate
+ * from the very definition that produced the key and a header can never
+ * disagree with the rows behind it. Search, status, date ranges and
+ * ordering all still compose — they ride along in `params`.
+ */
+export function listSalesInGroup(
+  groupBy: SaleGroupBy,
+  groupKey: string | null,
+  params: ListParams = {},
+  init?: ApiFetchOptions
+): Promise<Page<Sale>> {
+  const search = new URLSearchParams(query(params));
+  search.set("group_by", groupBy);
+  search.set("group_key", groupKey ?? NULL_GROUP_KEY);
+  return apiGetPage<Sale>(`/v1/sales/?${search.toString()}`, init);
 }
 
 export function getSale(uuid: string) {

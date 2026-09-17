@@ -1,10 +1,15 @@
 import { Fragment, type ReactNode } from "react";
 import type { Row, Table } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
+import { AlertTriangle } from "lucide-react";
 import { cn, formatPeriodBucket, parsePeriodGroupingColumnId } from "../../utils";
+import { useUiTranslation } from "../../i18n";
 import { DataTableEmpty } from "./DataTableEmpty";
+import { DataTableGroupRow } from "./DataTableGroupRow";
+import { DataTableCurrencyTotals } from "./DataTableCurrencyTotals";
 import { DataTableTruncatedCell } from "./DataTableTruncatedCell";
 import { getColumnCellStyle } from "./column-width";
+import type { DataTableServerGroupSection } from "./serverGrouping";
 import "../../types/table";
 
 function groupingBadgeLabel(columnId: string): string {
@@ -27,6 +32,21 @@ export interface DataTableGroupSummaryContext<TData> {
   depth: number;
 }
 
+/**
+ * Everything the body needs to draw server-computed groups. `DataTable` owns
+ * the expansion state and the flattening, so the sections and the row model it
+ * hands over are always in step.
+ */
+export interface DataTableServerGroupsConfig<TData> {
+  sections: DataTableServerGroupSection<TData>[];
+  /** Pill naming the grouped dimension, e.g. "Customer". */
+  groupLabel?: ReactNode;
+  formatAmount?: (amount: string, currency: string) => ReactNode;
+  onToggle: (identity: string) => void;
+  /** Absent means a failed group shows no retry control. */
+  onRetry?: (identity: string) => void;
+}
+
 export interface DataTableBodyProps<TData> {
   table: Table<TData>;
   emptyMessage?: string;
@@ -43,6 +63,12 @@ export interface DataTableBodyProps<TData> {
    * e.g. a money total for the portion. Shared by every Group By consumer.
    */
   renderGroupSummary?: (ctx: DataTableGroupSummaryContext<TData>) => ReactNode;
+  /**
+   * Server-grouped mode. When set, the body renders collapsible group rows
+   * instead of the client-side grouping model, and `groupingColumnIds` is
+   * ignored.
+   */
+  serverGroups?: DataTableServerGroupsConfig<TData>;
 }
 
 function DataRow<TData>({
@@ -151,8 +177,6 @@ function GroupedRows<TData>({
     groups.set(key, list);
   });
 
-  const pad = Math.min(depth, 4) * 12;
-
   return (
     <>
       {[...groups.entries()].map(([groupName, groupRows]) => {
@@ -164,34 +188,14 @@ function GroupedRows<TData>({
         });
         return (
           <Fragment key={`${columnId}:${groupName}:${depth}`}>
-            <tr className="table-group-row">
-              <td
-                colSpan={colSpan}
-                className="!border-b !border-erp-table-border !bg-erp-table-header !p-0"
-              >
-                <div
-                  className="flex h-10 items-center gap-2 px-4"
-                  style={{ paddingInlineStart: 16 + pad }}
-                >
-                  <span className="inline-flex items-center rounded-full bg-erp-info-bg px-[0.65em] py-[0.25em] text-[0.75em] font-medium text-erp-info">
-                    {groupingBadgeLabel(columnId)}
-                  </span>
-                  <span className="min-w-0 truncate text-[14px] font-medium text-erp-text">
-                    {groupingValueLabel(columnId, groupName)}
-                  </span>
-                  <span className="ms-auto flex shrink-0 items-center gap-3 text-[14px] text-erp-muted">
-                    {summary != null && summary !== false ? (
-                      <span className="tabular-nums font-medium text-erp-text">
-                        {summary}
-                      </span>
-                    ) : null}
-                    <span>
-                      {groupRows.length} item{groupRows.length === 1 ? "" : "s"}
-                    </span>
-                  </span>
-                </div>
-              </td>
-            </tr>
+            <DataTableGroupRow
+              colSpan={colSpan}
+              depth={depth}
+              badge={groupingBadgeLabel(columnId)}
+              label={groupingValueLabel(columnId, groupName)}
+              summary={summary}
+              count={groupRows.length}
+            />
             <GroupedRows
               rows={groupRows}
               columnIds={rest}
@@ -209,6 +213,163 @@ function GroupedRows<TData>({
   );
 }
 
+/**
+ * In-group status line — loading, failed, or loaded-but-empty.
+ *
+ * Deliberately rendered *inside* the group it belongs to: one slow or broken
+ * group must not blank out the groups around it.
+ */
+function GroupStateRow({
+  colSpan,
+  variant,
+  message,
+  onRetry,
+}: {
+  colSpan: number;
+  variant: "loading" | "error" | "empty";
+  message?: string | null;
+  onRetry?: () => void;
+}) {
+  const { t } = useUiTranslation("ui");
+
+  return (
+    <tr className={`table-group-state-row table-group-state-row--${variant}`}>
+      <td
+        colSpan={colSpan}
+        className={cn(
+          "!border-b !border-erp-table-border !p-0",
+          variant === "error" ? "!bg-erp-error-bg" : "!bg-erp-table-bg"
+        )}
+      >
+        <div
+          className="flex h-10 items-center gap-2 pe-4 ps-11"
+          role={variant === "error" ? "alert" : "status"}
+          aria-live={variant === "loading" ? "polite" : undefined}
+          aria-busy={variant === "loading" || undefined}
+        >
+          {variant === "loading" ? (
+            <>
+              <span
+                className="h-2.5 w-28 animate-pulse rounded bg-erp-table-border"
+                aria-hidden
+              />
+              <span className="text-[13px] text-erp-muted">
+                {t("datatable.groupRowsLoading")}
+              </span>
+            </>
+          ) : null}
+          {variant === "error" ? (
+            <>
+              <AlertTriangle className="h-4 w-4 shrink-0 text-erp-error" aria-hidden />
+              <span className="min-w-0 truncate text-[13px] text-erp-error">
+                {message || t("datatable.groupRowsError")}
+              </span>
+              {onRetry ? (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="ms-auto shrink-0 rounded border border-erp-error-border px-2 py-0.5 text-[13px] font-medium text-erp-error hover:bg-erp-error-border/30"
+                >
+                  {t("datatable.retry")}
+                </button>
+              ) : null}
+            </>
+          ) : null}
+          {variant === "empty" ? (
+            <span className="text-[13px] text-erp-muted">
+              {t("datatable.groupRowsEmpty")}
+            </span>
+          ) : null}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function ServerGroupSections<TData>({
+  rows,
+  colSpan,
+  config,
+  activeRowId,
+  onClearActiveRow,
+  getRowClassName,
+}: {
+  rows: Row<TData>[];
+  colSpan: number;
+  config: DataTableServerGroupsConfig<TData>;
+  activeRowId?: string | null;
+  onClearActiveRow?: () => void;
+  getRowClassName?: (row: TData) => string | undefined;
+}) {
+  const { t } = useUiTranslation("ui");
+
+  return (
+    <>
+      {config.sections.map((section) => {
+        const { group, identity, expanded, entry } = section;
+        const groupRows = rows.slice(
+          section.rowStart,
+          section.rowStart + section.rowCount
+        );
+        // No entry yet = the caller has not answered the expand request. A
+        // refresh over rows already on screen shows the line above them rather
+        // than blanking the group.
+        const showLoading = expanded && (entry == null || entry.loading);
+        const showError = expanded && !showLoading && Boolean(entry?.error);
+        const showEmpty =
+          expanded && !showLoading && !showError && section.rowCount === 0;
+
+        return (
+          <Fragment key={identity}>
+            <DataTableGroupRow
+              colSpan={colSpan}
+              badge={config.groupLabel}
+              label={group.label}
+              count={group.count}
+              summary={
+                // Omit rather than render an empty slot: a group with no
+                // totals should not leave a gap where the money goes.
+                Object.keys(group.totals).length > 0 ? (
+                  <DataTableCurrencyTotals
+                    totals={group.totals}
+                    formatAmount={config.formatAmount}
+                  />
+                ) : undefined
+              }
+              disclosure={{
+                expanded,
+                onToggle: () => config.onToggle(identity),
+                label: expanded
+                  ? t("datatable.collapseGroup", { label: group.label })
+                  : t("datatable.expandGroup", { label: group.label }),
+              }}
+            />
+            {showLoading ? <GroupStateRow colSpan={colSpan} variant="loading" /> : null}
+            {showError ? (
+              <GroupStateRow
+                colSpan={colSpan}
+                variant="error"
+                message={entry?.error}
+                onRetry={config.onRetry ? () => config.onRetry?.(identity) : undefined}
+              />
+            ) : null}
+            {showEmpty ? <GroupStateRow colSpan={colSpan} variant="empty" /> : null}
+            {groupRows.map((row) => (
+              <DataRow
+                key={row.id}
+                row={row}
+                activeRowId={activeRowId}
+                onClearActiveRow={onClearActiveRow}
+                getRowClassName={getRowClassName}
+              />
+            ))}
+          </Fragment>
+        );
+      })}
+    </>
+  );
+}
+
 export function DataTableBody<TData>({
   table,
   emptyMessage,
@@ -217,9 +378,32 @@ export function DataTableBody<TData>({
   onClearActiveRow,
   getRowClassName,
   renderGroupSummary,
+  serverGroups,
 }: DataTableBodyProps<TData>) {
   const rows = table.getRowModel().rows;
   const colSpan = Math.max(table.getVisibleLeafColumns().length, 1);
+
+  if (serverGroups) {
+    if (serverGroups.sections.length === 0) {
+      return (
+        <tbody>
+          <DataTableEmpty colSpan={colSpan} message={emptyMessage} />
+        </tbody>
+      );
+    }
+    return (
+      <tbody>
+        <ServerGroupSections
+          rows={rows}
+          colSpan={colSpan}
+          config={serverGroups}
+          activeRowId={activeRowId}
+          onClearActiveRow={onClearActiveRow}
+          getRowClassName={getRowClassName}
+        />
+      </tbody>
+    );
+  }
 
   if (rows.length === 0) {
     return (

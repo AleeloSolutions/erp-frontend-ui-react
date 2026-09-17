@@ -22,6 +22,11 @@ export type {
   DataTableFilteringConfig,
   DataTableGroupingOption,
   DataTablePaginationConfig,
+  DataTableServerGroup,
+  DataTableServerGroupAggregate,
+  DataTableServerGroupPaginationConfig,
+  DataTableServerGroupRows,
+  DataTableServerGroupingConfig,
   DataTableSortingConfig,
 } from "./table";
 export type {

@@ -37,9 +37,12 @@ import { DataTableBulkActions } from "./DataTableBulkActions";
 import { DataTableColumnsMenu } from "./DataTableColumnsMenu";
 import { DataTableHeader } from "./DataTableHeader";
 import { DataTableColumnResizer } from "./DataTableColumnResizer";
-import { DataTableBody } from "./DataTableBody";
-import { DataTablePagination } from "./DataTablePagination";
+import { DataTableBody, type DataTableServerGroupsConfig } from "./DataTableBody";
+import { DataTablePagination, DataTableRangePagination } from "./DataTablePagination";
 import { DataTableLoading } from "./DataTableLoading";
+import { DataTableAggregateFooter } from "./DataTableAggregateFooter";
+import { DataTableCurrencyTotals } from "./DataTableCurrencyTotals";
+import { dataTableGroupKeyId, type DataTableServerGroupSection } from "./serverGrouping";
 import { defaultDatePresetOptions } from "./dateFilterOptions";
 import {
   getColumnWidthStyle,
@@ -48,6 +51,7 @@ import {
   type SizingColumnSpec,
 } from "./column-width";
 import { useDebounce } from "../../hooks/useDebounce";
+import { useUiTranslation } from "../../i18n";
 import { CONTROL_PANEL_HEIGHT, NAVBAR_HEIGHT } from "../../layout/stickyOffsets";
 import type {
   DataTableBulkAction,
@@ -58,6 +62,7 @@ import type {
   DataTableGroupingOption,
   DataTablePaginationConfig,
   DataTableRowAction,
+  DataTableServerGroupingConfig,
   DataTableSortingConfig,
 } from "../../types/table";
 import "../../types/table";
@@ -333,6 +338,20 @@ export interface DataTableProps<TData, TValue = unknown> {
   groupingOptions?: DataTableGroupingOption[];
   /** Fires when Group By selections change (including period grains). */
   onGroupingChange?: (columnIds: string[]) => void;
+  /**
+   * Server-grouped mode — an alternative to `enableGrouping`'s client-side
+   * model, which can only group the rows already on the page.
+   *
+   * The server computes the groups, their counts and their totals over the
+   * whole filtered set; the table renders that page of groups collapsed and
+   * asks for a group's rows only when it is opened. `aggregate` drives the
+   * grand-total footer and the pager pages GROUPS.
+   *
+   * While this is set, the Group By panel still drives `onGroupingChange` (so
+   * the page can change its `group_by` spec), but rows are laid out from these
+   * groups rather than from the client grouping model.
+   */
+  serverGrouping?: DataTableServerGroupingConfig<TData>;
   getRowId?: (originalRow: TData, index: number) => string;
   sorting?: DataTableSortingConfig;
   /**
@@ -423,6 +442,7 @@ export function DataTable<TData, TValue = unknown>({
   enableGrouping = false,
   groupingOptions = [],
   onGroupingChange,
+  serverGrouping,
   getRowId,
   sorting: controlledSorting,
   filtering: controlledFiltering,
@@ -433,8 +453,11 @@ export function DataTable<TData, TValue = unknown>({
   belowControlPanel,
   renderToolbar,
 }: DataTableProps<TData, TValue>) {
+  const { t } = useUiTranslation("ui");
   const isServerPagination = typeof pagination === "object";
   const enablePagination = pagination !== false;
+  const serverGroupingActive = serverGrouping != null;
+  const groupPagination = serverGrouping?.pagination ?? null;
   const resolvedBelowControlPanel = belowControlPanel ?? renderToolbar != null;
   const stickyHeaderTop = stickyHeader
     ? NAVBAR_HEIGHT + (resolvedBelowControlPanel ? CONTROL_PANEL_HEIGHT : 0)
@@ -473,6 +496,52 @@ export function DataTable<TData, TValue = unknown>({
   useEffect(() => {
     onGroupingChange?.(grouping);
   }, [grouping, onGroupingChange]);
+
+  /**
+   * Server-grouped expansion. Session-only by design: which groups someone
+   * opened says nothing once the group page or the grouping itself changes, and
+   * restoring it would fire a burst of row fetches for groups nobody asked for.
+   */
+  const [expandedGroupKeys, setExpandedGroupKeys] = useState<string[]>([]);
+  const expandedGroupKeysRef = useRef<string[]>([]);
+  const notifyExpandedRef = useRef<((keys: string[]) => void) | undefined>(undefined);
+
+  useEffect(() => {
+    notifyExpandedRef.current = serverGrouping?.onExpandedChange;
+  });
+
+  const serverGroupIdentities = serverGrouping
+    ? serverGrouping.groups.map((group) => dataTableGroupKeyId(group.key))
+    : [];
+  /**
+   * Changes when the page of groups changes, when the grouping changes, or when
+   * the mode is turned off — each of which makes the open set meaningless.
+   * Rows arriving for an already-open group do not change it.
+   */
+  const expansionSignature = serverGroupingActive
+    ? [
+        groupPagination?.page ?? 1,
+        grouping.join("|"),
+        serverGroupIdentities.join("|"),
+      ].join("::")
+    : "";
+
+  useEffect(() => {
+    if (expandedGroupKeysRef.current.length === 0) return;
+    expandedGroupKeysRef.current = [];
+    setExpandedGroupKeys([]);
+    notifyExpandedRef.current?.([]);
+  }, [expansionSignature]);
+
+  const toggleServerGroup = (identity: string) => {
+    const next = expandedGroupKeysRef.current.includes(identity)
+      ? expandedGroupKeysRef.current.filter((key) => key !== identity)
+      : [...expandedGroupKeysRef.current, identity];
+    expandedGroupKeysRef.current = next;
+    setExpandedGroupKeys(next);
+    serverGrouping?.onExpandedChange(next);
+  };
+
   const [paginationState, setPaginationState] = useState<PaginationState>({
     pageIndex: isServerPagination ? Math.max(0, pagination.page - 1) : 0,
     pageSize: isServerPagination ? pagination.pageSize : initialPageSize,
@@ -767,8 +836,58 @@ export function DataTable<TData, TValue = unknown>({
     return rows;
   }, [data, searchable, debouncedSearch, filters, filterValues, manualFiltering]);
 
+  /**
+   * One section per server group, carrying where that group's loaded rows sit
+   * in the flattened row model below. Both come out of the same pass, so the
+   * body can never slice the wrong rows into a group.
+   */
+  // Keyed off the two collections rather than the config object, which callers
+  // usually rebuild inline — otherwise every render would hand the table a new
+  // `data` array and rebuild the whole row model.
+  const serverGroupList = serverGrouping?.groups;
+  const serverRowsByGroup = serverGrouping?.rowsByGroup;
+
+  const serverGroupSections = useMemo((): DataTableServerGroupSection<TData>[] | null => {
+    if (!serverGroupList || !serverRowsByGroup) return null;
+    let cursor = 0;
+    return serverGroupList.map((group) => {
+      const identity = dataTableGroupKeyId(group.key);
+      const expanded = expandedGroupKeys.includes(identity);
+      const entry = serverRowsByGroup[identity];
+      const rowCount = expanded ? (entry?.rows.length ?? 0) : 0;
+      const section: DataTableServerGroupSection<TData> = {
+        group,
+        identity,
+        expanded,
+        entry,
+        rowStart: cursor,
+        rowCount,
+      };
+      cursor += rowCount;
+      return section;
+    });
+  }, [serverGroupList, serverRowsByGroup, expandedGroupKeys]);
+
+  /**
+   * Rows of every open group, in group order — this is what the table itself is
+   * fed, so cells, sizing and selection keep working exactly as in flat mode.
+   */
+  const serverFlatRows = useMemo((): TData[] | null => {
+    if (!serverGroupSections) return null;
+    const out: TData[] = [];
+    serverGroupSections.forEach((section) => {
+      if (section.rowCount === 0) return;
+      out.push(...(section.entry?.rows ?? []));
+    });
+    return out;
+  }, [serverGroupSections]);
+
+  const tableData = serverFlatRows ?? filteredBySearch;
+  /** Content sample for the one-shot column fit. */
+  const sizingRows = serverGroupingActive ? (serverFlatRows ?? []) : data;
+
   const table = useReactTable({
-    data: filteredBySearch,
+    data: tableData,
     columns: tableColumns,
     defaultColumn: {
       minSize: DEFAULT_COLUMN_MIN_SIZE,
@@ -792,9 +911,12 @@ export function DataTable<TData, TValue = unknown>({
     columnResizeMode: "onChange",
     columnResizeDirection,
     autoResetPageIndex: false,
-    manualPagination: isServerPagination,
+    // Server-grouped mode pages GROUPS, not rows: every loaded row stays in the
+    // model so each open group renders whole.
+    manualPagination: isServerPagination || serverGroupingActive,
     // Server lists pass sorting to the API; do not re-sort the page client-side.
-    manualSorting: manualFiltering,
+    // Re-sorting under server grouping would also scramble rows across groups.
+    manualSorting: manualFiltering || serverGroupingActive,
     pageCount: isServerPagination
       ? Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
       : undefined,
@@ -829,7 +951,8 @@ export function DataTable<TData, TValue = unknown>({
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: enablePagination ? getPaginationRowModel() : undefined,
+    getPaginationRowModel:
+      enablePagination && !serverGroupingActive ? getPaginationRowModel() : undefined,
   });
 
   // Keep column pixel sizes summing to the measured container width.
@@ -873,11 +996,13 @@ export function DataTable<TData, TValue = unknown>({
   useEffect(() => {
     if (sizingLockedRef.current) return;
     if (loading) return;
-    if (data.length === 0) return;
+    // Server-grouped lists have no rows until a group is opened — the first
+    // opened group is what the columns get fitted to.
+    if (sizingRows.length === 0) return;
 
     const estimated = estimateDataColumnSizing(
       columns as ColumnDef<TData, unknown>[],
-      data,
+      sizingRows,
       {
         minSize: DEFAULT_COLUMN_MIN_SIZE,
         maxSize: DEFAULT_COLUMN_MAX_SIZE,
@@ -911,7 +1036,7 @@ export function DataTable<TData, TValue = unknown>({
     setColumnSizing(normalizeSizingToWidth(estimated, specs, containerWidth));
     // table / columns read for leaf defs + content estimate; lock after first fit
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot after first non-empty load
-  }, [loading, data, columns, containerWidth, visibleLeafKey]);
+  }, [loading, sizingRows, columns, containerWidth, visibleLeafKey]);
 
   const resolvedGroupingOptions = useMemo((): DataTableGroupingOption[] => {
     if (!enableGrouping) return [];
@@ -946,13 +1071,21 @@ export function DataTable<TData, TValue = unknown>({
    * options, but disable the items. Active filters stay enabled so they can
    * be cleared when a filter set itself yields an empty page.
    */
-  const catalogEmpty =
-    isServerPagination &&
-    !loading &&
-    totalRows === 0 &&
-    data.length === 0 &&
-    !hasActiveFilters &&
-    !search.trim();
+  const catalogEmpty = serverGrouping
+    ? // Server-grouped: the group page is the catalog. Never derived from
+      // `pagination.total`, which counts records and may not even be passed
+      // here — and disabling Group By on a stale zero would strand the user in
+      // a grouping they could no longer switch off.
+      !serverGrouping.loading &&
+      serverGrouping.groups.length === 0 &&
+      !hasActiveFilters &&
+      !search.trim()
+    : isServerPagination &&
+      !loading &&
+      totalRows === 0 &&
+      data.length === 0 &&
+      !hasActiveFilters &&
+      !search.trim();
 
   const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
 
@@ -1194,7 +1327,23 @@ export function DataTable<TData, TValue = unknown>({
   // share one full-width grid.
   const tableWidth = containerWidth > 0 ? containerWidth : totalColumnsWidth;
 
-  const pager = enablePagination ? (
+  /**
+   * In server-grouped mode the pager walks GROUPS, so it is driven by
+   * `serverGrouping.pagination` and labelled as such — a row pager over a body
+   * of group rows would be reporting a number the screen is not showing. No
+   * group pagination config means no pager rather than the wrong one.
+   */
+  const pager = serverGrouping ? (
+    groupPagination ? (
+      <DataTableRangePagination
+        page={groupPagination.page}
+        pageSize={groupPagination.pageSize}
+        total={groupPagination.total}
+        onPageChange={groupPagination.onPageChange}
+        unitLabel={t("datatable.groups")}
+      />
+    ) : null
+  ) : enablePagination ? (
     <DataTablePagination
       table={table}
       totalRows={totalRows}
@@ -1263,7 +1412,27 @@ export function DataTable<TData, TValue = unknown>({
     />
   ) : null;
 
-  const showLoadingSkeleton = loading && data.length === 0;
+  /**
+   * Whole-table states. A single group's rows loading or failing is NOT one of
+   * these — that stays inside its own group so the rest stays readable.
+   */
+  const showLoadingSkeleton = serverGrouping
+    ? Boolean(serverGrouping.loading) && serverGrouping.groups.length === 0
+    : loading && data.length === 0;
+  const displayError = error ?? serverGrouping?.error ?? null;
+
+  const serverGroupsConfig: DataTableServerGroupsConfig<TData> | undefined =
+    serverGrouping && serverGroupSections
+      ? {
+          sections: serverGroupSections,
+          groupLabel: serverGrouping.groupLabel,
+          formatAmount: serverGrouping.formatAmount,
+          onToggle: toggleServerGroup,
+          onRetry: serverGrouping.onRetryGroup
+            ? (identity) => serverGrouping.onRetryGroup?.(identity)
+            : undefined,
+        }
+      : undefined;
 
   return (
     <>
@@ -1287,9 +1456,9 @@ export function DataTable<TData, TValue = unknown>({
             <div className="h-full w-1/3 animate-[erp-fetch-slide_1s_ease-in-out_infinite] bg-erp-primary" />
           </div>
         ) : null}
-        {error ? (
+        {displayError ? (
           <div className="grid min-h-[120px] place-items-center px-4 text-[0.875rem] text-erp-error">
-            {error}
+            {displayError}
           </div>
         ) : showLoadingSkeleton ? (
           <DataTableLoading
@@ -1358,12 +1527,25 @@ export function DataTable<TData, TValue = unknown>({
                 <DataTableBody
                   table={table}
                   emptyMessage={emptyMessage}
-                  groupingColumnIds={orderedGrouping}
+                  groupingColumnIds={serverGroupingActive ? [] : orderedGrouping}
                   activeRowId={activeRowId}
                   onClearActiveRow={() => setActiveRowId(null)}
                   getRowClassName={getRowClassName}
                   renderGroupSummary={renderGroupSummary}
+                  serverGroups={serverGroupsConfig}
                 />
+                {serverGrouping ? (
+                  <DataTableAggregateFooter
+                    colSpan={Math.max(table.getVisibleLeafColumns().length, 1)}
+                    count={serverGrouping.aggregate.count}
+                    totals={
+                      <DataTableCurrencyTotals
+                        totals={serverGrouping.aggregate.totals}
+                        formatAmount={serverGrouping.formatAmount}
+                      />
+                    }
+                  />
+                ) : null}
               </table>
             </div>
           </div>
