@@ -322,6 +322,7 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
     const [panelPos, setPanelPos] = useState<{
       top: number;
       left: number;
+      width: number;
     } | null>(null);
     const isControlled = controlledOpen !== undefined;
     const open = showPanel && (isControlled ? controlledOpen : uncontrolledOpen);
@@ -346,6 +347,7 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
       setPanelPos({
         top: rect.bottom + 6,
         left: rect.left,
+        width: rect.width,
       });
     }
 
@@ -356,6 +358,17 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
       }
       syncPanelToShell();
     }, [open, showPanel, chips.length, value]);
+
+    // The panel is the width of the shell, measured rather than declared:
+    // both being "26rem" made them equal by coincidence, and they drifted.
+    // The shell also grows with its facets, so match it while it moves.
+    useEffect(() => {
+      const shell = shellRef.current;
+      if (!open || !showPanel || !shell || typeof ResizeObserver === "undefined") return;
+      const observer = new ResizeObserver(() => syncPanelToShell());
+      observer.observe(shell);
+      return () => observer.disconnect();
+    }, [open, showPanel]);
 
     useEffect(() => {
       if (!open || !showPanel) return;
@@ -416,12 +429,10 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
                 "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full",
                 "[&::-webkit-scrollbar-thumb]:bg-erp-muted/40 [&::-webkit-scrollbar-track]:bg-transparent"
               )}
-              // Width is deliberately not tracked to the shell: the shell now
-              // grows with its facets, and a measured width would go stale the
-              // moment one lands. Odoo's panel is a fixed-width menu too.
               style={{
                 top: panelPos.top,
                 left: panelPos.left,
+                width: panelPos.width,
               }}
             >
               <PanelColumn
@@ -445,22 +456,33 @@ export const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(
     return (
       <div
         ref={rootRef}
-        // The shell rests at 26rem and grows with its facets until only
-        // --sf-gutter is left either side, then wraps downward instead. The
-        // side tracks hold that gutter, minus the grid gap they sit next to,
-        // so the clearance stays 50px however the gap changes.
+        // The shell rests at 26rem and grows with its facets, staying centred,
+        // until only --sf-gutter is left either side; then chips wrap and it
+        // grows downward instead. The side tracks carry that gutter and the
+        // grid gap sits on top of it. Where a side slot holds real content —
+        // the pager — the track cannot shrink below it, so the shell stops at
+        // the pager rather than pushing it.
         style={{ "--sf-gutter": "50px" } as CSSProperties}
         className={cn(
           "relative w-full min-w-0",
           hasSideSlots &&
-            "grid items-center gap-3 grid-cols-[minmax(calc(var(--sf-gutter)-0.75rem),1fr)_minmax(26rem,max-content)_minmax(calc(var(--sf-gutter)-0.75rem),1fr)]",
+            "grid items-center gap-3 grid-cols-[minmax(var(--sf-gutter),1fr)_minmax(26rem,max-content)_minmax(var(--sf-gutter),1fr)]",
           className
         )}
       >
         {hasSideSlots ? <div /> : null}
         <div
           ref={shellRef}
-          className="relative mx-auto w-full min-w-[min(26rem,100%)] max-w-[calc(100%-2*var(--sf-gutter))]"
+          className={cn(
+            "relative mx-auto",
+            // In the grid the middle track already rests at 26rem, grows to
+            // max-content and is capped by the side tracks, so the shell just
+            // fills it. A max-width here would resolve its percentage against
+            // that track and shrink the shell inside its own column.
+            hasSideSlots
+              ? "w-full"
+              : "w-max min-w-[min(26rem,100%)] max-w-[calc(100%-2*var(--sf-gutter))]"
+          )}
         >
           <div className="flex w-full max-w-full items-stretch">
             <div
