@@ -6,11 +6,42 @@
  * the same form and cannot drift apart. The names are the API's field names,
  * which is also what `customerFormSchema` validates and what an API field
  * error is keyed by.
+ *
+ * **Deliberately minimal while the real field list is undecided.** The
+ * columns behind the omitted fields are all still there -- customer_type,
+ * tax_number, mobile, currency, payment_terms_days, the rest of the address
+ * and notes -- and the API still accepts them; they are simply not asked for
+ * during testing. Nothing was migrated away, so restoring one is a line here,
+ * not a schema change. `CUSTOMER_FIELDS_FULL` below keeps that set within
+ * reach.
+ *
+ * `address_line1` carries the whole address for now, which is why it is
+ * labelled plainly "Address".
  */
 
 import type { FieldSpec } from "@erp/ui";
 
 export const customerFields: FieldSpec[] = [
+  {
+    kind: "text",
+    name: "name",
+    label: "Name",
+    required: true,
+    span: 6,
+    chrome: "tick",
+    chromeEdge: "end",
+  },
+  { kind: "text", name: "phone", label: "Phone", span: 6 },
+  { kind: "email", name: "email", label: "Email", span: 6 },
+  { kind: "text", name: "address_line1", label: "Address", span: 6 },
+];
+
+/**
+ * The fuller form this was cut down from. Not rendered anywhere today; kept
+ * so the decision can be reversed by swapping which one a page imports,
+ * rather than by reconstructing it from the migration history.
+ */
+export const CUSTOMER_FIELDS_FULL: FieldSpec[] = [
   {
     kind: "radio",
     name: "customer_type",
@@ -29,7 +60,6 @@ export const customerFields: FieldSpec[] = [
     section: "Basic information",
     required: true,
     span: 6,
-    // The identifying field carries the tick, as everywhere else.
     chrome: "tick",
     chromeEdge: "end",
   },
@@ -40,13 +70,7 @@ export const customerFields: FieldSpec[] = [
     section: "Basic information",
     span: 6,
   },
-  {
-    kind: "email",
-    name: "email",
-    label: "Email",
-    section: "Basic information",
-    span: 6,
-  },
+  { kind: "email", name: "email", label: "Email", section: "Basic information", span: 6 },
   { kind: "text", name: "phone", label: "Phone", section: "Basic information", span: 6 },
   {
     kind: "text",
