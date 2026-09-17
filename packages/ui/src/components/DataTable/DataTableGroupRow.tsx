@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "../../utils";
+import { dataTableGroupIndent } from "./serverGrouping";
 
 export interface DataTableGroupRowDisclosure {
   expanded: boolean;
@@ -18,7 +19,7 @@ export interface DataTableGroupRowProps {
   summary?: ReactNode;
   /** Records in this group. Omitted renders no count. */
   count?: number;
-  /** Nesting level for indentation (client-side grain nesting). */
+  /** Nesting level for indentation. 0 is the outermost level. */
   depth?: number;
   /**
    * Renders the disclosure triangle and makes the whole row toggle. Passed only
@@ -44,7 +45,7 @@ export function DataTableGroupRow({
   disclosure,
   className,
 }: DataTableGroupRowProps) {
-  const pad = Math.min(depth, 4) * 12;
+  const pad = dataTableGroupIndent(depth);
   const hasSummary = summary != null && summary !== false;
 
   const content = (

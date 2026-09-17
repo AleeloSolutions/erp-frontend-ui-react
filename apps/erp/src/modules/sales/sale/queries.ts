@@ -8,12 +8,18 @@
  * The grouped views nest under the list key for the same reason: a
  * grouped screen is the list, counted differently. Recording a payment or
  * deleting a sale already invalidates `lists()` (and `all`), so both
- * reach the group headers and the open group's rows without a mutation
- * having to know a grouping exists.
+ * reach every level of group headers and every open group's rows without a
+ * mutation having to know a grouping exists.
+ *
+ * Grouping is a TREE, one request per level: the top level is a hook, and
+ * every node opened below it is a query-options factory fed to `useQueries`,
+ * because the number of open nodes is a property of what the user expanded and
+ * hooks cannot be called in a loop.
  */
 
 import {
   keepPreviousData,
+  queryOptions,
   useMutation,
   useQuery,
   useQueryClient,
@@ -35,9 +41,9 @@ import {
   sendSale,
   updateSale,
   voidSalePayment,
-  NULL_GROUP_KEY,
   type Sale,
   type SaleGroupBy,
+  type SaleGroupLevelRequest,
   type SaleGroupPage,
   type SaleInput,
   type SalePaymentInput,
@@ -47,17 +53,26 @@ export const saleKeys = {
   all: ["sales"] as const,
   lists: () => [...saleKeys.all, "list"] as const,
   list: (filters: Record<string, unknown>) => [...saleKeys.lists(), filters] as const,
-  /** Group headers and a group's rows are both the list, so both sit under it. */
+  /**
+   * Every level of groups and every page of a group's rows is the same list
+   * counted differently, so all of it sits under `lists()` — one invalidation
+   * after a mutation reaches the headers, the sub-groups and the open rows
+   * without the mutation having to know a grouping exists.
+   *
+   * A node is keyed by its `group_path`, which already names every level above
+   * it and carries `__none__` for a null key: `""` is the top level, and no
+   * two nodes of a tree can collide.
+   */
   groups: () => [...saleKeys.lists(), "groups"] as const,
-  group: (groupBy: string, filters: Record<string, unknown>) =>
-    [...saleKeys.groups(), groupBy, filters] as const,
+  /** Every sub-group page of one node — the prefix a retry refetches. */
+  groupNode: (path: string) => [...saleKeys.groups(), path] as const,
+  groupLevel: (path: string, groupBy: string, filters: Record<string, unknown>) =>
+    [...saleKeys.groupNode(path), groupBy, filters] as const,
   groupRows: () => [...saleKeys.lists(), "group-rows"] as const,
-  /** The null group is keyed by the sentinel, so it cannot collide with "no key". */
-  groupRow: (
-    groupBy: string,
-    groupKey: string | null,
-    filters: Record<string, unknown>
-  ) => [...saleKeys.groupRows(), groupBy, groupKey ?? NULL_GROUP_KEY, filters] as const,
+  /** Every row page of one leaf node. */
+  groupRowNode: (path: string) => [...saleKeys.groupRows(), path] as const,
+  groupRowPage: (path: string, filters: Record<string, unknown>) =>
+    [...saleKeys.groupRowNode(path), filters] as const,
   details: () => [...saleKeys.all, "detail"] as const,
   detail: (id: string) => [...saleKeys.details(), id] as const,
 };
@@ -87,9 +102,14 @@ export function useSalesQuery(
 }
 
 /**
- * A page of GROUPS: `meta.total` counts groups, and `aggregate` is the
- * grand total over the whole filtered set — the footer reads that, never
- * a sum of the groups on screen. Idle until a grouping is chosen.
+ * The TOP level: a page of GROUPS. `meta.total` counts groups, and
+ * `aggregate` is the grand total over the whole filtered set — the footer
+ * reads that, never a sum of the groups on screen. Idle until a grouping is
+ * chosen.
+ *
+ * The key is `groupLevel("", …)`, exactly what the factory below builds for a
+ * request with no path, so the top level of a tree is one cache entry however
+ * it is asked for.
  */
 export function useSaleGroupsQuery(
   groupBy: SaleGroupBy | null | undefined,
@@ -97,12 +117,12 @@ export function useSaleGroupsQuery(
   options?: SaleGroupedQueryOptions<SaleGroupPage>
 ) {
   return useQuery({
-    queryKey: saleKeys.group(groupBy ?? "", params as Record<string, unknown>),
+    queryKey: saleKeys.groupLevel("", groupBy ?? "", params as Record<string, unknown>),
     queryFn: ({ signal }) => {
       // Unreachable while `enabled` below holds; it is the compiler's
       // narrowing rather than a cast that lies about it.
       if (!groupBy) throw new Error("useSaleGroupsQuery ran without a grouping.");
-      return listSaleGroups(groupBy, params, { signal });
+      return listSaleGroups({ groupBy }, params, { signal });
     },
     placeholderData: keepPreviousData,
     ...options,
@@ -110,37 +130,57 @@ export function useSaleGroupsQuery(
   });
 }
 
+// ---------------------------------------------------------------------------
+// Opening nodes of the tree: query OPTIONS, not hooks
+// ---------------------------------------------------------------------------
+//
+// A tree has an unbounded number of open nodes and a hook cannot be called in
+// a loop, so the two factories below describe ONE node's request and the
+// screen hands an array of them to `useQueries`. The previous shape — a
+// component per open group, publishing its rows back into page state through
+// an effect — only ever worked one level deep, and at arbitrary depth it is a
+// component per node re-rendering the page on every fetch.
+//
+// Neither factory keeps previous data, unlike the flat and grouped lists: a
+// header names what is underneath it, so holding one node's children while
+// another's load would file sub-groups or sales under the wrong heading. The
+// headers themselves each carry their own label and cannot be misread that
+// way, which is why they do keep it.
+//
+// A node closed (or filtered away) mid-flight aborts through React Query's
+// `signal`, which is passed down to `fetch`.
+
 /**
- * One group's rows: the flat list narrowed by that group's own key.
+ * One level of sub-groups under `request.path`, counted over that subtree.
  *
- * Expansion belongs to the screen, so the caller owns it through
- * `enabled`, and a group closed mid-flight aborts through React Query's
- * `signal` (it is passed down to `fetch`).
- *
- * No `keepPreviousData` here, unlike the flat and grouped lists: a group
- * header names the rows underneath it, so holding the last group's rows
- * while the next one loads would file sales under the wrong heading. The
- * headers themselves each carry their own label and cannot be misread
- * that way, which is why they do keep it.
+ * `aggregate` comes back for every level, but only the TOP level's reaches the
+ * footer: a nested level's totals are scoped by the label above them.
  */
-export function useSaleGroupRowsQuery(
-  groupBy: SaleGroupBy | null | undefined,
-  groupKey: string | null,
-  params: ListParams = {},
-  options?: SaleGroupedQueryOptions<Page<Sale>>
+export function saleGroupLevelQueryOptions(
+  request: SaleGroupLevelRequest,
+  params: ListParams = {}
 ) {
-  return useQuery({
-    queryKey: saleKeys.groupRow(
-      groupBy ?? "",
-      groupKey,
+  return queryOptions({
+    queryKey: saleKeys.groupLevel(
+      request.path ?? "",
+      request.groupBy,
       params as Record<string, unknown>
     ),
-    queryFn: ({ signal }) => {
-      if (!groupBy) throw new Error("useSaleGroupRowsQuery ran without a grouping.");
-      return listSalesInGroup(groupBy, groupKey, params, { signal });
-    },
-    ...options,
-    enabled: Boolean(groupBy) && (options?.enabled ?? true),
+    queryFn: ({ signal }) => listSaleGroups(request, params, { signal }),
+  });
+}
+
+/**
+ * One page of the rows at the bottom of `path`.
+ *
+ * Paging lives in `params.page`: the screen keeps every page it has asked for
+ * and appends them, so a group header reading 312 can be read to the end
+ * instead of standing over 25 rows and no sign that the rest exist.
+ */
+export function saleGroupRowsQueryOptions(path: string, params: ListParams = {}) {
+  return queryOptions({
+    queryKey: saleKeys.groupRowPage(path, params as Record<string, unknown>),
+    queryFn: ({ signal }) => listSalesInGroup(path, params, { signal }),
   });
 }
 

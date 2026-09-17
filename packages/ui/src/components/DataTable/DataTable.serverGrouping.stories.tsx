@@ -50,22 +50,42 @@ const STATUSES = ["Posted", "Draft", "Cancelled"];
 /** Stable empty default — a fresh `[]` per render would churn the callbacks. */
 const NO_KEYS: string[] = [];
 
-/** Deterministic rows for a group — no randomness, so stories stay stable. */
-function rowsForGroup(identity: string, group: DataTableServerGroup): OrderRow[] {
+/** Rows the fake server hands back per request. */
+const DEFAULT_ROW_PAGE_SIZE = 25;
+
+/**
+ * Deterministic row at `index` of a group — no randomness, so stories stay
+ * stable, and the group really does hold `group.count` of them. That matters:
+ * a fake server that quietly holds four rows behind a header reading 128 would
+ * be reproducing the bug this mode exists to prevent.
+ */
+function rowAt(identity: string, group: DataTableServerGroup, index: number): OrderRow {
   const currencies = Object.keys(group.totals);
-  const count = Math.min(group.count, 4);
-  return Array.from({ length: count }, (_, index) => {
-    const currency = currencies[index % currencies.length] ?? "USD";
-    return {
-      id: `${identity}-${index + 1}`,
-      reference: `SO-2026-${String(1000 + group.count + index).slice(-4)}`,
-      account: group.label,
-      date: `2026-0${(index % 9) + 1}-1${index % 9}`,
-      currency,
-      amount: ((index + 1) * 1250.5).toFixed(2),
-      status: STATUSES[index % STATUSES.length]!,
-    };
-  });
+  const currency = currencies[index % currencies.length] ?? "USD";
+  return {
+    id: `${identity}-${index + 1}`,
+    reference: `SO-2026-${String(1000 + index).padStart(4, "0")}`,
+    account: group.label,
+    date: `2026-${String((index % 9) + 1).padStart(2, "0")}-${String((index % 27) + 1).padStart(2, "0")}`,
+    currency,
+    amount: (((index % 40) + 1) * 1250.5).toFixed(2),
+    status: STATUSES[index % STATUSES.length]!,
+  };
+}
+
+/** One page of a group's rows, exactly as a `limit`/`offset` endpoint would. */
+function rowPage(
+  identity: string,
+  group: DataTableServerGroup,
+  offset: number,
+  limit: number
+): OrderRow[] {
+  const end = Math.min(offset + limit, group.count);
+  const out: OrderRow[] = [];
+  for (let index = offset; index < end; index += 1) {
+    out.push(rowAt(identity, group, index));
+  }
+  return out;
 }
 
 const columns: ColumnDef<OrderRow>[] = [
@@ -219,6 +239,13 @@ interface HarnessProps {
   failingKeys?: string[];
   /** Group identities that load successfully but hold no rows. */
   emptyKeys?: string[];
+  /** Rows the fake server returns per request. */
+  rowPageSize?: number;
+  /**
+   * Whether the caller services load-more. False leaves the honest
+   * "Showing 25 of 128" line with no control behind it.
+   */
+  enableLoadMore?: boolean;
   tableId: string;
 }
 
@@ -229,12 +256,16 @@ function ServerGroupedTable({
   delayMs = 600,
   failingKeys = NO_KEYS,
   emptyKeys = NO_KEYS,
+  rowPageSize = DEFAULT_ROW_PAGE_SIZE,
+  enableLoadMore = true,
   tableId,
 }: HarnessProps) {
   const [page, setPage] = useState(1);
   const [rowsByGroup, setRowsByGroup] = useState<
     Record<string, DataTableServerGroupRows<OrderRow>>
   >({});
+  /** What the handlers read; `rowsByGroup` is what React renders. */
+  const rowsRef = useRef<Record<string, DataTableServerGroupRows<OrderRow>>>({});
   const requested = useRef(new Set<string>());
   const timers = useRef<number[]>([]);
 
@@ -242,6 +273,21 @@ function ServerGroupedTable({
     const pending = timers.current;
     return () => pending.forEach((timer) => window.clearTimeout(timer));
   }, []);
+
+  const commit = useCallback(
+    (next: Record<string, DataTableServerGroupRows<OrderRow>>) => {
+      rowsRef.current = next;
+      setRowsByGroup(next);
+    },
+    []
+  );
+
+  const schedule = useCallback(
+    (run: () => void) => {
+      timers.current.push(window.setTimeout(run, delayMs));
+    },
+    [delayMs]
+  );
 
   const groupsByIdentity = useMemo(() => {
     const map = new Map<string, DataTableServerGroup>();
@@ -253,31 +299,60 @@ function ServerGroupedTable({
     (identity: string) => {
       const group = groupsByIdentity.get(identity);
       if (!group) return;
-      setRowsByGroup((prev) => ({
-        ...prev,
-        [identity]: { rows: [], loading: true, error: null, total: group.count },
-      }));
-      const timer = window.setTimeout(() => {
-        setRowsByGroup((prev) => ({
-          ...prev,
+      const isEmpty = emptyKeys.includes(identity);
+      // An empty group holds nothing at all — total 0, so nothing on screen
+      // claims there are more rows to fetch.
+      const total = isEmpty ? 0 : group.count;
+      commit({
+        ...rowsRef.current,
+        [identity]: { rows: [], loading: true, error: null, total },
+      });
+      schedule(() => {
+        commit({
+          ...rowsRef.current,
           [identity]: failingKeys.includes(identity)
             ? {
                 rows: [],
                 loading: false,
                 error: "Upstream refused this group (HTTP 502).",
-                total: group.count,
+                total,
               }
             : {
-                rows: emptyKeys.includes(identity) ? [] : rowsForGroup(identity, group),
+                rows: isEmpty ? [] : rowPage(identity, group, 0, rowPageSize),
                 loading: false,
                 error: null,
-                total: group.count,
+                total,
               },
-        }));
-      }, delayMs);
-      timers.current.push(timer);
+        });
+      });
     },
-    [groupsByIdentity, failingKeys, emptyKeys, delayMs]
+    [groupsByIdentity, failingKeys, emptyKeys, rowPageSize, commit, schedule]
+  );
+
+  /** The next `rowPageSize` rows, appended — a real fetch, not a re-render. */
+  const loadMoreRows = useCallback(
+    (identity: string) => {
+      const group = groupsByIdentity.get(identity);
+      const current = rowsRef.current[identity];
+      if (!group || !current || current.loadingMore) return;
+      commit({ ...rowsRef.current, [identity]: { ...current, loadingMore: true } });
+      schedule(() => {
+        const latest = rowsRef.current[identity];
+        if (!latest) return;
+        commit({
+          ...rowsRef.current,
+          [identity]: {
+            ...latest,
+            rows: [
+              ...latest.rows,
+              ...rowPage(identity, group, latest.rows.length, rowPageSize),
+            ],
+            loadingMore: false,
+          },
+        });
+      });
+    },
+    [groupsByIdentity, rowPageSize, commit, schedule]
   );
 
   const handleExpandedChange = useCallback(
@@ -310,8 +385,11 @@ function ServerGroupedTable({
         rowsByGroup,
         groupLabel,
         formatAmount,
+        rowPageSize,
         onExpandedChange: handleExpandedChange,
         onRetryGroup: fetchRows,
+        // Rule 3: the control exists only where something services it.
+        onLoadMoreGroup: enableLoadMore ? loadMoreRows : undefined,
         pagination: {
           page,
           pageSize: groupPageSize,
@@ -435,6 +513,81 @@ export const EmptyGroup: Story = {
     aggregate: aggregateOf(EMPTY_ROWS_GROUPS),
     delayMs: 600,
     emptyKeys: ["acc-9"],
+  },
+};
+
+export const LoadMoreRows: Story = {
+  name: "More rows than one page",
+  parameters: {
+    docs: {
+      description: {
+        story: [
+          "“Acme Trading International” says 128 items; one request returns 25 of them. Before this, the group",
+          "showed those 25 and stopped — a header that reads 128 followed by 25 rows and no sign the rest exist",
+          "is the same species of lie as a page total presented as a grand total.",
+          "",
+          "So the group closes with **Showing 25 of 128** and a working **Load 25 more**: each press really",
+          "fetches the next slice, appends it, and the count moves — 50, 75, 100, 128 — until every row is",
+          "loaded, at which point the line disappears entirely. Appending rather than paging inside the group is",
+          "deliberate: a pager would replace the rows just read, and the count line would stop describing what is",
+          "above it.",
+        ].join(" "),
+      },
+    },
+  },
+  args: {
+    tableId: "sb-server-grouping-load-more",
+    groupLabel: "Account",
+    pages: ACCOUNT_GROUPS,
+    aggregate: aggregateOf(ACCOUNT_GROUPS),
+    delayMs: 700,
+    rowPageSize: 25,
+  },
+};
+
+export const PartialRowsWithoutLoadMore: Story = {
+  name: "Partial rows, no load-more handler",
+  parameters: {
+    docs: {
+      description: {
+        story: [
+          "The same partially loaded groups with `onLoadMoreGroup` omitted. The count line stays — the user still",
+          "needs to know that 25 of 128 are on screen — but there is no button, because nothing would service it.",
+          "Rule 3: a control that looks interactive and does nothing is worse than no control.",
+        ].join(" "),
+      },
+    },
+  },
+  args: {
+    tableId: "sb-server-grouping-no-load-more",
+    groupLabel: "Account",
+    pages: ACCOUNT_GROUPS,
+    aggregate: aggregateOf(ACCOUNT_GROUPS),
+    delayMs: 600,
+    rowPageSize: 25,
+    enableLoadMore: false,
+  },
+};
+
+export const SmallGroupFullyLoaded: Story = {
+  name: "Group that fits in one page",
+  parameters: {
+    docs: {
+      description: {
+        story: [
+          "With a page size of 200 every one of these groups arrives whole, so no group shows a count line and no",
+          "group shows a button. The chrome appears only when there is something it is hiding.",
+        ].join(" "),
+      },
+    },
+  },
+  args: {
+    tableId: "sb-server-grouping-fully-loaded",
+    groupLabel: "Account",
+    pages: ACCOUNT_GROUPS,
+    aggregate: aggregateOf(ACCOUNT_GROUPS),
+    delayMs: 400,
+    rowPageSize: 200,
   },
 };
 

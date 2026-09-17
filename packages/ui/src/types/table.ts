@@ -127,8 +127,107 @@ export interface DataTableServerGroupRows<TData> {
   rows: TData[];
   loading: boolean;
   error?: string | null;
-  /** Rows the server holds for this group — may exceed `rows.length`. */
+  /**
+   * Rows the server holds for this group — may exceed `rows.length`.
+   *
+   * When it does, the table says so inside the group ("Showing 25 of 312")
+   * rather than letting a header that reads 312 be followed by 25 rows and no
+   * sign that the rest exist.
+   */
   total: number;
+  /** A request for the next page of this group's rows is in flight. */
+  loadingMore?: boolean;
+}
+
+/**
+ * One level of a grouping chain, outermost first — the shape behind
+ * "Salesperson > Customer > Order Date: Year".
+ */
+export interface DataTableServerGroupLevel {
+  /**
+   * Pill on every group row at this level (e.g. "Customer"). The outermost
+   * level falls back to `groupLabel`.
+   */
+  label?: string;
+  /**
+   * The caller's own dimension id for this level — typically the `group_by`
+   * token it will send back when a node at this depth is opened. Opaque to the
+   * table, which never reads it.
+   */
+  id?: string;
+}
+
+interface DataTableServerGroupNodeState {
+  /** This node's own fetch is in flight. Never blanks the rest of the table. */
+  loading: boolean;
+  error?: string | null;
+  /** A request for this node's next page of children is in flight. */
+  loadingMore?: boolean;
+}
+
+/** An opened node above the last level: it holds sub-groups, not records. */
+export interface DataTableServerGroupChildGroups extends DataTableServerGroupNodeState {
+  kind: "groups";
+  /**
+   * Sub-groups of this node, each with its own count and per-currency totals —
+   * the same `DataTableServerGroup` the top level is made of, so every level
+   * renders identically however deep it sits.
+   */
+  groups: DataTableServerGroup[];
+}
+
+/** An opened node at the last level: it holds records. */
+export interface DataTableServerGroupChildRows<TData>
+  extends DataTableServerGroupNodeState, DataTableServerGroupRows<TData> {
+  kind: "rows";
+}
+
+/**
+ * What one opened node contains. `kind` is the discriminant the table trusts —
+ * the caller knows which level it requested, so it can set it before the
+ * response lands.
+ */
+export type DataTableServerGroupNode<TData> =
+  DataTableServerGroupChildGroups | DataTableServerGroupChildRows<TData>;
+
+/**
+ * Nested server grouping — the multi-level form of the mode below.
+ *
+ * Each request returns exactly one level: the page of top-level groups comes
+ * in `groups`, and opening any node asks the caller for that node's children,
+ * which are sub-groups until the last level and records at it. Nothing is
+ * fetched until it is opened, at any depth.
+ */
+export interface DataTableServerGroupNestingConfig<TData> {
+  /**
+   * The grouping chain, outermost first. `levels.length` is the depth at which
+   * children stop being groups and start being rows.
+   */
+  levels: DataTableServerGroupLevel[];
+  /**
+   * Opened nodes keyed by `dataTableGroupPathId(path)`. A missing entry for an
+   * open node reads as "not fetched yet" and renders that node's own loading
+   * line — inside the node, so the rest of the tree stays readable.
+   */
+  nodesByPath: Record<string, DataTableServerGroupNode<TData>>;
+  /**
+   * A node became visible-and-open: fetch it. Fires with the path that opened
+   * (group identities, outermost first), including when re-opening a parent
+   * brings previously-open descendants back on screen — so callers should
+   * serve this from their cache when they already hold the node.
+   */
+  onExpand: (path: string[]) => void;
+  /**
+   * Refetch one node. When omitted, a failed node shows its error without a
+   * retry control (no dead buttons).
+   */
+  onRetry?: (path: string[]) => void;
+  /**
+   * Fetch the next page of a node's rows and append them. When omitted, a
+   * partially loaded node still says "Showing 25 of 312" but renders no
+   * control — an honest count beats a button that does nothing.
+   */
+  onLoadMore?: (path: string[]) => void;
 }
 
 /** Whole filtered set, as reported by the server. */
@@ -160,6 +259,10 @@ export interface DataTableServerGroupingConfig<TData> {
   /**
    * Totals over the WHOLE filtered set, for the grand-total footer. Never
    * derive this from `groups`: that would total only the groups on screen.
+   *
+   * This is the only aggregate the footer ever shows. A nested level's own
+   * count and totals live on its group row, where they are scoped by the
+   * label above them — they never reach the footer.
    */
   aggregate: DataTableServerGroupAggregate;
   /** The group page itself is loading (not a single group's rows). */
@@ -167,26 +270,57 @@ export interface DataTableServerGroupingConfig<TData> {
   /** The group page failed to load. */
   error?: string | null;
   /**
-   * Rows per opened group, keyed by `dataTableGroupKeyId(group.key)`
-   * (`__none__` for the null group). A missing entry for an expanded group
-   * reads as "not fetched yet" and renders the in-group loading state.
+   * SINGLE-LEVEL mode: rows per opened group, keyed by
+   * `dataTableGroupKeyId(group.key)` (`__none__` for the null group). A missing
+   * entry for an expanded group reads as "not fetched yet" and renders the
+   * in-group loading state.
+   *
+   * Ignored when `nesting` is set — a nested grouping addresses every node,
+   * including the top one, through `nesting.nodesByPath`.
    */
-  rowsByGroup: Record<string, DataTableServerGroupRows<TData>>;
+  rowsByGroup?: Record<string, DataTableServerGroupRows<TData>>;
   /**
-   * Fires with the full set of expanded group identities whenever one is
-   * opened or closed, and with `[]` when expansion resets.
+   * NESTED mode: sub-groups under sub-groups, rows only at the last level.
+   *
+   * Set this instead of `rowsByGroup` when the grouping has more than one
+   * dimension. `groups` still carries the top level, so the two modes differ
+   * only in what an opened node contains.
+   */
+  nesting?: DataTableServerGroupNestingConfig<TData>;
+  /**
+   * Fires with the full set of expanded nodes whenever one is opened or
+   * closed, and with `[]` when expansion resets.
+   *
+   * Identities in single-level mode; `dataTableGroupPathId(path)` values in
+   * nested mode — which are the identity itself at the top level, so the two
+   * agree there. This mirrors state; `nesting.onExpand` is the fetch trigger.
    */
   onExpandedChange: (expandedKeys: string[]) => void;
   /**
-   * Refetch one group's rows. When omitted, a failed group shows its error
-   * without a retry control (no dead buttons).
+   * SINGLE-LEVEL mode: refetch one group's rows. When omitted, a failed group
+   * shows its error without a retry control (no dead buttons). Nested mode
+   * uses `nesting.onRetry`.
    */
   onRetryGroup?: (groupKey: string) => void;
+  /**
+   * SINGLE-LEVEL mode: fetch the next page of one group's rows and append them
+   * to its `rowsByGroup` entry. When omitted, a group that holds fewer rows
+   * than its `total` still says so but renders no control. Nested mode uses
+   * `nesting.onLoadMore`.
+   */
+  onLoadMoreGroup?: (groupKey: string) => void;
+  /**
+   * Rows one row request asks for. Only sizes the load-more label ("Load 25
+   * more"); when omitted the label uses the page already delivered.
+   */
+  rowPageSize?: number;
   /** Group pager. Without it, no pager is rendered in this mode. */
   pagination?: DataTableServerGroupPaginationConfig;
   /**
    * Pill on every group row naming the grouped dimension (e.g. "Customer"),
-   * matching the period pill on client-side group rows.
+   * matching the period pill on client-side group rows. In nested mode it is
+   * the fallback for the outermost level; deeper levels are named by
+   * `nesting.levels[depth].label`.
    */
   groupLabel?: string;
   /**

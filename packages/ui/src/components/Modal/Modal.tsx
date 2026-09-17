@@ -104,8 +104,8 @@ export function Modal({
         className={cn(
           "relative z-[101] overflow-hidden bg-erp-surface shadow-lg",
           isTallModal
-            ? cn("flex flex-col rounded-lg border border-erp-border", sizeClasses[size])
-            : cn("w-full border border-erp-border", sizeClasses[size]),
+            ? cn("flex flex-col rounded-sm ", sizeClasses[size])
+            : cn("w-full", sizeClasses[size]),
           className
         )}
       >

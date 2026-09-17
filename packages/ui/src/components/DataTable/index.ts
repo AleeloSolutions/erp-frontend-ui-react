@@ -19,9 +19,23 @@ export {
   type DataTableGroupRowProps,
 } from "./DataTableGroupRow";
 export {
+  DataTableGroupLoadMoreRow,
+  type DataTableGroupLoadMoreRowProps,
+} from "./DataTableGroupLoadMoreRow";
+export {
+  DATA_TABLE_GROUP_PATH_SEPARATOR,
   DATA_TABLE_NULL_GROUP_KEY,
+  buildServerGroupSections,
+  collectExpandedPathIds,
+  dataTableGroupIndent,
   dataTableGroupKeyFromId,
   dataTableGroupKeyId,
+  dataTableGroupPathFromId,
+  dataTableGroupPathId,
+  dataTableGroupPathStartsWith,
+  dataTableGroupStateInset,
+  type BuildServerGroupSectionsOptions,
+  type BuildServerGroupSectionsResult,
   type DataTableServerGroupSection,
 } from "./serverGrouping";
 export {

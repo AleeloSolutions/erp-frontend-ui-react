@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -42,7 +42,13 @@ import { DataTablePagination, DataTableRangePagination } from "./DataTablePagina
 import { DataTableLoading } from "./DataTableLoading";
 import { DataTableAggregateFooter } from "./DataTableAggregateFooter";
 import { DataTableCurrencyTotals } from "./DataTableCurrencyTotals";
-import { dataTableGroupKeyId, type DataTableServerGroupSection } from "./serverGrouping";
+import {
+  buildServerGroupSections,
+  collectExpandedPathIds,
+  dataTableGroupKeyId,
+  dataTableGroupPathFromId,
+  type DataTableServerGroupSection,
+} from "./serverGrouping";
 import { defaultDatePresetOptions } from "./dateFilterOptions";
 import {
   getColumnWidthStyle,
@@ -55,6 +61,7 @@ import { useUiTranslation } from "../../i18n";
 import { CONTROL_PANEL_HEIGHT, NAVBAR_HEIGHT } from "../../layout/stickyOffsets";
 import type {
   DataTableBulkAction,
+  DataTableServerGroupNode,
   DataTableFilter,
   DataTableFilterOption,
   DataTableFilterValues,
@@ -76,6 +83,8 @@ const VISIBILITY_STORAGE_PREFIX = "erp.datatable.visibility.";
  */
 const DEFAULT_COLUMN_MIN_SIZE = 44;
 const DEFAULT_COLUMN_MAX_SIZE = 640;
+/** Stable empty list, so the "nothing is open" memo never churns. */
+const NO_EXPANDED_PATH_IDS: string[] = [];
 
 type PanelFilterItem = SearchFilterItem & {
   selectable?: boolean;
@@ -458,6 +467,9 @@ export function DataTable<TData, TValue = unknown>({
   const enablePagination = pagination !== false;
   const serverGroupingActive = serverGrouping != null;
   const groupPagination = serverGrouping?.pagination ?? null;
+  const nesting = serverGrouping?.nesting ?? null;
+  /** Depth at which children stop being sub-groups and become records. */
+  const levelCount = nesting?.levels.length || 1;
   const resolvedBelowControlPanel = belowControlPanel ?? renderToolbar != null;
   const stickyHeaderTop = stickyHeader
     ? NAVBAR_HEIGHT + (resolvedBelowControlPanel ? CONTROL_PANEL_HEIGHT : 0)
@@ -498,30 +510,44 @@ export function DataTable<TData, TValue = unknown>({
   }, [grouping, onGroupingChange]);
 
   /**
-   * Server-grouped expansion. Session-only by design: which groups someone
-   * opened says nothing once the group page or the grouping itself changes, and
-   * restoring it would fire a burst of row fetches for groups nobody asked for.
+   * Server-grouped expansion, addressed by PATH id — `dataTableGroupPathId` of
+   * the group identities from the top level down. A one-element path joins to
+   * the bare identity, so single-level mode sees exactly the identities it
+   * always did.
+   *
+   * Session-only by design: which nodes someone opened says nothing once the
+   * group page or the grouping itself changes, and restoring it would fire a
+   * burst of fetches for nodes nobody asked for.
    */
   const [expandedGroupKeys, setExpandedGroupKeys] = useState<string[]>([]);
   const expandedGroupKeysRef = useRef<string[]>([]);
   const notifyExpandedRef = useRef<((keys: string[]) => void) | undefined>(undefined);
+  const nestingRef = useRef(nesting);
 
   useEffect(() => {
     notifyExpandedRef.current = serverGrouping?.onExpandedChange;
+    nestingRef.current = nesting;
   });
 
   const serverGroupIdentities = serverGrouping
     ? serverGrouping.groups.map((group) => dataTableGroupKeyId(group.key))
     : [];
+  /** The grouping chain itself — swapping a level invalidates every open node. */
+  const levelSignature = nesting
+    ? nesting.levels
+        .map((level, index) => level.id ?? level.label ?? String(index))
+        .join(">")
+    : "";
   /**
    * Changes when the page of groups changes, when the grouping changes, or when
    * the mode is turned off — each of which makes the open set meaningless.
-   * Rows arriving for an already-open group do not change it.
+   * Rows arriving for an already-open node do not change it.
    */
   const expansionSignature = serverGroupingActive
     ? [
         groupPagination?.page ?? 1,
         grouping.join("|"),
+        levelSignature,
         serverGroupIdentities.join("|"),
       ].join("::")
     : "";
@@ -533,10 +559,14 @@ export function DataTable<TData, TValue = unknown>({
     notifyExpandedRef.current?.([]);
   }, [expansionSignature]);
 
-  const toggleServerGroup = (identity: string) => {
-    const next = expandedGroupKeysRef.current.includes(identity)
-      ? expandedGroupKeysRef.current.filter((key) => key !== identity)
-      : [...expandedGroupKeysRef.current, identity];
+  const toggleServerGroup = (pathId: string) => {
+    const next = expandedGroupKeysRef.current.includes(pathId)
+      ? // Collapsing drops this node only. Its descendants stay listed so
+        // re-opening a parent restores the subtree the user built instead of
+        // making them click it out again — and they stay off screen meanwhile,
+        // because `buildServerGroupSections` never descends into a closed node.
+        expandedGroupKeysRef.current.filter((key) => key !== pathId)
+      : [...expandedGroupKeysRef.current, pathId];
     expandedGroupKeysRef.current = next;
     setExpandedGroupKeys(next);
     serverGrouping?.onExpandedChange(next);
@@ -846,41 +876,73 @@ export function DataTable<TData, TValue = unknown>({
   // `data` array and rebuild the whole row model.
   const serverGroupList = serverGrouping?.groups;
   const serverRowsByGroup = serverGrouping?.rowsByGroup;
-
-  const serverGroupSections = useMemo((): DataTableServerGroupSection<TData>[] | null => {
-    if (!serverGroupList || !serverRowsByGroup) return null;
-    let cursor = 0;
-    return serverGroupList.map((group) => {
-      const identity = dataTableGroupKeyId(group.key);
-      const expanded = expandedGroupKeys.includes(identity);
-      const entry = serverRowsByGroup[identity];
-      const rowCount = expanded ? (entry?.rows.length ?? 0) : 0;
-      const section: DataTableServerGroupSection<TData> = {
-        group,
-        identity,
-        expanded,
-        entry,
-        rowStart: cursor,
-        rowCount,
-      };
-      cursor += rowCount;
-      return section;
-    });
-  }, [serverGroupList, serverRowsByGroup, expandedGroupKeys]);
+  const serverNodesByPath = nesting?.nodesByPath;
 
   /**
-   * Rows of every open group, in group order — this is what the table itself is
+   * One lookup for both modes. A single-level `rowsByGroup` entry *is* a rows
+   * node — the only level it has is the last one — so the legacy map answers
+   * for paths of length one and nested callers answer for every path.
+   */
+  const resolveServerGroupNode = useCallback(
+    (pathId: string): DataTableServerGroupNode<TData> | undefined => {
+      if (serverNodesByPath) return serverNodesByPath[pathId];
+      const entry = serverRowsByGroup?.[pathId];
+      return entry ? { kind: "rows", ...entry } : undefined;
+    },
+    [serverNodesByPath, serverRowsByGroup]
+  );
+
+  /**
+   * The section tree and the flat row model, out of one walk — so the body can
+   * never slice the wrong rows into a group, however deep it sits.
+   */
+  const serverGroupTree = useMemo(() => {
+    if (!serverGroupList) return null;
+    return buildServerGroupSections<TData>({
+      groups: serverGroupList,
+      expandedPathIds: expandedGroupKeys,
+      levelCount,
+      resolveNode: resolveServerGroupNode,
+    });
+  }, [serverGroupList, expandedGroupKeys, levelCount, resolveServerGroupNode]);
+
+  const serverGroupSections: DataTableServerGroupSection<TData>[] | null =
+    serverGroupTree?.sections ?? null;
+  /**
+   * Rows of every open node, in render order — this is what the table itself is
    * fed, so cells, sizing and selection keep working exactly as in flat mode.
    */
-  const serverFlatRows = useMemo((): TData[] | null => {
-    if (!serverGroupSections) return null;
-    const out: TData[] = [];
-    serverGroupSections.forEach((section) => {
-      if (section.rowCount === 0) return;
-      out.push(...(section.entry?.rows ?? []));
-    });
-    return out;
-  }, [serverGroupSections]);
+  const serverFlatRows: TData[] | null = serverGroupTree?.rows ?? null;
+
+  /**
+   * Nodes open *and on screen*. Re-opening a parent brings its retained
+   * children back here, which is what re-triggers their fetch — the caller
+   * serves those from its own cache.
+   */
+  const visibleExpandedPathIds = useMemo(
+    () =>
+      serverGroupSections
+        ? collectExpandedPathIds(serverGroupSections)
+        : NO_EXPANDED_PATH_IDS,
+    [serverGroupSections]
+  );
+  const visibleExpandedSignature = visibleExpandedPathIds.join("\n");
+  const announcedPathsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const onExpand = nestingRef.current?.onExpand;
+    const next = new Set(visibleExpandedPathIds);
+    if (onExpand) {
+      visibleExpandedPathIds.forEach((pathId) => {
+        if (announcedPathsRef.current.has(pathId)) return;
+        onExpand(dataTableGroupPathFromId(pathId));
+      });
+    }
+    // Reassigned wholesale, so a node that scrolled out of the tree (collapsed
+    // ancestor, new group page, changed grouping) is announced again if it
+    // comes back.
+    announcedPathsRef.current = next;
+  }, [visibleExpandedSignature, visibleExpandedPathIds]);
 
   const tableData = serverFlatRows ?? filteredBySearch;
   /** Content sample for the one-shot column fit. */
@@ -1161,33 +1223,31 @@ export function DataTable<TData, TValue = unknown>({
 
   if (grouping.length > 0) {
     const labels: string[] = [];
-    const consumed = new Set<string>();
 
+    // The chip states the hierarchy, so it must read in the SAME order the
+    // consumer applies -- which is `grouping`, the order the user picked in.
+    // Sorting period grains coarse-to-fine and hoisting them ahead of the
+    // other dimensions made the chip describe a hierarchy nobody requested:
+    // picking Salesperson, Customer, then Sale Date: Year rendered
+    // "Sale Date > Year > Salesperson > Customer" over a list grouped
+    // Salesperson > Customer > Year.
+    //
+    // A grain carries its parent's name ("Sale Date: Year") rather than the
+    // parent being pushed as its own level, because the parent is not a level
+    // -- there is no grouping by "Sale Date" in the abstract, only by one of
+    // its grains.
+    const parentLabelByChild = new Map<string, string>();
     resolvedGroupingOptions.forEach((option) => {
-      if (!option.children?.length) return;
-      const selectedChildren = option.children.filter((child) =>
-        grouping.includes(child.value)
-      );
-      if (selectedChildren.length === 0) return;
-      const grainOrder = sortPeriodGrains(
-        selectedChildren
-          .map((child) => parsePeriodGroupingColumnId(child.value)?.grain)
-          .filter((grain): grain is PeriodGrain => Boolean(grain))
-      );
-      const sortedChildren = [...selectedChildren].sort((a, b) => {
-        const ga = parsePeriodGroupingColumnId(a.value)?.grain;
-        const gb = parsePeriodGroupingColumnId(b.value)?.grain;
-        if (!ga || !gb) return 0;
-        return grainOrder.indexOf(ga) - grainOrder.indexOf(gb);
+      option.children?.forEach((child) => {
+        parentLabelByChild.set(child.value, option.label);
       });
-      labels.push(option.label, ...sortedChildren.map((child) => child.label));
-      sortedChildren.forEach((child) => consumed.add(child.value));
     });
 
     grouping.forEach((groupId) => {
-      if (consumed.has(groupId)) return;
       const found = findGroupingOption(resolvedGroupingOptions, groupId);
-      labels.push(found?.label ?? groupId);
+      const own = found?.label ?? groupId;
+      const parent = parentLabelByChild.get(groupId);
+      labels.push(parent ? `${parent}: ${own}` : own);
     });
 
     searchFilterChips.push({
@@ -1421,16 +1481,44 @@ export function DataTable<TData, TValue = unknown>({
     : loading && data.length === 0;
   const displayError = error ?? serverGrouping?.error ?? null;
 
+  /**
+   * Per-node callbacks, path-shaped. Nested mode owns them outright: falling
+   * back to the single-level `onRetryGroup`/`onLoadMoreGroup` at depth would
+   * hand a handler that only knows top-level identities a key it cannot place.
+   */
+  const retryServerGroupNode = nesting
+    ? nesting.onRetry
+    : serverGrouping?.onRetryGroup
+      ? (path: string[]) => {
+          const identity = path[path.length - 1];
+          if (identity != null) serverGrouping.onRetryGroup?.(identity);
+        }
+      : undefined;
+
+  const loadMoreServerGroupNode = nesting
+    ? nesting.onLoadMore
+    : serverGrouping?.onLoadMoreGroup
+      ? (path: string[]) => {
+          const identity = path[path.length - 1];
+          if (identity != null) serverGrouping.onLoadMoreGroup?.(identity);
+        }
+      : undefined;
+
   const serverGroupsConfig: DataTableServerGroupsConfig<TData> | undefined =
     serverGrouping && serverGroupSections
       ? {
           sections: serverGroupSections,
           groupLabel: serverGrouping.groupLabel,
+          levelLabel: nesting
+            ? (depth) =>
+                nesting.levels[depth]?.label ??
+                (depth === 0 ? serverGrouping.groupLabel : undefined)
+            : undefined,
           formatAmount: serverGrouping.formatAmount,
           onToggle: toggleServerGroup,
-          onRetry: serverGrouping.onRetryGroup
-            ? (identity) => serverGrouping.onRetryGroup?.(identity)
-            : undefined,
+          onRetry: retryServerGroupNode,
+          onLoadMore: loadMoreServerGroupNode,
+          loadMorePageSize: serverGrouping.rowPageSize,
         }
       : undefined;
 
