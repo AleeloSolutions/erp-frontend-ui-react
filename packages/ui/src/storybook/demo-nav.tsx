@@ -16,7 +16,7 @@ export const demoNavigation: NavigationItem[] = [
     icon: ShoppingCart,
     children: [
       { key: "customers", label: "Customers", href: "/sales/customers" },
-      { key: "orders", label: "Sales", href: "/sales/orders" },
+      { key: "sale-list", label: "Sales", href: "/sales/sales" },
     ],
   },
   { key: "settings", label: "Settings", href: "/settings", icon: Settings },
@@ -30,6 +30,6 @@ export const demoMobileNav: MobileNavItem[] = [
 
 export const demoSubmenu: SubmenuItem[] = [
   { key: "customers", label: "Customers", href: "/sales/customers" },
-  { key: "orders", label: "Sales", href: "/sales/orders" },
+  { key: "sale-list", label: "Sales", href: "/sales/sales" },
   { key: "contracts", label: "Contracts", href: "/sales/contracts" },
 ];

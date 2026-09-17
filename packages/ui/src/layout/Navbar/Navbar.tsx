@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "../../utils";
 import { Dropdown, type DropdownItem } from "../../components/Dropdown";
-import { PageSubmenu } from "../PageSubmenu";
+import { PageSubmenu, type SubmenuTone } from "../PageSubmenu";
 import type { SubmenuItem } from "../../types/navigation";
 
 export interface NavbarProps {
@@ -15,6 +15,8 @@ export interface NavbarProps {
   submenuItems?: SubmenuItem[];
   /** Active submenu key */
   submenuActiveKey?: string;
+  /** Visual weight of the submenu — see SubmenuTone. */
+  submenuTone?: SubmenuTone;
   /** User display name shown as a standalone button (hidden on mobile) */
   userName?: string;
   /** User avatar URL */
@@ -41,6 +43,7 @@ export function Navbar({
   onHomeClick,
   submenuItems,
   submenuActiveKey,
+  submenuTone,
   userName,
   userAvatar,
   userOnline = false,
@@ -89,7 +92,11 @@ export function Navbar({
           ) : null}
         </button>
         {submenuItems?.length ? (
-          <PageSubmenu items={submenuItems} activeKey={submenuActiveKey} />
+          <PageSubmenu
+            items={submenuItems}
+            activeKey={submenuActiveKey}
+            tone={submenuTone}
+          />
         ) : null}
       </div>
 

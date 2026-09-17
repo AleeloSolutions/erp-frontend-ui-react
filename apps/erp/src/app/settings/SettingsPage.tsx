@@ -9,13 +9,18 @@ import { DocumentLayoutModal } from "./components/DocumentLayoutModal";
 
 import { SettingsTabPanel } from "./components/SettingsTabPanels";
 
+import { SettingsComingSoonPanel } from "./components/SettingsComingSoonPanel";
+
 import { useSession } from "@/app/session";
 
 import {
   defaultSettingsModule,
+  isSampleModule,
+  sampleModule,
   settingsSubmenuFor,
   settingsTabsForModule,
   type SettingsModuleKey,
+  type SettingsNavKey,
 } from "./settingsModules";
 
 import { type SettingsTabKey } from "./settingsTabs";
@@ -26,7 +31,7 @@ export type { SettingsTabKey } from "./settingsTabs";
 
 export type { SettingsDetailView } from "./settingsViews";
 
-export type { SettingsModuleKey } from "./settingsModules";
+export type { SettingsModuleKey, SettingsNavKey } from "./settingsModules";
 
 const HASH_TO_TAB: Record<string, SettingsTabKey> = {
   sales: "sales",
@@ -48,7 +53,7 @@ export interface SettingsPageProps {
 
   defaultTab?: SettingsTabKey;
 
-  defaultModule?: SettingsModuleKey;
+  defaultModule?: SettingsNavKey;
 
   defaultDetailView?: SettingsDetailView | null;
 
@@ -73,7 +78,7 @@ export default function SettingsPage({
   const queryModule = searchParams.get("module") as SettingsModuleKey | null;
   const queryTab = searchParams.get("tab") as SettingsTabKey | null;
 
-  const [activeModule, setActiveModule] = useState<SettingsModuleKey>(
+  const [activeModule, setActiveModule] = useState<SettingsNavKey>(
     hashLanding?.module ??
       (queryModule === "sales" || queryModule === "general" ? queryModule : defaultModule)
   );
@@ -109,13 +114,23 @@ export default function SettingsPage({
     }
   }
 
-  const openModule = (
-    settingsTabsForModule(activeModule, permissions).length > 0
-      ? activeModule
-      : defaultSettingsModule(permissions)
-  ) as SettingsModuleKey;
+  // A placeholder module has no tabs and no settings -- it owns the body
+  // on its own, so the real-module resolution below is skipped entirely.
+  const placeholder = isSampleModule(activeModule)
+    ? sampleModule(activeModule)
+    : undefined;
 
-  const tabs = settingsTabsForModule(openModule, permissions);
+  const openModule = (
+    placeholder
+      ? activeModule
+      : settingsTabsForModule(activeModule as SettingsModuleKey, permissions).length > 0
+        ? activeModule
+        : defaultSettingsModule(permissions)
+  ) as SettingsNavKey;
+
+  const tabs = placeholder
+    ? []
+    : settingsTabsForModule(openModule as SettingsModuleKey, permissions);
 
   // Land on a tab this account can actually open: the default is Users,
   // which a "Document Layout only" grant has no business seeing.
@@ -125,10 +140,17 @@ export default function SettingsPage({
 
   const navbar = useNavbarDefaults({
     brandLabel: "Settings",
+    submenuTone: "quiet",
     submenuItems: settingsSubmenuFor((key) => {
       setActiveModule(key);
       setDetailView(null);
       setDocumentLayoutOpen(false);
+      if (isSampleModule(key)) {
+        if (window.location.hash.startsWith("#sales")) {
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+        return;
+      }
       const nextTabs = settingsTabsForModule(key, permissions);
       if (nextTabs[0]) {
         setActiveTab(nextTabs[0].key as SettingsTabKey);
@@ -162,25 +184,31 @@ export default function SettingsPage({
 
   return (
     <AppShell activeNavKey="settings" activeMobileKey="more" navbar={navbar}>
-      {tabs.length > 0 ? (
-        <Tabs
-          align="container"
-          items={tabs}
-          activeKey={openTab}
-          onChange={(key) => handleTabChange(key as SettingsTabKey)}
-          aria-label={`${openModule} settings sections`}
-        />
-      ) : null}
+      {placeholder ? (
+        <SettingsComingSoonPanel module={placeholder} />
+      ) : (
+        <>
+          {tabs.length > 0 ? (
+            <Tabs
+              align="container"
+              items={tabs}
+              activeKey={openTab}
+              onChange={(key) => handleTabChange(key as SettingsTabKey)}
+              aria-label={`${openModule} settings sections`}
+            />
+          ) : null}
 
-      <SettingsTabPanel
-        activeTab={openTab}
-        detailView={detailView}
-        onOpenDetail={openDetail}
-        onOpenDocumentLayout={openDocumentLayout}
-        onBack={handleBack}
-      />
+          <SettingsTabPanel
+            activeTab={openTab}
+            detailView={detailView}
+            onOpenDetail={openDetail}
+            onOpenDocumentLayout={openDocumentLayout}
+            onBack={handleBack}
+          />
 
-      <DocumentLayoutModal open={documentLayoutOpen} onClose={closeDocumentLayout} />
+          <DocumentLayoutModal open={documentLayoutOpen} onClose={closeDocumentLayout} />
+        </>
+      )}
     </AppShell>
   );
 }

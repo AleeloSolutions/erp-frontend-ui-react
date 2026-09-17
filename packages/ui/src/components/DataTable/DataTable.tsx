@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -37,9 +37,18 @@ import { DataTableBulkActions } from "./DataTableBulkActions";
 import { DataTableColumnsMenu } from "./DataTableColumnsMenu";
 import { DataTableHeader } from "./DataTableHeader";
 import { DataTableColumnResizer } from "./DataTableColumnResizer";
-import { DataTableBody } from "./DataTableBody";
-import { DataTablePagination } from "./DataTablePagination";
+import { DataTableBody, type DataTableServerGroupsConfig } from "./DataTableBody";
+import { DataTablePagination, DataTableRangePagination } from "./DataTablePagination";
 import { DataTableLoading } from "./DataTableLoading";
+import { DataTableAggregateFooter } from "./DataTableAggregateFooter";
+import { DataTableCurrencyTotals } from "./DataTableCurrencyTotals";
+import {
+  buildServerGroupSections,
+  collectExpandedPathIds,
+  dataTableGroupKeyId,
+  dataTableGroupPathFromId,
+  type DataTableServerGroupSection,
+} from "./serverGrouping";
 import { defaultDatePresetOptions } from "./dateFilterOptions";
 import {
   getColumnWidthStyle,
@@ -48,9 +57,11 @@ import {
   type SizingColumnSpec,
 } from "./column-width";
 import { useDebounce } from "../../hooks/useDebounce";
+import { useUiTranslation } from "../../i18n";
 import { CONTROL_PANEL_HEIGHT, NAVBAR_HEIGHT } from "../../layout/stickyOffsets";
 import type {
   DataTableBulkAction,
+  DataTableServerGroupNode,
   DataTableFilter,
   DataTableFilterOption,
   DataTableFilterValues,
@@ -58,6 +69,7 @@ import type {
   DataTableGroupingOption,
   DataTablePaginationConfig,
   DataTableRowAction,
+  DataTableServerGroupingConfig,
   DataTableSortingConfig,
 } from "../../types/table";
 import "../../types/table";
@@ -71,6 +83,8 @@ const VISIBILITY_STORAGE_PREFIX = "erp.datatable.visibility.";
  */
 const DEFAULT_COLUMN_MIN_SIZE = 44;
 const DEFAULT_COLUMN_MAX_SIZE = 640;
+/** Stable empty list, so the "nothing is open" memo never churns. */
+const NO_EXPANDED_PATH_IDS: string[] = [];
 
 type PanelFilterItem = SearchFilterItem & {
   selectable?: boolean;
@@ -333,6 +347,20 @@ export interface DataTableProps<TData, TValue = unknown> {
   groupingOptions?: DataTableGroupingOption[];
   /** Fires when Group By selections change (including period grains). */
   onGroupingChange?: (columnIds: string[]) => void;
+  /**
+   * Server-grouped mode — an alternative to `enableGrouping`'s client-side
+   * model, which can only group the rows already on the page.
+   *
+   * The server computes the groups, their counts and their totals over the
+   * whole filtered set; the table renders that page of groups collapsed and
+   * asks for a group's rows only when it is opened. `aggregate` drives the
+   * grand-total footer and the pager pages GROUPS.
+   *
+   * While this is set, the Group By panel still drives `onGroupingChange` (so
+   * the page can change its `group_by` spec), but rows are laid out from these
+   * groups rather than from the client grouping model.
+   */
+  serverGrouping?: DataTableServerGroupingConfig<TData>;
   getRowId?: (originalRow: TData, index: number) => string;
   sorting?: DataTableSortingConfig;
   /**
@@ -423,6 +451,7 @@ export function DataTable<TData, TValue = unknown>({
   enableGrouping = false,
   groupingOptions = [],
   onGroupingChange,
+  serverGrouping,
   getRowId,
   sorting: controlledSorting,
   filtering: controlledFiltering,
@@ -433,8 +462,14 @@ export function DataTable<TData, TValue = unknown>({
   belowControlPanel,
   renderToolbar,
 }: DataTableProps<TData, TValue>) {
+  const { t } = useUiTranslation("ui");
   const isServerPagination = typeof pagination === "object";
   const enablePagination = pagination !== false;
+  const serverGroupingActive = serverGrouping != null;
+  const groupPagination = serverGrouping?.pagination ?? null;
+  const nesting = serverGrouping?.nesting ?? null;
+  /** Depth at which children stop being sub-groups and become records. */
+  const levelCount = nesting?.levels.length || 1;
   const resolvedBelowControlPanel = belowControlPanel ?? renderToolbar != null;
   const stickyHeaderTop = stickyHeader
     ? NAVBAR_HEIGHT + (resolvedBelowControlPanel ? CONTROL_PANEL_HEIGHT : 0)
@@ -473,6 +508,70 @@ export function DataTable<TData, TValue = unknown>({
   useEffect(() => {
     onGroupingChange?.(grouping);
   }, [grouping, onGroupingChange]);
+
+  /**
+   * Server-grouped expansion, addressed by PATH id — `dataTableGroupPathId` of
+   * the group identities from the top level down. A one-element path joins to
+   * the bare identity, so single-level mode sees exactly the identities it
+   * always did.
+   *
+   * Session-only by design: which nodes someone opened says nothing once the
+   * group page or the grouping itself changes, and restoring it would fire a
+   * burst of fetches for nodes nobody asked for.
+   */
+  const [expandedGroupKeys, setExpandedGroupKeys] = useState<string[]>([]);
+  const expandedGroupKeysRef = useRef<string[]>([]);
+  const notifyExpandedRef = useRef<((keys: string[]) => void) | undefined>(undefined);
+  const nestingRef = useRef(nesting);
+
+  useEffect(() => {
+    notifyExpandedRef.current = serverGrouping?.onExpandedChange;
+    nestingRef.current = nesting;
+  });
+
+  const serverGroupIdentities = serverGrouping
+    ? serverGrouping.groups.map((group) => dataTableGroupKeyId(group.key))
+    : [];
+  /** The grouping chain itself — swapping a level invalidates every open node. */
+  const levelSignature = nesting
+    ? nesting.levels
+        .map((level, index) => level.id ?? level.label ?? String(index))
+        .join(">")
+    : "";
+  /**
+   * Changes when the page of groups changes, when the grouping changes, or when
+   * the mode is turned off — each of which makes the open set meaningless.
+   * Rows arriving for an already-open node do not change it.
+   */
+  const expansionSignature = serverGroupingActive
+    ? [
+        groupPagination?.page ?? 1,
+        grouping.join("|"),
+        levelSignature,
+        serverGroupIdentities.join("|"),
+      ].join("::")
+    : "";
+
+  useEffect(() => {
+    if (expandedGroupKeysRef.current.length === 0) return;
+    expandedGroupKeysRef.current = [];
+    setExpandedGroupKeys([]);
+    notifyExpandedRef.current?.([]);
+  }, [expansionSignature]);
+
+  const toggleServerGroup = (pathId: string) => {
+    const next = expandedGroupKeysRef.current.includes(pathId)
+      ? // Collapsing drops this node only. Its descendants stay listed so
+        // re-opening a parent restores the subtree the user built instead of
+        // making them click it out again — and they stay off screen meanwhile,
+        // because `buildServerGroupSections` never descends into a closed node.
+        expandedGroupKeysRef.current.filter((key) => key !== pathId)
+      : [...expandedGroupKeysRef.current, pathId];
+    expandedGroupKeysRef.current = next;
+    setExpandedGroupKeys(next);
+    serverGrouping?.onExpandedChange(next);
+  };
+
   const [paginationState, setPaginationState] = useState<PaginationState>({
     pageIndex: isServerPagination ? Math.max(0, pagination.page - 1) : 0,
     pageSize: isServerPagination ? pagination.pageSize : initialPageSize,
@@ -767,8 +866,90 @@ export function DataTable<TData, TValue = unknown>({
     return rows;
   }, [data, searchable, debouncedSearch, filters, filterValues, manualFiltering]);
 
+  /**
+   * One section per server group, carrying where that group's loaded rows sit
+   * in the flattened row model below. Both come out of the same pass, so the
+   * body can never slice the wrong rows into a group.
+   */
+  // Keyed off the two collections rather than the config object, which callers
+  // usually rebuild inline — otherwise every render would hand the table a new
+  // `data` array and rebuild the whole row model.
+  const serverGroupList = serverGrouping?.groups;
+  const serverRowsByGroup = serverGrouping?.rowsByGroup;
+  const serverNodesByPath = nesting?.nodesByPath;
+
+  /**
+   * One lookup for both modes. A single-level `rowsByGroup` entry *is* a rows
+   * node — the only level it has is the last one — so the legacy map answers
+   * for paths of length one and nested callers answer for every path.
+   */
+  const resolveServerGroupNode = useCallback(
+    (pathId: string): DataTableServerGroupNode<TData> | undefined => {
+      if (serverNodesByPath) return serverNodesByPath[pathId];
+      const entry = serverRowsByGroup?.[pathId];
+      return entry ? { kind: "rows", ...entry } : undefined;
+    },
+    [serverNodesByPath, serverRowsByGroup]
+  );
+
+  /**
+   * The section tree and the flat row model, out of one walk — so the body can
+   * never slice the wrong rows into a group, however deep it sits.
+   */
+  const serverGroupTree = useMemo(() => {
+    if (!serverGroupList) return null;
+    return buildServerGroupSections<TData>({
+      groups: serverGroupList,
+      expandedPathIds: expandedGroupKeys,
+      levelCount,
+      resolveNode: resolveServerGroupNode,
+    });
+  }, [serverGroupList, expandedGroupKeys, levelCount, resolveServerGroupNode]);
+
+  const serverGroupSections: DataTableServerGroupSection<TData>[] | null =
+    serverGroupTree?.sections ?? null;
+  /**
+   * Rows of every open node, in render order — this is what the table itself is
+   * fed, so cells, sizing and selection keep working exactly as in flat mode.
+   */
+  const serverFlatRows: TData[] | null = serverGroupTree?.rows ?? null;
+
+  /**
+   * Nodes open *and on screen*. Re-opening a parent brings its retained
+   * children back here, which is what re-triggers their fetch — the caller
+   * serves those from its own cache.
+   */
+  const visibleExpandedPathIds = useMemo(
+    () =>
+      serverGroupSections
+        ? collectExpandedPathIds(serverGroupSections)
+        : NO_EXPANDED_PATH_IDS,
+    [serverGroupSections]
+  );
+  const visibleExpandedSignature = visibleExpandedPathIds.join("\n");
+  const announcedPathsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const onExpand = nestingRef.current?.onExpand;
+    const next = new Set(visibleExpandedPathIds);
+    if (onExpand) {
+      visibleExpandedPathIds.forEach((pathId) => {
+        if (announcedPathsRef.current.has(pathId)) return;
+        onExpand(dataTableGroupPathFromId(pathId));
+      });
+    }
+    // Reassigned wholesale, so a node that scrolled out of the tree (collapsed
+    // ancestor, new group page, changed grouping) is announced again if it
+    // comes back.
+    announcedPathsRef.current = next;
+  }, [visibleExpandedSignature, visibleExpandedPathIds]);
+
+  const tableData = serverFlatRows ?? filteredBySearch;
+  /** Content sample for the one-shot column fit. */
+  const sizingRows = serverGroupingActive ? (serverFlatRows ?? []) : data;
+
   const table = useReactTable({
-    data: filteredBySearch,
+    data: tableData,
     columns: tableColumns,
     defaultColumn: {
       minSize: DEFAULT_COLUMN_MIN_SIZE,
@@ -792,9 +973,12 @@ export function DataTable<TData, TValue = unknown>({
     columnResizeMode: "onChange",
     columnResizeDirection,
     autoResetPageIndex: false,
-    manualPagination: isServerPagination,
+    // Server-grouped mode pages GROUPS, not rows: every loaded row stays in the
+    // model so each open group renders whole.
+    manualPagination: isServerPagination || serverGroupingActive,
     // Server lists pass sorting to the API; do not re-sort the page client-side.
-    manualSorting: manualFiltering,
+    // Re-sorting under server grouping would also scramble rows across groups.
+    manualSorting: manualFiltering || serverGroupingActive,
     pageCount: isServerPagination
       ? Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
       : undefined,
@@ -829,7 +1013,8 @@ export function DataTable<TData, TValue = unknown>({
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: enablePagination ? getPaginationRowModel() : undefined,
+    getPaginationRowModel:
+      enablePagination && !serverGroupingActive ? getPaginationRowModel() : undefined,
   });
 
   // Keep column pixel sizes summing to the measured container width.
@@ -873,11 +1058,13 @@ export function DataTable<TData, TValue = unknown>({
   useEffect(() => {
     if (sizingLockedRef.current) return;
     if (loading) return;
-    if (data.length === 0) return;
+    // Server-grouped lists have no rows until a group is opened — the first
+    // opened group is what the columns get fitted to.
+    if (sizingRows.length === 0) return;
 
     const estimated = estimateDataColumnSizing(
       columns as ColumnDef<TData, unknown>[],
-      data,
+      sizingRows,
       {
         minSize: DEFAULT_COLUMN_MIN_SIZE,
         maxSize: DEFAULT_COLUMN_MAX_SIZE,
@@ -911,7 +1098,7 @@ export function DataTable<TData, TValue = unknown>({
     setColumnSizing(normalizeSizingToWidth(estimated, specs, containerWidth));
     // table / columns read for leaf defs + content estimate; lock after first fit
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot after first non-empty load
-  }, [loading, data, columns, containerWidth, visibleLeafKey]);
+  }, [loading, sizingRows, columns, containerWidth, visibleLeafKey]);
 
   const resolvedGroupingOptions = useMemo((): DataTableGroupingOption[] => {
     if (!enableGrouping) return [];
@@ -946,13 +1133,21 @@ export function DataTable<TData, TValue = unknown>({
    * options, but disable the items. Active filters stay enabled so they can
    * be cleared when a filter set itself yields an empty page.
    */
-  const catalogEmpty =
-    isServerPagination &&
-    !loading &&
-    totalRows === 0 &&
-    data.length === 0 &&
-    !hasActiveFilters &&
-    !search.trim();
+  const catalogEmpty = serverGrouping
+    ? // Server-grouped: the group page is the catalog. Never derived from
+      // `pagination.total`, which counts records and may not even be passed
+      // here — and disabling Group By on a stale zero would strand the user in
+      // a grouping they could no longer switch off.
+      !serverGrouping.loading &&
+      serverGrouping.groups.length === 0 &&
+      !hasActiveFilters &&
+      !search.trim()
+    : isServerPagination &&
+      !loading &&
+      totalRows === 0 &&
+      data.length === 0 &&
+      !hasActiveFilters &&
+      !search.trim();
 
   const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
 
@@ -1028,33 +1223,31 @@ export function DataTable<TData, TValue = unknown>({
 
   if (grouping.length > 0) {
     const labels: string[] = [];
-    const consumed = new Set<string>();
 
+    // The chip states the hierarchy, so it must read in the SAME order the
+    // consumer applies -- which is `grouping`, the order the user picked in.
+    // Sorting period grains coarse-to-fine and hoisting them ahead of the
+    // other dimensions made the chip describe a hierarchy nobody requested:
+    // picking Salesperson, Customer, then Sale Date: Year rendered
+    // "Sale Date > Year > Salesperson > Customer" over a list grouped
+    // Salesperson > Customer > Year.
+    //
+    // A grain carries its parent's name ("Sale Date: Year") rather than the
+    // parent being pushed as its own level, because the parent is not a level
+    // -- there is no grouping by "Sale Date" in the abstract, only by one of
+    // its grains.
+    const parentLabelByChild = new Map<string, string>();
     resolvedGroupingOptions.forEach((option) => {
-      if (!option.children?.length) return;
-      const selectedChildren = option.children.filter((child) =>
-        grouping.includes(child.value)
-      );
-      if (selectedChildren.length === 0) return;
-      const grainOrder = sortPeriodGrains(
-        selectedChildren
-          .map((child) => parsePeriodGroupingColumnId(child.value)?.grain)
-          .filter((grain): grain is PeriodGrain => Boolean(grain))
-      );
-      const sortedChildren = [...selectedChildren].sort((a, b) => {
-        const ga = parsePeriodGroupingColumnId(a.value)?.grain;
-        const gb = parsePeriodGroupingColumnId(b.value)?.grain;
-        if (!ga || !gb) return 0;
-        return grainOrder.indexOf(ga) - grainOrder.indexOf(gb);
+      option.children?.forEach((child) => {
+        parentLabelByChild.set(child.value, option.label);
       });
-      labels.push(option.label, ...sortedChildren.map((child) => child.label));
-      sortedChildren.forEach((child) => consumed.add(child.value));
     });
 
     grouping.forEach((groupId) => {
-      if (consumed.has(groupId)) return;
       const found = findGroupingOption(resolvedGroupingOptions, groupId);
-      labels.push(found?.label ?? groupId);
+      const own = found?.label ?? groupId;
+      const parent = parentLabelByChild.get(groupId);
+      labels.push(parent ? `${parent}: ${own}` : own);
     });
 
     searchFilterChips.push({
@@ -1194,7 +1387,23 @@ export function DataTable<TData, TValue = unknown>({
   // share one full-width grid.
   const tableWidth = containerWidth > 0 ? containerWidth : totalColumnsWidth;
 
-  const pager = enablePagination ? (
+  /**
+   * In server-grouped mode the pager walks GROUPS, so it is driven by
+   * `serverGrouping.pagination` and labelled as such — a row pager over a body
+   * of group rows would be reporting a number the screen is not showing. No
+   * group pagination config means no pager rather than the wrong one.
+   */
+  const pager = serverGrouping ? (
+    groupPagination ? (
+      <DataTableRangePagination
+        page={groupPagination.page}
+        pageSize={groupPagination.pageSize}
+        total={groupPagination.total}
+        onPageChange={groupPagination.onPageChange}
+        unitLabel={t("datatable.groups")}
+      />
+    ) : null
+  ) : enablePagination ? (
     <DataTablePagination
       table={table}
       totalRows={totalRows}
@@ -1263,7 +1472,55 @@ export function DataTable<TData, TValue = unknown>({
     />
   ) : null;
 
-  const showLoadingSkeleton = loading && data.length === 0;
+  /**
+   * Whole-table states. A single group's rows loading or failing is NOT one of
+   * these — that stays inside its own group so the rest stays readable.
+   */
+  const showLoadingSkeleton = serverGrouping
+    ? Boolean(serverGrouping.loading) && serverGrouping.groups.length === 0
+    : loading && data.length === 0;
+  const displayError = error ?? serverGrouping?.error ?? null;
+
+  /**
+   * Per-node callbacks, path-shaped. Nested mode owns them outright: falling
+   * back to the single-level `onRetryGroup`/`onLoadMoreGroup` at depth would
+   * hand a handler that only knows top-level identities a key it cannot place.
+   */
+  const retryServerGroupNode = nesting
+    ? nesting.onRetry
+    : serverGrouping?.onRetryGroup
+      ? (path: string[]) => {
+          const identity = path[path.length - 1];
+          if (identity != null) serverGrouping.onRetryGroup?.(identity);
+        }
+      : undefined;
+
+  const loadMoreServerGroupNode = nesting
+    ? nesting.onLoadMore
+    : serverGrouping?.onLoadMoreGroup
+      ? (path: string[]) => {
+          const identity = path[path.length - 1];
+          if (identity != null) serverGrouping.onLoadMoreGroup?.(identity);
+        }
+      : undefined;
+
+  const serverGroupsConfig: DataTableServerGroupsConfig<TData> | undefined =
+    serverGrouping && serverGroupSections
+      ? {
+          sections: serverGroupSections,
+          groupLabel: serverGrouping.groupLabel,
+          levelLabel: nesting
+            ? (depth) =>
+                nesting.levels[depth]?.label ??
+                (depth === 0 ? serverGrouping.groupLabel : undefined)
+            : undefined,
+          formatAmount: serverGrouping.formatAmount,
+          onToggle: toggleServerGroup,
+          onRetry: retryServerGroupNode,
+          onLoadMore: loadMoreServerGroupNode,
+          loadMorePageSize: serverGrouping.rowPageSize,
+        }
+      : undefined;
 
   return (
     <>
@@ -1287,9 +1544,9 @@ export function DataTable<TData, TValue = unknown>({
             <div className="h-full w-1/3 animate-[erp-fetch-slide_1s_ease-in-out_infinite] bg-erp-primary" />
           </div>
         ) : null}
-        {error ? (
+        {displayError ? (
           <div className="grid min-h-[120px] place-items-center px-4 text-[0.875rem] text-erp-error">
-            {error}
+            {displayError}
           </div>
         ) : showLoadingSkeleton ? (
           <DataTableLoading
@@ -1358,12 +1615,25 @@ export function DataTable<TData, TValue = unknown>({
                 <DataTableBody
                   table={table}
                   emptyMessage={emptyMessage}
-                  groupingColumnIds={orderedGrouping}
+                  groupingColumnIds={serverGroupingActive ? [] : orderedGrouping}
                   activeRowId={activeRowId}
                   onClearActiveRow={() => setActiveRowId(null)}
                   getRowClassName={getRowClassName}
                   renderGroupSummary={renderGroupSummary}
+                  serverGroups={serverGroupsConfig}
                 />
+                {serverGrouping ? (
+                  <DataTableAggregateFooter
+                    colSpan={Math.max(table.getVisibleLeafColumns().length, 1)}
+                    count={serverGrouping.aggregate.count}
+                    totals={
+                      <DataTableCurrencyTotals
+                        totals={serverGrouping.aggregate.totals}
+                        formatAmount={serverGrouping.formatAmount}
+                      />
+                    }
+                  />
+                ) : null}
               </table>
             </div>
           </div>

@@ -47,7 +47,11 @@ export function ControlPanel({
     >
       <div
         className={cn(
-          "grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-3",
+          // The side tracks take only what their content needs; the search in
+          // the middle gets everything else. Equal thirds capped it at a third
+          // of the panel, so a search with several facets grew downward into
+          // stacked rows while most of the toolbar sat empty.
+          "grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3",
           isCompact && "min-h-7"
         )}
       >

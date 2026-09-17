@@ -16,7 +16,23 @@
     "selectedCount": "{{count}} selected",
     "selected": "selected",
     "clearSelection": "Clear selection",
-    "actions": "Actions"
+    "actions": "Actions",
+    "groups": "groups",
+    "expandGroup": "Expand {{label}}",
+    "collapseGroup": "Collapse {{label}}",
+    "groupRowsLoading": "Loading rows…",
+    "groupRowsError": "Could not load this group's rows.",
+    "groupRowsEmpty": "No rows in this group.",
+    "groupRowsShowing": "Showing {{loaded}} of {{total}} rows",
+    "groupLoadMore": "Load {{rows}} more",
+    "groupLoadingMore": "Loading…",
+    "groupChildrenLoading": "Loading groups…",
+    "groupChildrenError": "Could not load this group's sub-groups.",
+    "groupChildrenEmpty": "No sub-groups in this group.",
+    "retry": "Retry",
+    "overallTotal": "Total",
+    "overallTotalHint": "Every record matching the current filters — not just this page.",
+    "records": "records"
   },
   "searchFilter": {
     "filters": "Filters",
@@ -53,7 +69,8 @@
     "searchTitle": "Search"
   },
   "recordForm": {
-    "save": "Save"
+    "save": "Save",
+    "discard": "Discard"
   },
   "datepicker": {
     "chooseDate": "Choose date",

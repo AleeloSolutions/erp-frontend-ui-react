@@ -104,8 +104,8 @@ export function Modal({
         className={cn(
           "relative z-[101] overflow-hidden bg-erp-surface shadow-lg",
           isTallModal
-            ? cn("flex flex-col rounded-lg border border-erp-border", sizeClasses[size])
-            : cn("w-full border border-erp-border", sizeClasses[size]),
+            ? cn("flex flex-col rounded-sm ", sizeClasses[size])
+            : cn("w-full", sizeClasses[size]),
           className
         )}
       >
@@ -136,7 +136,11 @@ export function Modal({
         )}
         <div
           className={cn(
-            isTallModal ? "min-h-0 flex-1 overflow-hidden p-0" : "p-3",
+            // `flex flex-col` matters: without it the body's child is not a
+            // flex item, so its own `flex-1` does nothing, it sizes to its
+            // content, and this box clips the overflow with no scrollbar --
+            // rows below the fold become unreachable rather than scrollable.
+            isTallModal ? "flex min-h-0 flex-1 flex-col overflow-hidden p-0" : "p-3",
             bodyClassName
           )}
         >

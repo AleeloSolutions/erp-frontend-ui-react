@@ -3,7 +3,41 @@ export {
   DataTableBody,
   type DataTableBodyProps,
   type DataTableGroupSummaryContext,
+  type DataTableServerGroupsConfig,
 } from "./DataTableBody";
+export {
+  DataTableAggregateFooter,
+  type DataTableAggregateFooterProps,
+} from "./DataTableAggregateFooter";
+export {
+  DataTableCurrencyTotals,
+  type DataTableCurrencyTotalsProps,
+} from "./DataTableCurrencyTotals";
+export {
+  DataTableGroupRow,
+  type DataTableGroupRowDisclosure,
+  type DataTableGroupRowProps,
+} from "./DataTableGroupRow";
+export {
+  DataTableGroupLoadMoreRow,
+  type DataTableGroupLoadMoreRowProps,
+} from "./DataTableGroupLoadMoreRow";
+export {
+  DATA_TABLE_GROUP_PATH_SEPARATOR,
+  DATA_TABLE_NULL_GROUP_KEY,
+  buildServerGroupSections,
+  collectExpandedPathIds,
+  dataTableGroupIndent,
+  dataTableGroupKeyFromId,
+  dataTableGroupKeyId,
+  dataTableGroupPathFromId,
+  dataTableGroupPathId,
+  dataTableGroupPathStartsWith,
+  dataTableGroupStateInset,
+  type BuildServerGroupSectionsOptions,
+  type BuildServerGroupSectionsResult,
+  type DataTableServerGroupSection,
+} from "./serverGrouping";
 export {
   DataTableBulkActions,
   type DataTableBulkActionsProps,
@@ -25,7 +59,9 @@ export { DataTableHeader, type DataTableHeaderProps } from "./DataTableHeader";
 export { DataTableLoading } from "./DataTableLoading";
 export {
   DataTablePagination,
+  DataTableRangePagination,
   type DataTablePaginationProps,
+  type DataTableRangePaginationProps,
 } from "./DataTablePagination";
 export { defaultDatePresetOptions, periodGroupingOption } from "./dateFilterOptions";
 export {
