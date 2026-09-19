@@ -30,6 +30,20 @@ export interface ModuleEntry {
   /** The catalogue key: what `enabled_modules` lists and what the routes use. */
   key: string;
   label: string;
+  /**
+   * The module's mark: a name on the icon allowlist (`@/app/moduleIcons`).
+   *
+   * This endpoint resolves server-side, so in practice it always sends a
+   * drawable on-list name -- a module that names no icon arrives as the
+   * default, never as "". Do not branch on "" here; that branch is dead.
+   * Still resolve it with `resolveModuleIcon`: the two lists live in
+   * different repos and deploy separately, so a name this build does not
+   * know must degrade to the default rather than throw.
+   *
+   * The optional logo IMAGE sits above this in the resolution order and
+   * will arrive as its own field; it is not implemented yet.
+   */
+  icon: string;
   version: string;
   nav_area: string;
   /** Keys that must be installed first. */
@@ -73,7 +87,12 @@ export async function invalidateAfterModuleChange(queryClient?: QueryClient | nu
 
 export function useModulesQuery(
   options?: Omit<
-    UseQueryOptions<ModuleEntry[], Error, ModuleEntry[], ReturnType<typeof settingsKeys.modules.list>>,
+    UseQueryOptions<
+      ModuleEntry[],
+      Error,
+      ModuleEntry[],
+      ReturnType<typeof settingsKeys.modules.list>
+    >,
     "queryKey" | "queryFn"
   >
 ) {

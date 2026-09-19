@@ -14,7 +14,6 @@
 
 import { useContext, useMemo, useState } from "react";
 import { QueryClientContext } from "@tanstack/react-query";
-import { Blocks } from "lucide-react";
 import {
   Badge,
   Button,
@@ -28,6 +27,7 @@ import {
   useToast,
 } from "@erp/ui";
 import { useSession } from "@/app/session";
+import { resolveModuleIcon } from "@/app/moduleIcons";
 import { ApiError } from "@/lib/api-client";
 import {
   MODULE_CODES,
@@ -163,10 +163,14 @@ export function SettingsModulesPanel() {
                 const missing = module.depends_on.filter((key) => !installed.has(key));
                 const busy = busyKey === module.key;
                 const installedOn = formatDate(module.installed_at);
+                // Rung 2 of the module mark: the backend's icon name, or
+                // the default when it names none or names one this build
+                // does not know. Rung 1, the logo image, is not here yet.
+                const Icon = resolveModuleIcon(module.icon);
                 return (
                   <Card key={module.key} data-module={module.key}>
                     <CardHeader>
-                      <Blocks className="h-4 w-4 shrink-0 text-erp-muted" aria-hidden />
+                      <Icon className="h-4 w-4 shrink-0 text-erp-muted" aria-hidden />
                       <CardTitle className="min-w-0 flex-1 truncate">
                         {module.label}
                       </CardTitle>

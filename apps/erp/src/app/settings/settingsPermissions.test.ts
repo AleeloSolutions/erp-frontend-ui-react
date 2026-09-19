@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { Settings2, ShoppingCart } from "lucide-react";
+import { resolveModuleIcon } from "@/app/moduleIcons";
 import {
   SAMPLE_MODULES,
+  SETTINGS_MODULE_ICON_NAMES,
   defaultSettingsModule,
   isSampleModule,
+  settingsModuleIcon,
   settingsSubmenuFor,
   settingsTabsForModule,
 } from "./settingsModules";
@@ -96,5 +100,26 @@ describe("Placeholder modules", () => {
   it("are not mistaken for the real modules", () => {
     expect(isSampleModule("general")).toBe(false);
     expect(isSampleModule("sales")).toBe(false);
+  });
+});
+
+describe("Settings navbar marks", () => {
+  it("resolves the real modules through the shared allowlist", () => {
+    expect(settingsModuleIcon("general")).toBe(Settings2);
+    expect(settingsModuleIcon("sales")).toBe(ShoppingCart);
+
+    for (const [key, name] of Object.entries(SETTINGS_MODULE_ICON_NAMES)) {
+      expect(resolveModuleIcon(name)).toBe(
+        settingsModuleIcon(key as keyof typeof SETTINGS_MODULE_ICON_NAMES)
+      );
+    }
+  });
+
+  it("gives every navbar entry -- real or placeholder -- something to render", () => {
+    const items = settingsSubmenuFor(() => undefined, ["settings.client.edit"]);
+    expect(items.length).toBeGreaterThan(SAMPLE_MODULES.length);
+    for (const item of items) {
+      expect(item.icon).toBeTruthy();
+    }
   });
 });

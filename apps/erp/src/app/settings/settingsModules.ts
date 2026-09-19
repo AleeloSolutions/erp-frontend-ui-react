@@ -3,14 +3,13 @@ import {
   Calculator,
   Package,
   Scan,
-  Settings2,
-  ShoppingCart,
   Truck,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import type { SubmenuItem, TabItem } from "@erp/ui";
 import { holdsAny } from "@/app/access";
+import { resolveModuleIcon, type ModuleIconName } from "@/app/moduleIcons";
 import { SETTINGS_TAB_REQUIREMENTS, type SettingsTabKey } from "./settingsTabs";
 
 /** Top-level Settings areas shown in the Navbar. */
@@ -30,16 +29,28 @@ export const SETTINGS_MODULE_LABELS: Record<SettingsModuleKey, string> = {
 };
 
 /**
- * The mark each module shows in the navbar.
+ * The mark each real module shows in the navbar, held as a NAME on the
+ * shared allowlist (`@/app/moduleIcons`) rather than as a component.
  *
- * Lucide stands in until a module has artwork. When logos arrive these
- * become the last rung of the fallback — package logo, then descriptor
- * logo, then this — so the icon slot itself never has to change.
+ * Holding the name is what puts these through the same resolver as a
+ * module's backend-supplied `icon`: one fallback path, one place that
+ * decides what an unknown name degrades to. When `/api/v1/modules/`
+ * starts carrying `icon` for these two, the record goes and the names
+ * come off the wire — the call site below does not change.
+ *
+ * When logos arrive they become the rung ABOVE this one — logo image,
+ * then icon name, then the default — so the icon slot never has to
+ * change either.
  */
-export const SETTINGS_MODULE_ICONS: Record<SettingsModuleKey, LucideIcon> = {
-  general: Settings2,
-  sales: ShoppingCart,
+export const SETTINGS_MODULE_ICON_NAMES: Record<SettingsModuleKey, ModuleIconName> = {
+  general: "Settings2",
+  sales: "ShoppingCart",
 };
+
+/** The navbar mark for a real Settings module. */
+export function settingsModuleIcon(key: SettingsModuleKey): LucideIcon {
+  return resolveModuleIcon(SETTINGS_MODULE_ICON_NAMES[key]);
+}
 
 /**
  * Modules that do not exist yet.
@@ -58,6 +69,11 @@ export const SETTINGS_MODULE_ICONS: Record<SettingsModuleKey, LucideIcon> = {
 export interface SampleModule {
   key: SampleModuleKey;
   label: string;
+  /**
+   * Carried as a component, not a name: a placeholder answers to nobody
+   * on the wire, so there is no contract to resolve against. Real
+   * modules go through `resolveModuleIcon`.
+   */
   icon: LucideIcon;
 }
 
@@ -103,7 +119,7 @@ const GENERAL_TAB_LABELS: Partial<Record<SettingsTabKey, string>> = {
 export const settingsSubmenu: SubmenuItem[] = SETTINGS_MODULE_ORDER.map((key) => ({
   key,
   label: SETTINGS_MODULE_LABELS[key],
-  icon: SETTINGS_MODULE_ICONS[key],
+  icon: settingsModuleIcon(key),
   href: "/settings",
 }));
 
@@ -126,7 +142,7 @@ export function settingsSubmenuFor(
   ).map((key) => ({
     key,
     label: SETTINGS_MODULE_LABELS[key],
-    icon: SETTINGS_MODULE_ICONS[key],
+    icon: settingsModuleIcon(key),
     href: "/settings",
     onClick: () => onSelect(key),
   }));

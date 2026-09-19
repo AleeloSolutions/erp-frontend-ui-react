@@ -44,6 +44,7 @@ const SALES: ModuleEntry = {
   uuid: "m1",
   key: "sales",
   label: "Sales",
+  icon: "ShoppingCart",
   version: "1.0.0",
   nav_area: "sales",
   depends_on: [],
@@ -55,6 +56,7 @@ const POS_DISABLED: ModuleEntry = {
   uuid: "m2",
   key: "pos",
   label: "Point of Sale",
+  icon: "Scan",
   version: "1.0.0",
   nav_area: "sales",
   depends_on: ["sales"],
@@ -127,5 +129,34 @@ describe("SettingsModulesPanel", () => {
   it("never offers Install", () => {
     renderPanel();
     expect(screen.queryByRole("button", { name: "Install" })).toBeNull();
+  });
+
+  it("wears the icon the module named", () => {
+    renderPanel();
+
+    const sales = document.querySelector('[data-module="sales"]')!;
+    expect(sales.querySelector("svg.lucide-shopping-cart")).not.toBeNull();
+
+    const pos = document.querySelector('[data-module="pos"]')!;
+    expect(pos.querySelector("svg.lucide-scan")).not.toBeNull();
+  });
+
+  // Drift between the backend allowlist and this build must be dull, not
+  // fatal: the card still renders, wearing the default.
+  it("falls back to the default icon for an unset or unknown name", () => {
+    api.modules = [
+      { ...SALES, icon: "" },
+      { ...POS_DISABLED, key: "wms", label: "Warehouse", icon: "NotAnIconName" },
+    ];
+    renderPanel();
+
+    expect(screen.getByRole("heading", { name: "Sales" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Warehouse" })).toBeTruthy();
+
+    const sales = document.querySelector('[data-module="sales"]')!;
+    expect(sales.querySelector("svg.lucide-blocks")).not.toBeNull();
+
+    const wms = document.querySelector('[data-module="wms"]')!;
+    expect(wms.querySelector("svg.lucide-blocks")).not.toBeNull();
   });
 });
