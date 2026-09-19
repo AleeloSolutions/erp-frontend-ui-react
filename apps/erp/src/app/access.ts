@@ -62,7 +62,6 @@ export const NAV_REQUIREMENTS: Record<string, string[]> = {
   dashboard: [],
   // Contracts remain in the permission catalogue but are hidden from nav.
   sales: viewing("sales.customer", "sales.sale", "sales.product"),
-  notes: viewing("notes.note"),
   settings: SETTINGS_ACCESS_CODES,
 };
 
