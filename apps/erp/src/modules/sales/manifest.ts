@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { ShoppingCart } from "lucide-react";
 import type { ModuleManifest } from "../types";
+import { salesSettings } from "./settings";
 
 /**
  * Visible Sales tabs. Contracts stay in the codebase/API but are hidden
@@ -40,6 +41,8 @@ export const salesManifest: ModuleManifest = {
     ],
   },
   submenu: salesSubmenu,
+  // Settings -> Sales. Declared here so the area ships with the module.
+  settings: salesSettings,
   // Its own chunk: a tenant without sales never downloads these screens.
   Routes: lazy(() =>
     import("./routes").then((module) => ({ default: module.SalesRoutes }))

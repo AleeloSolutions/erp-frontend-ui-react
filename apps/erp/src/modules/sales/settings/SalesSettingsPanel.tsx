@@ -38,7 +38,7 @@ import {
 import { ApiError } from "@/lib/api-client";
 import { listTableState } from "@/lib/listTableState";
 import { useSession } from "@/app/session";
-import { useBranches } from "../branchesApi";
+import { useBranches } from "@/app/settings/branchesApi";
 import {
   useCreatePaymentMethodMutation,
   useCreateTaxMutation,
@@ -48,13 +48,13 @@ import {
   useUpdatePaymentMethodMutation,
   useUpdateSalesSettingsMutation,
   useUpdateTaxMutation,
-} from "@/modules/sales/shared";
+} from "../shared";
 import type {
   PaymentMethod,
   PaymentMethodType,
   SalesSettings,
   SalesTax,
-} from "@/modules/sales/shared";
+} from "../shared";
 
 const METHOD_TYPE_OPTIONS = [
   { value: "cash", label: "Cash" },

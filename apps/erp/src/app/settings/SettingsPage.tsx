@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { AppShell, useNavbarDefaults } from "@/app";
@@ -14,12 +14,13 @@ import { SettingsComingSoonPanel } from "./components/SettingsComingSoonPanel";
 import { useSession } from "@/app/session";
 
 import {
+  GENERAL_MODULE,
   defaultSettingsModule,
-  isSampleModule,
-  sampleModule,
+  settingsAreas,
+  settingsHashFor,
+  settingsHashLanding,
   settingsSubmenuFor,
-  settingsTabsForModule,
-  type SettingsModuleKey,
+  type SettingsArea,
   type SettingsNavKey,
 } from "./settingsModules";
 
@@ -33,25 +34,10 @@ export type { SettingsDetailView } from "./settingsViews";
 
 export type { SettingsModuleKey, SettingsNavKey } from "./settingsModules";
 
-const HASH_TO_TAB: Record<string, SettingsTabKey> = {
-  sales: "sales",
-  "sales-taxes": "sales-taxes",
-  "sales-payments": "sales-payments",
-};
-
-function tabFromHash(
-  hash: string
-): { module: SettingsModuleKey; tab: SettingsTabKey } | null {
-  const key = hash.replace(/^#/, "");
-  const tab = HASH_TO_TAB[key];
-  if (!tab) return null;
-  return { module: "sales", tab };
-}
-
 export interface SettingsPageProps {
   /** Storybook / tests only — production route always opens Users first. */
 
-  defaultTab?: SettingsTabKey;
+  defaultTab?: SettingsTabKey | string;
 
   defaultModule?: SettingsNavKey;
 
@@ -63,7 +49,7 @@ export interface SettingsPageProps {
 export default function SettingsPage({
   defaultTab = "users",
 
-  defaultModule = "general",
+  defaultModule = GENERAL_MODULE,
 
   defaultDetailView = null,
 
@@ -71,18 +57,29 @@ export default function SettingsPage({
 }: SettingsPageProps) {
   const session = useSession();
   const permissions = session?.permissions ?? null;
+  const enabledModules = session?.enabled_modules ?? null;
   const [searchParams] = useSearchParams();
 
+  // Every area the navbar can offer, with its tabs already filtered by
+  // what this account holds. A module's area comes from its manifest, so
+  // nothing here is per-module.
+  const areas = useMemo(
+    () => settingsAreas(permissions, enabledModules),
+    [permissions, enabledModules]
+  );
+
   const hashLanding =
-    typeof window !== "undefined" ? tabFromHash(window.location.hash) : null;
-  const queryModule = searchParams.get("module") as SettingsModuleKey | null;
-  const queryTab = searchParams.get("tab") as SettingsTabKey | null;
+    typeof window !== "undefined" ? settingsHashLanding(window.location.hash) : null;
+  const queryModule = searchParams.get("module");
+  const queryTab = searchParams.get("tab");
 
   const [activeModule, setActiveModule] = useState<SettingsNavKey>(
     hashLanding?.module ??
-      (queryModule === "sales" || queryModule === "general" ? queryModule : defaultModule)
+      (queryModule && areas.some((area) => area.key === queryModule)
+        ? queryModule
+        : defaultModule)
   );
-  const [activeTab, setActiveTab] = useState<SettingsTabKey>(
+  const [activeTab, setActiveTab] = useState<string>(
     hashLanding?.tab ?? queryTab ?? defaultTab
   );
   const [detailView, setDetailView] = useState<SettingsDetailView | null>(
@@ -92,7 +89,7 @@ export default function SettingsPage({
 
   useEffect(() => {
     function syncFromHash() {
-      const landed = tabFromHash(window.location.hash);
+      const landed = settingsHashLanding(window.location.hash);
       if (!landed) return;
       setActiveModule(landed.module);
       setActiveTab(landed.tab);
@@ -104,68 +101,72 @@ export default function SettingsPage({
     return () => window.removeEventListener("hashchange", syncFromHash);
   }, []);
 
-  function handleTabChange(key: SettingsTabKey) {
-    setActiveTab(key);
-    setDetailView(null);
-    setDocumentLayoutOpen(false);
-    if (activeModule === "sales") {
-      const hash = Object.entries(HASH_TO_TAB).find(([, tab]) => tab === key)?.[0];
-      if (hash) window.history.replaceState(null, "", `#${hash}`);
-    }
-  }
+  // An area with no tabs owns the body on its own: either it is a module
+  // this workspace has not installed, or a placeholder. Both say "Coming
+  // soon", so neither resolves a tab.
+  const selected: SettingsArea | undefined = areas.find(
+    (area) => area.key === activeModule
+  );
+  const openArea: SettingsArea =
+    selected && (!selected.available || selected.tabs.length > 0)
+      ? selected
+      : (areas.find(
+          (area) => area.key === defaultSettingsModule(permissions, enabledModules)
+        ) ?? areas[0]);
 
-  // A placeholder module has no tabs and no settings -- it owns the body
-  // on its own, so the real-module resolution below is skipped entirely.
-  const placeholder = isSampleModule(activeModule)
-    ? sampleModule(activeModule)
-    : undefined;
-
-  const openModule = (
-    placeholder
-      ? activeModule
-      : settingsTabsForModule(activeModule as SettingsModuleKey, permissions).length > 0
-        ? activeModule
-        : defaultSettingsModule(permissions)
-  ) as SettingsNavKey;
-
-  const tabs = placeholder
-    ? []
-    : settingsTabsForModule(openModule as SettingsModuleKey, permissions);
+  const comingSoon = !openArea.available;
+  const tabs = openArea.tabs;
 
   // Land on a tab this account can actually open: the default is Users,
   // which a "Document Layout only" grant has no business seeing.
-  const openTab = (
-    tabs.some((tab) => tab.key === activeTab) ? activeTab : (tabs[0]?.key ?? activeTab)
-  ) as SettingsTabKey;
+  const openTab = tabs.some((tab) => tab.key === activeTab)
+    ? activeTab
+    : (tabs[0]?.key ?? activeTab);
+
+  function handleTabChange(key: string) {
+    setActiveTab(key);
+    setDetailView(null);
+    setDocumentLayoutOpen(false);
+    const hash = settingsHashFor(openArea.key, key);
+    if (hash) window.history.replaceState(null, "", hash);
+  }
+
+  function clearModuleHash() {
+    if (settingsHashLanding(window.location.hash)) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }
 
   const navbar = useNavbarDefaults({
     brandLabel: "Settings",
     submenuTone: "quiet",
-    submenuItems: settingsSubmenuFor((key) => {
-      setActiveModule(key);
-      setDetailView(null);
-      setDocumentLayoutOpen(false);
-      if (isSampleModule(key)) {
-        if (window.location.hash.startsWith("#sales")) {
-          window.history.replaceState(null, "", window.location.pathname);
+    submenuItems: settingsSubmenuFor(
+      (key) => {
+        setActiveModule(key);
+        setDetailView(null);
+        setDocumentLayoutOpen(false);
+        const next = areas.find((area) => area.key === key);
+        const firstTab = next?.tabs[0]?.key;
+        if (!firstTab) {
+          clearModuleHash();
+          return;
         }
-        return;
-      }
-      const nextTabs = settingsTabsForModule(key, permissions);
-      if (nextTabs[0]) {
-        setActiveTab(nextTabs[0].key as SettingsTabKey);
-        if (key === "sales") {
-          window.history.replaceState(null, "", "#sales");
-        } else if (window.location.hash.startsWith("#sales")) {
-          window.history.replaceState(null, "", window.location.pathname);
+        setActiveTab(firstTab);
+        const hash = settingsHashFor(key, firstTab);
+        if (hash) {
+          window.history.replaceState(null, "", hash);
+        } else {
+          clearModuleHash();
         }
-      }
-    }, permissions),
-    submenuActiveKey: openModule,
+      },
+      permissions,
+      enabledModules
+    ),
+    submenuActiveKey: openArea.key,
   });
 
   function openDetail(view: SettingsDetailView) {
-    setActiveModule("general");
+    setActiveModule(GENERAL_MODULE);
     setActiveTab(detailViewTab(view));
     setDetailView(view);
   }
@@ -182,10 +183,14 @@ export default function SettingsPage({
     setDocumentLayoutOpen(false);
   }
 
+  // A module's tab renders its own panel; General's come from the shell,
+  // because they share this page's state.
+  const ModulePanel = openArea.panels[openTab];
+
   return (
     <AppShell activeNavKey="settings" activeMobileKey="more" navbar={navbar}>
-      {placeholder ? (
-        <SettingsComingSoonPanel module={placeholder} />
+      {comingSoon ? (
+        <SettingsComingSoonPanel module={openArea} />
       ) : (
         <>
           {tabs.length > 0 ? (
@@ -193,18 +198,36 @@ export default function SettingsPage({
               align="container"
               items={tabs}
               activeKey={openTab}
-              onChange={(key) => handleTabChange(key as SettingsTabKey)}
-              aria-label={`${openModule} settings sections`}
+              onChange={(key) => handleTabChange(key as string)}
+              aria-label={`${openArea.key} settings sections`}
             />
           ) : null}
 
-          <SettingsTabPanel
-            activeTab={openTab}
-            detailView={detailView}
-            onOpenDetail={openDetail}
-            onOpenDocumentLayout={openDocumentLayout}
-            onBack={handleBack}
-          />
+          {ModulePanel ? (
+            <Suspense
+              fallback={
+                <div
+                  className="grid min-h-[22rem] place-items-center rounded-sm border border-erp-border-soft bg-white"
+                  role="tabpanel"
+                  aria-busy="true"
+                >
+                  <p className="m-0 text-[12px] text-erp-muted">
+                    Loading {openArea.label}…
+                  </p>
+                </div>
+              }
+            >
+              <ModulePanel />
+            </Suspense>
+          ) : (
+            <SettingsTabPanel
+              activeTab={openTab as SettingsTabKey}
+              detailView={detailView}
+              onOpenDetail={openDetail}
+              onOpenDocumentLayout={openDocumentLayout}
+              onBack={handleBack}
+            />
+          )}
 
           <DocumentLayoutModal open={documentLayoutOpen} onClose={closeDocumentLayout} />
         </>

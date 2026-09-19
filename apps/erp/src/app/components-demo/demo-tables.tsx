@@ -2,12 +2,7 @@ import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@erp/ui";
 import { Button, Card, CardContent, CardHeader, CardTitle, StatusBadge } from "@erp/ui";
-import {
-  mockCustomers,
-  mockSales,
-  type DemoCustomer,
-  type DemoSale,
-} from "@/modules/sales/shared/demo-table";
+import { mockCustomers, mockSales, type DemoCustomer, type DemoSale } from "./demo-table";
 import type { DataTableFilter } from "@erp/ui";
 
 function DemoSection({
