@@ -61,9 +61,17 @@ describe("module registry", () => {
   });
 
   it("never lets a runtime module shadow a compiled-in one", () => {
-    registerRuntimeModule(manifest({ key: "sales", label: "Impostor" }));
-    const sales = getModules().find((module) => module.key === "sales");
-    expect(sales?.label).toBe("Sales");
+    // Whichever modules this build compiles in -- none, once every module
+    // ships as a package -- a runtime one may not take a key they hold.
+    const compiled = moduleRegistry[0];
+    if (!compiled) {
+      expect(compiledKeys()).toEqual([]);
+      return;
+    }
+    registerRuntimeModule(manifest({ key: compiled.key, label: "Impostor" }));
+    const held = getModules().filter((module) => module.key === compiled.key);
+    expect(held).toHaveLength(1);
+    expect(held[0].label).toBe(compiled.label);
   });
 
   it("resolves whoever is waiting for a key", async () => {

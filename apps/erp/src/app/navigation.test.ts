@@ -1,8 +1,40 @@
-import { Package } from "lucide-react";
+import { Package, ShoppingCart } from "lucide-react";
 import { describe, expect, it } from "vitest";
-import { moduleRegistry } from "@/modules";
 import type { ModuleManifest } from "@/modules/types";
 import { NAV_AREAS, buildNavigation } from "./navigation";
+
+/**
+ * A module to navigate, declared here rather than taken from the live
+ * registry.
+ *
+ * These are the shell's rules, not one module's: reading the real
+ * registry made them pass or fail on which modules a build happens to
+ * carry, and they broke the moment Sales was extracted into a package.
+ * The fixture is sales-shaped because the shell still keeps Sales'
+ * nav requirements in `app/access.ts`; that the real manifest matches
+ * it is the module's own test.
+ */
+const SALES: ModuleManifest = {
+  key: "sales",
+  navArea: "sales",
+  id: "sales",
+  label: "Sales",
+  version: "1.0.0",
+  icon: ShoppingCart,
+  path: "/sales",
+  nav: {
+    key: "sales",
+    label: "Sales",
+    icon: ShoppingCart,
+    href: "/sales",
+    children: [
+      { key: "customers", label: "Customers", href: "/sales/customers" },
+      { key: "products", label: "Products", href: "/sales/products" },
+      { key: "settings", label: "Settings", href: "/settings#sales" },
+    ],
+  },
+  Routes: () => null,
+};
 
 const OWNER_CODES = ["sales.customer.view", "sales.sale.view", "settings.role.edit"];
 
@@ -21,7 +53,7 @@ const POS: ModuleManifest = {
 
 function keys(
   session: Parameters<typeof buildNavigation>[0],
-  modules: readonly ModuleManifest[] = moduleRegistry
+  modules: readonly ModuleManifest[] = [SALES]
 ) {
   return buildNavigation(session, modules).map((item) => item.key);
 }
@@ -73,7 +105,7 @@ describe("buildNavigation", () => {
   });
 
   it("offers a runtime module through its own resources", () => {
-    const modules = [...moduleRegistry, POS];
+    const modules = [SALES, POS];
     const session = {
       permissions: ["pos.ticket.view_own"],
       enabled_modules: ["pos"],
@@ -135,7 +167,7 @@ describe("buildNavigation", () => {
         enabled_modules: ["sales"],
         user_type: "member",
       },
-      moduleRegistry
+      [SALES]
     );
     const sales = items.find((item) => item.key === "sales");
     expect(sales?.children?.map((c) => c.key)).toEqual(["customers"]);
@@ -154,7 +186,7 @@ describe("buildNavigation", () => {
         enabled_modules: ["sales"],
         user_type: "member",
       },
-      moduleRegistry
+      [SALES]
     );
     const sales = items.find((item) => item.key === "sales");
     expect(sales?.children?.map((c) => c.key)).toEqual([
