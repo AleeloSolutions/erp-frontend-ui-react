@@ -96,6 +96,20 @@ export const Sales: Story = {
   },
 };
 
+export const SalesTaxes: Story = {
+  args: {
+    defaultModule: "sales",
+    defaultTab: "sales-taxes",
+  },
+};
+
+export const SalesPaymentMethods: Story = {
+  args: {
+    defaultModule: "sales",
+    defaultTab: "sales-payments",
+  },
+};
+
 /**
  * A module that does not exist yet: no tabs, no controls, one sentence
  * saying so. The navbar above it is the point — eight entries is what the
