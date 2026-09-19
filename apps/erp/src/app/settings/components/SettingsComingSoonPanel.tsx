@@ -1,11 +1,16 @@
-import type { SampleModule } from "../settingsModules";
+import type { LucideIcon } from "lucide-react";
 
 export interface SettingsComingSoonPanelProps {
-  module: SampleModule;
+  /** Label and mark of the area, from its manifest or its placeholder. */
+  module: { label: string; icon: LucideIcon };
 }
 
 /**
- * What a module that does not exist yet shows.
+ * What an area with nothing behind it shows.
+ *
+ * Two cases reach here and they read the same to the person looking:
+ * a module this build carries no settings for, and a real module the
+ * workspace has not installed.
  *
  * Deliberately inert: there is nothing to configure, so there is nothing
  * to click. A greyed-out Save button here would be a control that looks

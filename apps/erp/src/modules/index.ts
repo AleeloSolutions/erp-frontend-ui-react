@@ -8,11 +8,13 @@
  * `me.enabled_modules`.
  */
 
-import { salesManifest } from "./sales/manifest";
 import type { ModuleManifest } from "./types";
+import { salesManifest } from "./sales/manifest";
 
 export type { ErpModule, ModuleManifest } from "./types";
 
+// Sales ships as a package (backend AGENTS.md, section 1c): its promote PR
+// adds the manifest import above and the registry entry below.
 export const moduleRegistry: ModuleManifest[] = [salesManifest];
 
 /** The entries of `modules` a tenant has switched on, in registry order. */

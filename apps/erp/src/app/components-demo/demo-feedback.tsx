@@ -9,7 +9,8 @@ import {
   Drawer,
   useToast,
 } from "@erp/ui";
-import { useCustomersQuery } from "@/modules/sales/customers";
+import { useQuery } from "@tanstack/react-query";
+import { apiGetPage } from "@/lib/api-client";
 function DemoSection({
   title,
   description,
@@ -37,7 +38,15 @@ export function FeedbackAndQueryDemos() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const customersQuery = useCustomersQuery({ page: 1, pageSize: 5 });
+  // Branches, not a module's list: this page demonstrates @erp/ui and
+  // must keep compiling in a build that carries no business modules.
+  const branchesQuery = useQuery({
+    queryKey: ["components-demo", "branches"],
+    queryFn: () =>
+      apiGetPage<{ uuid: string; name: string; is_archived: boolean }>(
+        "/v1/branches/?page=1&page_size=5"
+      ),
+  });
 
   return (
     <>
@@ -81,33 +90,33 @@ export function FeedbackAndQueryDemos() {
 
       <DemoSection
         title="TanStack Query — Customers"
-        description="Live list query with loading / error / success states (shared with /sales/customers)."
+        description="Live list query with loading / error / success states (the workspace's branches)."
       >
         <div className="mb-2 flex flex-wrap gap-2">
           <Button
             variant="secondary"
-            onClick={() => void customersQuery.refetch()}
-            loading={customersQuery.isFetching}
+            onClick={() => void branchesQuery.refetch()}
+            loading={branchesQuery.isFetching}
           >
             Refetch
           </Button>
           <span className="self-center text-[11px] text-erp-muted">
-            {customersQuery.isLoading
+            {branchesQuery.isLoading
               ? "Loading…"
-              : customersQuery.isError
-                ? customersQuery.error.message
-                : `${customersQuery.data?.meta.total ?? 0} customers loaded`}
+              : branchesQuery.isError
+                ? branchesQuery.error.message
+                : `${branchesQuery.data?.meta.total ?? 0} branches loaded`}
           </span>
         </div>
         <ul className="m-0 list-none space-y-1 p-0 text-[12px]">
-          {(customersQuery.data?.data ?? []).map((customer) => (
+          {(branchesQuery.data?.data ?? []).map((branch) => (
             <li
-              key={customer.uuid}
+              key={branch.uuid}
               className="flex items-center justify-between rounded-md border border-erp-border-soft px-2.5 py-1.5"
             >
-              <span className="font-bold text-erp-text">{customer.name}</span>
+              <span className="font-bold text-erp-text">{branch.name}</span>
               <span className="text-erp-subtle">
-                {customer.is_archived ? "Archived" : "Active"}
+                {branch.is_archived ? "Archived" : "Active"}
               </span>
             </li>
           ))}
