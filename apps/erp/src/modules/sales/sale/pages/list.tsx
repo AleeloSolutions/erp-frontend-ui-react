@@ -58,6 +58,7 @@ import {
 } from "../queries";
 import {
   SALE_GROUP_PAGE_SIZE,
+  SALE_GROUP_ROW_PAGE_SIZE,
   SALE_SUBGROUP_PAGE_SIZE,
   saleGroupPathOf,
   type Sale,
@@ -490,13 +491,13 @@ export default function SalesPage() {
           options: saleGroupRowsQueryOptions(node.groupPath, {
             ...baseParams,
             page: index,
-            pageSize,
+            pageSize: SALE_GROUP_ROW_PAGE_SIZE,
           }),
         });
       }
     });
     return queries;
-  }, [openNodes, pageCounts, baseParams, pageSize]);
+  }, [openNodes, pageCounts, baseParams]);
 
   /**
    * `combine` rather than reading the results array directly: React Query
@@ -805,7 +806,7 @@ export default function SalesPage() {
                 groupLabel: saleGroupLabelOf(topSpec),
                 formatAmount: formatMoney,
                 // The rows one Load more asks for, so the label says the truth.
-                rowPageSize: pageSize,
+                rowPageSize: SALE_GROUP_ROW_PAGE_SIZE,
                 nesting: {
                   levels: groupLevels,
                   nodesByPath,

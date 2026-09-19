@@ -29,9 +29,9 @@ const TONES: Record<
   quiet: {
     item: "h-7 gap-1.5 px-2 text-[12px] max-[720px]:h-8 max-[720px]:px-2.5 max-[720px]:text-[13px]",
     icon: "h-3.5 w-3.5",
-    idle: "text-erp-subtle hover:bg-black/[0.04] hover:text-erp-text",
+    idle: "hover:bg-black/[0.04]",
     active:
-      "font-medium text-erp-text after:absolute after:inset-x-2 after:bottom-0 after:h-[2px] after:rounded-full after:bg-erp-primary",
+      "font-medium text-erp-primary after:absolute after:inset-x-2 after:bottom-0 after:h-[2px] after:rounded-full after:bg-erp-primary",
   },
 };
 
