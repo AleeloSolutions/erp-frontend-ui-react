@@ -224,6 +224,16 @@ export const SALE_GROUP_PAGE_SIZE = 50;
  */
 export const SALE_SUBGROUP_PAGE_SIZE = 100;
 
+/**
+ * Rows per request inside an open group — the first page and every Load more.
+ *
+ * Deliberately its own number rather than the flat list's page size: a group
+ * is opened to read what is in it, and 25 of 116 is a group that has to be
+ * asked four more times. It is what the Load more button names, so the two
+ * cannot drift apart.
+ */
+export const SALE_GROUP_ROW_PAGE_SIZE = 50;
+
 /** JSON null cannot travel in a query string, so the null group is named. */
 export const NULL_GROUP_KEY = "__none__";
 
